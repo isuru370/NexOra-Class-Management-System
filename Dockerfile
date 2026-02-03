@@ -1,5 +1,5 @@
 # Use official PHP image with required extensions
-FROM php:8.2-fpm
+FROM php:8.2-cli
 
 # Set working directory
 WORKDIR /var/www/html
@@ -21,12 +21,12 @@ COPY --from=composer:2.6 /usr/bin/composer /usr/bin/composer
 # Copy app files
 COPY . .
 
-# Set permissions (optional but recommended)
+# Set permissions
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html
 
-# Expose port (optional; Coolify handles this)
+# Expose port 8000 (Laravel serve)
 EXPOSE 8000
 
-# Start PHP-FPM
-CMD ["php-fpm"]
+# Start Laravel built-in server
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
