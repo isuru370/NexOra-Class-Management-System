@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\ClassRoom;
 use App\Models\Payments;
 use App\Models\Teacher;
 use App\Models\TeacherPayment;
@@ -67,59 +68,75 @@ class TeacherLedgerSummaryService
     private function getOpeningBalance(string $yearMonth): float
     {
         try {
+            // Validate YYYY-MM
             if (!preg_match('/^\d{4}-\d{2}$/', $yearMonth) || $yearMonth <= '2024-01') {
                 return 0.0;
             }
 
-            // Previous month start & end
-            $startDate = Carbon::createFromFormat('Y-m', $yearMonth)
-                ->subMonth()
-                ->startOfMonth();
+            // Start from 2026-01
+            $startDate = Carbon::create(2026, 1, 1)->startOfDay();
+            $endDate   = Carbon::createFromFormat('Y-m', $yearMonth)->startOfMonth();
 
-            $endDate = Carbon::createFromFormat('Y-m', $yearMonth)
-                ->subMonth()
-                ->endOfMonth();
+            // If month before 2026-01
+            if ($endDate->lessThanOrEqualTo($startDate)) {
+                return 0.0;
+            }
 
             $totalBalance = 0;
 
             $teachers = Teacher::where('is_active', 1)->get();
 
-            foreach ($teachers as $teacher) {
-                // Database column name අනුව percentage/precentage
-                $percentage = $teacher->percentage ?? $teacher->precentage ?? 0;
+            // Loop month by month from 2026-01 until selected month (exclusive)
+            $period = $startDate->copy();
+            while ($period->lt($endDate)) {
 
-                // Teacher earnings (previous month only)
-                $totalEarnings = Payments::where('status', 1)
-                    ->whereBetween('payment_date', [$startDate, $endDate])
-                    ->whereHas('studentStudentClass.studentClass', function ($q) use ($teacher) {
-                        $q->where('teacher_id', $teacher->id)
-                            ->where('is_active', 1);
-                    })
-                    ->sum('amount');
+                $monthStart = $period->copy()->startOfMonth();
+                $monthEnd   = $period->copy()->endOfMonth();
 
-                // Payments already made to teacher - column name 'payment' විය හැකිය
-                $totalPaid = TeacherPayment::where('status', 1)
-                    ->whereBetween('date', [$startDate, $endDate])
-                    ->where('teacher_id', $teacher->id)
-                    ->sum('payment'); // amount → payment වෙනස් කරන්න
+                foreach ($teachers as $teacher) {
+                    // දැන් ප්‍රතිශතය class එකෙන් ගන්නවා (teacher_percentage)
+                    $classes = ClassRoom::where('teacher_id', $teacher->id)
+                        ->where('is_active', 1)
+                        ->get();
 
+                    foreach ($classes as $class) {
+                        $percentage = $class->teacher_percentage ?? 0;
 
-                // Teacher net balance
-                $teacherNet = (($totalEarnings * $percentage) / 100) - $totalPaid;
+                        // මෙම class සඳහා ගෙවීම්
+                        $classEarnings = Payments::where('status', 1)
+                            ->whereBetween('payment_date', [$monthStart, $monthEnd])
+                            ->whereHas('studentStudentClass.studentClass', function ($q) use ($class) {
+                                $q->where('id', $class->id)
+                                    ->where('is_active', 1);
+                            })
+                            ->sum('amount');
 
-                $totalBalance += $teacherNet;
+                        // මෙම class සඳහා ගුරුවරයාට ගෙවා ඇති මුදල
+                        $classPaid = TeacherPayment::where('status', 1)
+                            ->whereBetween('date', [$monthStart, $monthEnd])
+                            ->where('teacher_id', $teacher->id)
+                            // අමතරව, payment එක specific class එකකටදැයි පරීක්ෂා කරන්න
+                            // (මෙය ඔබේ system අනුව customize කරන්න)
+                            ->sum('payment');
+
+                        // මෙම class සඳහා net balance
+                        $classNet = (($classEarnings * $percentage) / 100) - $classPaid;
+
+                        $totalBalance += $classNet;
+                    }
+                }
+
+                // Move to next month
+                $period->addMonth();
             }
 
             return round($totalBalance, 2);
         } catch (Throwable $e) {
-            Log::error('Opening balance error', [
-                'month' => $yearMonth,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
+            Log::error('Opening Balance Calculation Error', ['error' => $e->getMessage()]);
             return 0.0;
         }
     }
+
 
 
     /**
@@ -129,7 +146,7 @@ class TeacherLedgerSummaryService
     {
         $entries = collect();
 
-        // Group payments by teacher and date
+        // Group payments by class and date
         $payments = Payments::with(['studentStudentClass.studentClass.teacher'])
             ->where('status', 1)
             ->whereBetween('payment_date', [$start, $end])
@@ -142,28 +159,31 @@ class TeacherLedgerSummaryService
             ->orderBy('payment_date')
             ->get();
 
-        // Group by teacher_id and date
+        // Group by class_id and date (එක class එකකට දිනකට එක් entry එකක්)
         $groupedPayments = [];
 
         foreach ($payments as $p) {
-            $teacher = $p->studentStudentClass->studentClass->teacher;
-            if (!$teacher) {
+            $class = $p->studentStudentClass->studentClass;
+            $teacher = $class->teacher;
+
+            if (!$teacher || !$class) {
                 continue;
             }
 
             $date = Carbon::parse($p->payment_date)->format('Y-m-d');
-            $key = $teacher->id . '|' . $date;
+            $key = $class->id . '|' . $date;
 
             if (!isset($groupedPayments[$key])) {
                 $groupedPayments[$key] = [
                     'date' => Carbon::parse($p->payment_date)->startOfDay(),
                     'teacher' => $teacher,
+                    'class' => $class,
                     'total_amount' => 0
                 ];
             }
 
-            // Calculate teacher's share for this payment
-            $teacherShare = ($p->amount * $teacher->precentage) / 100;
+            // Calculate teacher's share for this payment USING CLASS PERCENTAGE
+            $teacherShare = ($p->amount * $class->teacher_percentage) / 100;
             $groupedPayments[$key]['total_amount'] += $teacherShare;
         }
 
@@ -172,9 +192,8 @@ class TeacherLedgerSummaryService
             if ($group['total_amount'] > 0) {
                 $entries->push([
                     'date' => $group['date'],
-                    'description' => 'Income - ' . trim(
-                        $group['teacher']->fname . ' ' . $group['teacher']->lname
-                    ),
+                    'description' => 'Income - ' . trim($group['teacher']->fname . ' ' . $group['teacher']->lname) .
+                        ' (' . $group['class']->class_name . ')',
                     'receipt' => (float) round($group['total_amount'], 2),
                     'payment' => 0.0
                 ]);

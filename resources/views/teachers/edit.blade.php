@@ -186,13 +186,6 @@
                                                 </select>
                                             </div>
                                             </div>
-                                            <div class="col-md-6">
-                                                <div class="mb-3">
-                                                    <label for="precentage" class="form-label">Percentage (%)</label>
-                                                    <input type="number" class="form-control" id="precentage"
-                                                        name="precentage" min="0" max="100" step="0.1" placeholder="0.0">
-                                                </div>
-                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -415,9 +408,6 @@
             // Experience - handle different data types
             setExperienceValue(teacher.experience);
 
-            // Percentage
-            document.getElementById('precentage').value = teacher.precentage || '';
-
             // Bank Information
             document.getElementById('account_number').value = teacher.account_number || '';
 
@@ -639,14 +629,6 @@
             if (!form.checkValidity()) {
                 form.classList.add('was-validated');
                 showError('Please fill in all required fields correctly.');
-                return;
-            }
-
-            // Validate percentage
-            const percentage = document.getElementById('precentage').value;
-            if (percentage < 0 || percentage > 100) {
-                showError('Percentage must be between 0 and 100.');
-                document.getElementById('precentage').focus();
                 return;
             }
 

@@ -13,22 +13,82 @@ use Illuminate\Validation\Rule;
 
 class TeacherService
 {
-    public function fetchTeachers()
+    // In your TeacherController.php
+    public function fetchTeachers(Request $request)
     {
         try {
-            $teachers = Teacher::with([
+            $query = Teacher::with([
                 'bankBranch' => function ($query) {
                     $query->select('id', 'branch_name', 'branch_code', 'bank_id');
                 },
                 'bankBranch.bank' => function ($query) {
                     $query->select('id', 'bank_name', 'bank_code');
                 }
-            ])->orderBy('id', 'desc')
-                ->get();
+            ]);
+
+            // Apply search filter
+            if ($request->has('search') && !empty($request->search)) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('fname', 'like', '%' . $search . '%')
+                        ->orWhere('lname', 'like', '%' . $search . '%')
+                        ->orWhere('email', 'like', '%' . $search . '%')
+                        ->orWhere('nic', 'like', '%' . $search . '%')
+                        ->orWhere('mobile', 'like', '%' . $search . '%')
+                        ->orWhere('custom_id', 'like', '%' . $search . '%');
+                });
+            }
+
+            // Apply status filter
+            if ($request->has('status') && !empty($request->status)) {
+                if ($request->status === 'active') {
+                    $query->where('is_active', true);
+                } elseif ($request->status === 'inactive') {
+                    $query->where('is_active', false);
+                }
+            }
+
+            // Apply gender filter
+            if ($request->has('gender') && !empty($request->gender)) {
+                $query->where('gender', $request->gender);
+            }
+
+            // Get sorting parameters
+            $sortBy = $request->get('sort_by', 'id');
+            $sortOrder = $request->get('sort_order', 'desc');
+            $query->orderBy($sortBy, $sortOrder);
+
+            // Pagination
+            $perPage = $request->get('per_page', 10);
+            $page = $request->get('page', 1);
+
+            $teachers = $query->paginate($perPage, ['*'], 'page', $page);
+
+            // Get statistics for the filtered results
+            $totalTeachers = Teacher::count();
+            $activeTeachers = Teacher::where('is_active', true)->count();
+            $maleTeachers = Teacher::where('gender', 'Male')->count();
+            $femaleTeachers = Teacher::where('gender', 'Female')->count();
 
             return response()->json([
                 'status' => 'success',
-                'data' => $teachers
+                'data' => [
+                    'teachers' => $teachers->items(),
+                    'pagination' => [
+                        'current_page' => $teachers->currentPage(),
+                        'per_page' => $teachers->perPage(),
+                        'total' => $teachers->total(),
+                        'last_page' => $teachers->lastPage(),
+                        'from' => $teachers->firstItem(),
+                        'to' => $teachers->lastItem(),
+                    ],
+                    'statistics' => [
+                        'total' => $totalTeachers,
+                        'active' => $activeTeachers,
+                        'male' => $maleTeachers,
+                        'female' => $femaleTeachers
+                    ]
+                ]
             ]);
         } catch (Exception $e) {
             return response()->json([
@@ -126,8 +186,7 @@ class TeacherService
                 'address2' => 'nullable|string|max:255',
                 'address3' => 'nullable|string|max:255',
                 'graduation_details' => 'nullable|string',
-                'experience' => 'nullable|string|max:100', // ✅ Fixed: removed min:0
-                'precentage' => 'required|numeric|min:0|max:100', // ✅ Make required
+                'experience' => 'nullable|string|max:100',
                 'account_number' => 'nullable|string|max:50',
                 'bank_branch_id' => 'nullable|exists:bank_branch,id',
                 'is_active' => 'nullable|boolean',
@@ -151,8 +210,7 @@ class TeacherService
                 'address3' => $validated['address3'] ?? null,
                 'is_active' => $request->has('is_active') ? $request->is_active : true,
                 'graduation_details' => $validated['graduation_details'] ?? null,
-                'experience' => $validated['experience'] ?? 'Less than a year', // Default value
-                'precentage' => $validated['precentage'] ?? 0,
+                'experience' => $validated['experience'],
                 'account_number' => $validated['account_number'] ?? null,
                 'bank_branch_id' => $validated['bank_branch_id'] ?? null,
             ]);
@@ -225,8 +283,7 @@ class TeacherService
                 'address2' => 'nullable|string|max:255',
                 'address3' => 'nullable|string|max:255',
                 'graduation_details' => 'nullable|string',
-                'experience' => 'nullable|string|max:100', // ✅ Add validation
-                'precentage' => 'required|numeric|min:0|max:100', // ✅ Make required
+                'experience' => 'nullable|string|max:100',
                 'account_number' => 'nullable|string|max:50',
                 'bank_branch_id' => 'nullable|exists:bank_branch,id',
                 'is_active' => 'nullable|boolean',
@@ -246,8 +303,7 @@ class TeacherService
                 'address3' => $validated['address3'] ?? $teacher->address3,
                 'is_active' => $request->has('is_active') ? $request->is_active : $teacher->is_active,
                 'graduation_details' => $validated['graduation_details'] ?? $teacher->graduation_details,
-                'experience' => $validated['experience'] ?? $teacher->experience ?? 'Less than a year', // ✅ Fix default
-                'precentage' => $validated['precentage'] ?? $teacher->precentage,
+                'experience' => $validated['experience'] ?? $teacher->experience,
                 'account_number' => $validated['account_number'] ?? $teacher->account_number,
                 'bank_branch_id' => $validated['bank_branch_id'] ?? $teacher->bank_branch_id,
             ]);

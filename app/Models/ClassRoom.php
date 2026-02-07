@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ClassType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -13,6 +14,8 @@ class ClassRoom extends Model
 
     protected $fillable = [
         'class_name',
+        'class_type',
+        'teacher_percentage',
         'is_active',
         'is_ongoing',
         'teacher_id',
@@ -20,33 +23,41 @@ class ClassRoom extends Model
         'grade_id'
     ];
 
-    // Type casting for JSON responses
     protected $casts = [
-        'is_active'   => 'boolean',
-        'is_ongoing'  => 'boolean',
-        'teacher_id'  => 'integer',
-        'subject_id'  => 'integer',
-        'grade_id'    => 'integer',
-        // Timestamps
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+        'teacher_percentage' => 'decimal:2',
+        'is_active'         => 'boolean',
+        'is_ongoing'        => 'boolean',
+        'teacher_id'        => 'integer',
+        'subject_id'        => 'integer',
+        'grade_id'          => 'integer',
+        'created_at'        => 'datetime',
+        'updated_at'        => 'datetime',
     ];
 
-    // A class belongs to a teacher
+    // Relationships
     public function teacher()
     {
-        return $this->belongsTo(Teacher::class, 'teacher_id', 'id');
+        return $this->belongsTo(Teacher::class);
     }
 
-    // A class belongs to a subject
     public function subject()
     {
-        return $this->belongsTo(Subject::class, 'subject_id', 'id');
+        return $this->belongsTo(Subject::class);
     }
 
-    // A class belongs to a grade
     public function grade()
     {
-        return $this->belongsTo(Grade::class, 'grade_id', 'id');
+        return $this->belongsTo(Grade::class);
+    }
+
+    // Helpers
+    public function isOnline(): bool
+    {
+        return $this->class_type === ClassType::ONLINE;
+    }
+
+    public function isOffline(): bool
+    {
+        return $this->class_type === ClassType::OFFLINE;
     }
 }

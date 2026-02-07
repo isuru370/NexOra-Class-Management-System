@@ -6,7 +6,6 @@ use App\Models\AdmissionPayments;
 use App\Models\ExtraIncomes;
 use App\Models\InstitutePayment;
 use App\Models\Payments;
-use App\Models\Teacher;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\Log;
@@ -67,70 +66,82 @@ class LedgerSummaryService
     private function getOpeningBalance(string $yearMonth): float
     {
         try {
-            // YYYY-MM format validate කරනවා
+            // YYYY-MM format validate
             if (!preg_match('/^\d{4}-\d{2}$/', $yearMonth)) {
                 return 0.0;
             }
 
-            // 2024-01 නම් opening balance 0
-            if ($yearMonth <= '2024-01') {
+            // Start from 2026-01
+            $startDate = Carbon::create(2026, 1, 1)->startOfDay();
+            $endDate   = Carbon::createFromFormat('Y-m', $yearMonth)->startOfMonth();
+
+            // If month before 2026-01
+            if ($endDate->lessThanOrEqualTo($startDate)) {
                 return 0.0;
             }
 
-            // Previous month dates
-            $prevMonth = Carbon::createFromFormat('Y-m', $yearMonth)->subMonth();
-            $prevMonthStart = $prevMonth->copy()->startOfMonth();
-            $prevMonthEnd   = $prevMonth->copy()->endOfMonth();
+            $openingBalance = 0;
 
-            // 1. ආදායම් (Institute Share පමණක්)
-            $totalInstituteReceipts = 0;
+            // Loop over all months from 2026-01 until selected month (exclusive)
+            $period = Carbon::parse($startDate);
+            while ($period->lt($endDate)) {
 
-            // Class payments (teacher කොටස අඩු කරලා)
-            $classPayments = Payments::with(['studentStudentClass.studentClass.teacher'])
-                ->where('status', 1)
-                ->whereBetween('payment_date', [$prevMonthStart, $prevMonthEnd])
-                ->get();
+                $monthStart = $period->copy()->startOfMonth();
+                $monthEnd   = $period->copy()->endOfMonth();
 
-            foreach ($classPayments as $payment) {
-                $teacher = $payment->studentStudentClass->studentClass->teacher ?? null;
+                /** -------------------------
+                 * 1. Institute receipts
+                 * ------------------------*/
+                $totalInstituteReceipts = 0;
 
-                if ($teacher && $teacher->is_active) {
-                    // Database එකේ precentage column එක භාවිතා කරන්න
-                    $teacherShare = ($payment->amount * $teacher->precentage) / 100;
-                    $instituteShare = $payment->amount - $teacherShare;
-                } else {
-                    $instituteShare = $payment->amount;
+                // Class payments (after teacher share)
+                $classPayments = Payments::with(['studentStudentClass.studentClass.teacher'])
+                    ->where('status', 1)
+                    ->whereBetween('payment_date', [$monthStart, $monthEnd])
+                    ->get();
+
+                foreach ($classPayments as $payment) {
+                    $teacher = $payment->studentStudentClass->studentClass->teacher ?? null;
+
+                    if ($teacher && $teacher->is_active) {
+                        $teacherShare = ($payment->amount * $teacher->precentage) / 100;
+                        $instituteShare = $payment->amount - $teacherShare;
+                    } else {
+                        $instituteShare = $payment->amount;
+                    }
+
+                    $totalInstituteReceipts += $instituteShare;
                 }
 
-                $totalInstituteReceipts += $instituteShare;
+                // Admission payments
+                $totalInstituteReceipts += (float) AdmissionPayments::whereBetween('created_at', [$monthStart, $monthEnd])
+                    ->sum('amount');
+
+                // Extra incomes
+                $totalInstituteReceipts += (float) ExtraIncomes::whereBetween('created_at', [$monthStart, $monthEnd])
+                    ->sum('amount');
+
+
+                /** -------------------------
+                 * 2. Expenses
+                 * ------------------------*/
+                $totalExpenses = (float) InstitutePayment::where('status', 1)
+                    ->whereBetween('date', [$monthStart, $monthEnd])
+                    ->sum('payment');
+
+                // Add net balance for this month
+                $openingBalance += ($totalInstituteReceipts - $totalExpenses);
+
+                // Move to next month
+                $period->addMonth();
             }
-
-            // Admission payments (සම්පූර්ණයි)
-            $totalInstituteReceipts += (float) AdmissionPayments::whereBetween('created_at', [$prevMonthStart, $prevMonthEnd])
-                ->sum('amount');
-
-            // Extra incomes (සම්පූර්ණයි)
-            $totalInstituteReceipts += (float) ExtraIncomes::whereBetween('created_at', [$prevMonthStart, $prevMonthEnd])
-                ->sum('amount');
-
-            // 2. වියදම් (Institute expenses පමණක්)
-            $totalExpenses = (float) InstitutePayment::where('status', 1)
-                ->whereBetween('date', [$prevMonthStart, $prevMonthEnd])
-                ->sum('payment');
-
-            // Opening balance = Institute receipts - Institute expenses
-            $openingBalance = $totalInstituteReceipts - $totalExpenses;
 
             return round($openingBalance, 2);
         } catch (Throwable $e) {
-            Log::error('Opening balance error', [
-                'month' => $yearMonth,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
             return 0.0;
         }
     }
+
 
     /**
      * Class income ledger entries (INSTITUTE SHARE ONLY - After teacher percentage deduction)

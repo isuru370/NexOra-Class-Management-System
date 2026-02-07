@@ -27,7 +27,6 @@ class Teacher extends Model
         'is_active',
         'graduation_details',
         'experience',
-        'precentage', // column name unchanged
         'account_number',
         'bank_branch_id',
     ];
@@ -36,7 +35,6 @@ class Teacher extends Model
     protected $casts = [
         'is_active'     => 'boolean',
         'bank_branch_id'=> 'integer',
-        'precentage'    => 'double',
         'created_at'    => 'datetime',
         'updated_at'    => 'datetime',
     ];

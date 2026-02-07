@@ -109,28 +109,9 @@
                         <span id="errorText"></span>
                     </div>
 
-                    <!-- Action Bar -->
-                    <div class="d-flex justify-content-between align-items-center mb-3 d-none" id="actionBar">
+                    <!-- Filters and Controls -->
+                    <div class="d-flex justify-content-between align-items-center mb-3 d-none" id="controlsBar">
                         <div class="d-flex align-items-center gap-2">
-                            <span class="text-muted" id="teacherCount">Showing 0 teachers</span>
-                        </div>
-                        <div class="btn-group">
-                            <button class="btn btn-outline-primary btn-sm" onclick="exportTo('csv')">
-                                <i class="fas fa-file-csv me-1"></i>CSV
-                            </button>
-                            <button class="btn btn-outline-primary btn-sm" onclick="exportTo('excel')">
-                                <i class="fas fa-file-excel me-1"></i>Excel
-                            </button>
-                            <button class="btn btn-outline-primary btn-sm" onclick="window.print()">
-                                <i class="fas fa-print me-1"></i>Print
-                            </button>
-                            <button class="btn btn-outline-primary btn-sm" onclick="exportTo('pdf')">
-                                <i class="fas fa-file-pdf me-1"></i>PDF
-                            </button>
-                        </div>
-
-                        <div class="d-flex align-items-center gap-2">
-                            <!-- Filter Buttons -->
                             <div class="btn-group btn-group-sm">
                                 <button type="button" class="btn btn-outline-secondary active" id="filterAll"
                                     data-status="">All</button>
@@ -141,7 +122,7 @@
                             </div>
 
                             <!-- Rows Per Page -->
-                            <div class="d-flex align-items-center">
+                            <div class="d-flex align-items-center ms-3">
                                 <label for="rowsPerPage" class="form-label text-muted mb-0 me-2">Show:</label>
                                 <select class="form-select form-select-sm" id="rowsPerPage" style="width: 80px;">
                                     <option value="10">10</option>
@@ -150,8 +131,10 @@
                                     <option value="100">100</option>
                                 </select>
                             </div>
+                        </div>
 
-                            <!-- Search Box -->
+                        <!-- Search Box -->
+                        <div class="d-flex align-items-center gap-2">
                             <div class="input-group input-group-sm" style="width: 280px;">
                                 <span class="input-group-text bg-transparent">
                                     <i class="fas fa-search"></i>
@@ -174,7 +157,6 @@
                                     <th>Teacher</th>
                                     <th>Contact</th>
                                     <th class="text-center">Gender</th>
-                                    <th class="text-center">Experience</th>
                                     <th class="text-center">Status</th>
                                     <th width="140" class="text-center">Actions</th>
                                 </tr>
@@ -385,6 +367,8 @@
         let currentStatusFilter = '';
         let currentSearch = '';
         let allTeachers = [];
+        let isSearching = false;
+        let searchTimeout = null;
 
         // Wait for the DOM to be loaded
         document.addEventListener('DOMContentLoaded', function () {
@@ -399,21 +383,71 @@
             document.getElementById('rowsPerPage').addEventListener('change', function () {
                 rowsPerPage = parseInt(this.value);
                 currentPage = 1;
-                renderFilteredTeachers();
+                loadTeachers();
             });
 
-            // Search functionality
-            document.getElementById('searchInput').addEventListener('input', debounce(function (e) {
-                currentSearch = e.target.value.toLowerCase();
-                currentPage = 1;
-                renderFilteredTeachers();
-            }, 300));
+            // Search functionality with real-time search and enter key support
+            const searchInput = document.getElementById('searchInput');
+            searchInput.addEventListener('input', function (e) {
+                // Clear any existing timeout
+                if (searchTimeout) {
+                    clearTimeout(searchTimeout);
+                }
+                
+                // If user presses escape, clear search immediately
+                if (e.data === null && searchInput.value === '') {
+                    currentSearch = '';
+                    currentPage = 1;
+                    loadTeachers();
+                    return;
+                }
+                
+                currentSearch = e.target.value;
+                
+                // If search is empty, clear immediately
+                if (currentSearch.trim() === '') {
+                    currentSearch = '';
+                    currentPage = 1;
+                    loadTeachers();
+                    return;
+                }
+                
+                // Set a timeout for debouncing (400ms)
+                searchTimeout = setTimeout(() => {
+                    isSearching = true;
+                    currentPage = 1;
+                    loadTeachers();
+                    searchTimeout = null;
+                }, 400);
+            });
+
+            // Handle Enter key to stop searching (load immediately)
+            searchInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    // Clear any pending timeout
+                    if (searchTimeout) {
+                        clearTimeout(searchTimeout);
+                        searchTimeout = null;
+                    }
+                    
+                    // Load teachers immediately
+                    isSearching = true;
+                    currentPage = 1;
+                    loadTeachers();
+                } else if (e.key === 'Escape') {
+                    // Clear search on escape
+                    this.value = '';
+                    currentSearch = '';
+                    currentPage = 1;
+                    loadTeachers();
+                }
+            });
 
             document.getElementById('clearSearchBtn').addEventListener('click', function () {
                 document.getElementById('searchInput').value = '';
                 currentSearch = '';
                 currentPage = 1;
-                renderFilteredTeachers();
+                loadTeachers();
             });
 
             // Filter functionality
@@ -436,7 +470,7 @@
 
         function setActiveFilter(button, status) {
             // Remove active class from all filter buttons
-            document.querySelectorAll('#actionBar .btn-group .btn').forEach(btn => {
+            document.querySelectorAll('#controlsBar .btn-group .btn').forEach(btn => {
                 btn.classList.remove('active');
             });
 
@@ -445,19 +479,71 @@
 
             currentStatusFilter = status;
             currentPage = 1;
-            renderFilteredTeachers();
+            loadTeachers();
         }
 
         function loadTeachers() {
             showLoadingState();
 
-            fetch('/api/teachers')
-                .then(response => response.json())
+            // Build query parameters for backend filtering
+            const params = new URLSearchParams({
+                page: currentPage,
+                per_page: rowsPerPage,
+            });
+
+            // Add search parameter if exists
+            if (currentSearch) {
+                params.append('search', currentSearch);
+            }
+
+            // Add status parameter if exists
+            if (currentStatusFilter) {
+                params.append('status', currentStatusFilter);
+            }
+
+            // Show loading indicator in search field if searching
+            const searchInput = document.getElementById('searchInput');
+            if (currentSearch) {
+                const searchIcon = searchInput.parentElement.querySelector('.input-group-text i');
+                if (searchIcon) {
+                    searchIcon.className = 'fas fa-spinner fa-spin';
+                }
+            }
+
+            // Fetch from API with parameters
+            fetch(`/api/teachers?${params.toString()}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
                 .then(data => {
+                    // Reset search icon
+                    const searchIcon = searchInput.parentElement.querySelector('.input-group-text i');
+                    if (searchIcon) {
+                        searchIcon.className = 'fas fa-search';
+                    }
+                    
                     if (data.status === 'success') {
-                        allTeachers = data.data;
-                        renderFilteredTeachers();
-                        updateStatistics(allTeachers);
+                        // Check the new response structure
+                        if (data.data && data.data.teachers) {
+                            // Backend returns paginated data
+                            const teachers = data.data.teachers;
+                            const pagination = data.data.pagination;
+                            const statistics = data.data.statistics;
+                            
+                            renderTeachersTable(teachers);
+                            updatePagination(pagination);
+                            updateStatistics(statistics);
+                        } else if (Array.isArray(data.data)) {
+                            // Old structure: direct array
+                            allTeachers = data.data;
+                            renderFilteredTeachers();
+                            updateStatistics(allTeachers);
+                        } else {
+                            throw new Error('Invalid data structure received from server');
+                        }
                         showContentState();
                     } else {
                         throw new Error(data.message || 'Failed to load teachers');
@@ -465,11 +551,24 @@
                 })
                 .catch(error => {
                     console.error('Error loading teachers:', error);
+                    // Reset search icon on error too
+                    const searchIcon = searchInput.parentElement.querySelector('.input-group-text i');
+                    if (searchIcon) {
+                        searchIcon.className = 'fas fa-search';
+                    }
                     showErrorState('Error loading teachers: ' + error.message);
+                })
+                .finally(() => {
+                    isSearching = false;
                 });
         }
 
+        // Fallback function for frontend filtering (if backend doesn't support it)
         function renderFilteredTeachers() {
+            if (!Array.isArray(allTeachers)) {
+                allTeachers = [];
+            }
+
             let filteredTeachers = allTeachers;
 
             // Apply status filter
@@ -481,13 +580,14 @@
 
             // Apply search filter
             if (currentSearch) {
+                const searchTerm = currentSearch.toLowerCase();
                 filteredTeachers = filteredTeachers.filter(teacher =>
-                    teacher.custom_id.toLowerCase().includes(currentSearch) ||
-                    teacher.fname.toLowerCase().includes(currentSearch) ||
-                    teacher.lname.toLowerCase().includes(currentSearch) ||
-                    teacher.email.toLowerCase().includes(currentSearch) ||
-                    teacher.nic?.toLowerCase().includes(currentSearch) ||
-                    teacher.mobile.includes(currentSearch)
+                    (teacher.custom_id && teacher.custom_id.toLowerCase().includes(searchTerm)) ||
+                    (teacher.fname && teacher.fname.toLowerCase().includes(searchTerm)) ||
+                    (teacher.lname && teacher.lname.toLowerCase().includes(searchTerm)) ||
+                    (teacher.email && teacher.email.toLowerCase().includes(searchTerm)) ||
+                    (teacher.nic && teacher.nic.toLowerCase().includes(searchTerm)) ||
+                    (teacher.mobile && teacher.mobile.includes(searchTerm))
                 );
             }
 
@@ -507,7 +607,7 @@
             const paginatedTeachers = filteredTeachers.slice(startIndex, endIndex);
 
             renderTeachersTable(paginatedTeachers);
-            updatePagination();
+            updatePaginationForFrontend();
         }
 
         function renderTeachersTable(teachers) {
@@ -515,24 +615,42 @@
             const tableContainer = document.getElementById('teachersTableContainer');
             const emptyState = document.getElementById('emptyState');
             const paginationSection = document.getElementById('paginationSection');
-            const teacherCount = document.getElementById('teacherCount');
+            const controlsBar = document.getElementById('controlsBar');
 
             if (!tbody) return;
 
             tbody.innerHTML = '';
 
-            if (teachers.length === 0) {
+            if (!teachers || teachers.length === 0) {
                 tableContainer.classList.add('d-none');
                 paginationSection.classList.add('d-none');
+                // DO NOT hide controlsBar - keep it visible
                 emptyState.classList.remove('d-none');
-                teacherCount.textContent = 'Showing 0 teachers';
+                
+                // Update empty state message based on search
+                const emptyStateTitle = document.querySelector('#emptyState h4');
+                const emptyStateMessage = document.querySelector('#emptyState p');
+                
+                if (currentSearch) {
+                    emptyStateTitle.textContent = 'No Teachers Found';
+                    emptyStateMessage.textContent = `No teachers match your search for "${currentSearch}". Try a different search term.`;
+                } else if (currentStatusFilter) {
+                    const statusText = currentStatusFilter === 'active' ? 'Active' : 'Inactive';
+                    emptyStateTitle.textContent = `No ${statusText} Teachers`;
+                    emptyStateMessage.textContent = `There are no ${statusText.toLowerCase()} teachers in the database.`;
+                } else {
+                    emptyStateTitle.textContent = 'No Teachers Found';
+                    emptyStateMessage.textContent = 'There are no teachers in the database yet.';
+                }
+                
                 return;
             }
 
             tableContainer.classList.remove('d-none');
             paginationSection.classList.remove('d-none');
+            // Controls bar should already be visible, but ensure it is
+            controlsBar.classList.remove('d-none');
             emptyState.classList.add('d-none');
-            teacherCount.textContent = `Showing ${teachers.length} teachers`;
 
             teachers.forEach((teacher, index) => {
                 const startRecord = (currentPage - 1) * rowsPerPage;
@@ -544,17 +662,24 @@
                     '<i class="fas fa-mars text-primary"></i>' :
                     '<i class="fas fa-venus text-pink"></i>';
 
+                // Escape HTML to prevent XSS
+                const firstName = escapeHtml(teacher.fname || '');
+                const lastName = escapeHtml(teacher.lname || '');
+                const email = escapeHtml(teacher.email || 'No email');
+                const nic = escapeHtml(teacher.nic || 'No NIC');
+                const mobile = escapeHtml(teacher.mobile || 'No phone');
+
                 const row = `
                         <tr class="align-middle">
                             <td class="text-center fw-bold text-muted">${startRecord + index + 1}</td>
                             <td>
                                 <div class="d-flex align-items-center">
                                     <div class="avatar-sm bg-primary bg-gradient rounded-circle text-white d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
-                                        <span class="fw-bold">${teacher.fname.charAt(0)}${teacher.lname.charAt(0)}</span>
+                                        <span class="fw-bold">${firstName.charAt(0)}${lastName.charAt(0)}</span>
                                     </div>
                                     <div>
-                                        <h6 class="mb-0 fw-bold">${teacher.fname} ${teacher.lname}</h6>
-                                        <small class="text-muted">${teacher.nic || 'No NIC'}</small>
+                                        <h6 class="mb-0 fw-bold">${firstName} ${lastName}</h6>
+                                        <small class="text-muted">${nic}</small>
                                     </div>
                                 </div>
                             </td>
@@ -562,21 +687,16 @@
                                 <div>
                                     <div class="mb-1">
                                         <i class="fas fa-envelope text-muted me-2"></i>
-                                        <small>${teacher.email}</small>
+                                        <small>${email}</small>
                                     </div>
                                     <div>
                                         <i class="fas fa-phone text-muted me-2"></i>
-                                        <small>${teacher.mobile}</small>
+                                        <small>${mobile}</small>
                                     </div>
                                 </div>
                             </td>
                             <td class="text-center">
                                 <span class="fs-5">${genderIcon}</span>
-                            </td>
-                            <td class="text-center">
-                                <span class="badge bg-light text-dark border">
-                                    ${teacher.experience ? teacher.experience + ' yrs' : 'N/A'}
-                                </span>
                             </td>
                             <td class="text-center">
                                 ${statusBadge}
@@ -590,10 +710,10 @@
                                         <i class="fas fa-edit"></i>
                                     </button>
                                     ${teacher.is_active ?
-                        `<button class="btn btn-outline-danger rounded-end" title="Deactivate" onclick="showDeactivateModal(${teacher.id}, '${teacher.fname} ${teacher.lname}', '${teacher.email}')">
+                        `<button class="btn btn-outline-danger rounded-end" title="Deactivate" onclick="showDeactivateModal(${teacher.id}, '${escapeHtml(teacher.fname + ' ' + teacher.lname)}', '${escapeHtml(teacher.email)}')">
                                             <i class="fas fa-user-slash"></i>
                                         </button>` :
-                        `<button class="btn btn-outline-success rounded-end" title="Activate" onclick="showActivateModal(${teacher.id}, '${teacher.fname} ${teacher.lname}', '${teacher.email}')">
+                        `<button class="btn btn-outline-success rounded-end" title="Activate" onclick="showActivateModal(${teacher.id}, '${escapeHtml(teacher.fname + ' ' + teacher.lname)}', '${escapeHtml(teacher.email)}')">
                                             <i class="fas fa-user-check"></i>
                                         </button>`
                     }
@@ -605,15 +725,30 @@
             });
         }
 
-        function updatePagination() {
+        // Update pagination for backend response
+        function updatePagination(pagination) {
+            if (pagination) {
+                document.getElementById('startRecord').textContent = pagination.from || 0;
+                document.getElementById('endRecord').textContent = pagination.to || 0;
+                document.getElementById('totalRecords').textContent = pagination.total || 0;
+
+                currentPage = pagination.current_page;
+                totalPages = pagination.last_page;
+                totalRecords = pagination.total;
+            } else {
+                updatePaginationForFrontend();
+            }
+            renderPaginationLinks();
+        }
+
+        // Update pagination for frontend filtering
+        function updatePaginationForFrontend() {
             const startRecord = totalRecords > 0 ? ((currentPage - 1) * rowsPerPage) + 1 : 0;
             const endRecord = Math.min(currentPage * rowsPerPage, totalRecords);
 
             document.getElementById('startRecord').textContent = startRecord;
             document.getElementById('endRecord').textContent = endRecord;
             document.getElementById('totalRecords').textContent = totalRecords;
-
-            renderPaginationLinks();
         }
 
         function renderPaginationLinks() {
@@ -639,11 +774,41 @@
                 startPage = Math.max(1, endPage - maxVisiblePages + 1);
             }
 
+            // First page ellipsis
+            if (startPage > 1) {
+                const firstLi = document.createElement('li');
+                firstLi.className = 'page-item';
+                firstLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(1)">1</a>`;
+                paginationLinks.appendChild(firstLi);
+                
+                if (startPage > 2) {
+                    const ellipsisLi = document.createElement('li');
+                    ellipsisLi.className = 'page-item disabled';
+                    ellipsisLi.innerHTML = '<span class="page-link">...</span>';
+                    paginationLinks.appendChild(ellipsisLi);
+                }
+            }
+
             for (let i = startPage; i <= endPage; i++) {
                 const li = document.createElement('li');
                 li.className = `page-item ${currentPage === i ? 'active' : ''}`;
                 li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i})">${i}</a>`;
                 paginationLinks.appendChild(li);
+            }
+
+            // Last page ellipsis
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    const ellipsisLi = document.createElement('li');
+                    ellipsisLi.className = 'page-item disabled';
+                    ellipsisLi.innerHTML = '<span class="page-link">...</span>';
+                    paginationLinks.appendChild(ellipsisLi);
+                }
+                
+                const lastLi = document.createElement('li');
+                lastLi.className = 'page-item';
+                lastLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${totalPages})">${totalPages}</a>`;
+                paginationLinks.appendChild(lastLi);
             }
 
             // Next button
@@ -660,14 +825,30 @@
         function changePage(page) {
             if (page < 1 || page > totalPages) return;
             currentPage = page;
-            renderFilteredTeachers();
+            loadTeachers();
         }
 
-        function updateStatistics(teachers) {
+        // Update statistics for backend response
+        function updateStatistics(statistics) {
+            if (statistics) {
+                document.getElementById('totalTeachers').textContent = statistics.total || 0;
+                document.getElementById('activeTeachers').textContent = statistics.active || 0;
+                document.getElementById('maleTeachers').textContent = statistics.male || 0;
+                document.getElementById('femaleTeachers').textContent = statistics.female || 0;
+            } else {
+                updateStatisticsFromArray(allTeachers);
+            }
+        }
+
+        // Fallback for frontend statistics
+        function updateStatisticsFromArray(teachers) {
+            if (!Array.isArray(teachers)) {
+                teachers = [];
+            }
             const totalTeachers = teachers.length;
             const activeTeachers = teachers.filter(t => t.is_active).length;
-            const maleTeachers = teachers.filter(t => t.gender === 'Male').length;
-            const femaleTeachers = teachers.filter(t => t.gender === 'Female').length;
+            const maleTeachers = teachers.filter(t => t.gender === 'Male' || t.gender === 'male').length;
+            const femaleTeachers = teachers.filter(t => t.gender === 'Female' || t.gender === 'female').length;
 
             document.getElementById('totalTeachers').textContent = totalTeachers;
             document.getElementById('activeTeachers').textContent = activeTeachers;
@@ -767,7 +948,7 @@
         // Helper functions
         function showLoadingState() {
             document.getElementById('loadingSpinner').classList.remove('d-none');
-            document.getElementById('actionBar').classList.add('d-none');
+            // DO NOT hide controlsBar during loading
             document.getElementById('teachersTableContainer').classList.add('d-none');
             document.getElementById('paginationSection').classList.add('d-none');
             document.getElementById('emptyState').classList.add('d-none');
@@ -776,11 +957,14 @@
 
         function showContentState() {
             document.getElementById('loadingSpinner').classList.add('d-none');
-            document.getElementById('actionBar').classList.remove('d-none');
+            // Ensure controls bar is visible
+            document.getElementById('controlsBar').classList.remove('d-none');
         }
 
         function showErrorState(message) {
             document.getElementById('loadingSpinner').classList.add('d-none');
+            // Keep controls bar visible on error
+            document.getElementById('controlsBar').classList.remove('d-none');
             document.getElementById('errorMessage').classList.remove('d-none');
             document.getElementById('errorText').textContent = message;
         }
@@ -815,6 +999,19 @@
                     }
                 }, 5000);
             }
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            if (!text) return '';
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.toString().replace(/[&<>"']/g, m => map[m]);
         }
     </script>
 @endpush

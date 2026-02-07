@@ -17,18 +17,18 @@ class ClassRoomController extends Controller
         $this->classRoomService = $classRoomService;
     }
 
-    public function fetchAllClassRoom()
+    public function fetchAllClassRoom(Request $request)
     {
-        return $this->classRoomService->fetchAllClassRoom();
+        return $this->classRoomService->fetchAllClassRoom($request);
     }
     public function fetchClasses()
     {
         return $this->classRoomService->fetchClasses();
     }
 
-    public function fetchActiveClasses()
+    public function fetchActiveClasses(Request $request)
     {
-        return $this->classRoomService->fetchActiveClasses();
+        return $this->classRoomService->fetchActiveClasses($request);
     }
 
     public function fetchSingleClasse($id)

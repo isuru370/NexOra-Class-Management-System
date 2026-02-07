@@ -25,7 +25,7 @@ class TeacherPaymentsController extends Controller
     }
     public function fetchTeacherClassPayments($teacherId, $yearMonth)
     {
-        return $this->teacherPaymentsService->fetchTeacherClassPaymentsByMonth($teacherId, $yearMonth);
+        return $this->teacherPaymentsService->fetchTeacherPaymentsByTeacher($teacherId, $yearMonth);
     }
     public function getTeacherClassWiseStudentPaymentStatus($teacherId, $yearMonth, Request $request)
     {
@@ -43,42 +43,23 @@ class TeacherPaymentsController extends Controller
     public function showSalarySlip($teacherId, $yearMonth)
     {
         try {
-            // Get data FROM SERVICE (now returns ARRAY, not JSON)
+            // Get data FROM SERVICE (returns ARRAY)
             $data = $this->teacherPaymentsService->fetchSalarySlipData($teacherId, $yearMonth);
 
-            // If service returned an error
-            if ($data['status'] === 'error') {
-                return view('teacher_payment.salary-slip-exact', [
-                    'error' => $data['message'],
-                    'teacherId' => $teacherId,
-                    'yearMonth' => $yearMonth
-                ]);
-            }
-
-            // Pass clean array data to view
-            return view('teacher_payment.salary-slip-exact', [
-                'teacherId' => $data['teacher_id'],
-                'teacherName' => $data['teacher_name'],
-                'monthYear' => $data['month_year'],
-                'dateGenerated' => $data['date_generated'],
-                'earnings' => $data['earnings'],
-                'deductions' => $data['deductions'],
-                'totalAddition' => $data['total_addition'],
-                'totalDeductions' => $data['total_deductions'],
-                'teacherWelfare' => $data['teacher_welfare'] ?? 0,
-                'netSalary' => $data['net_salary'],
-                'paymentMethod' => $data['payment_method'],
-                'success' => true
-            ]);
+            // Pass $data to Blade
+            return view('teacher_payment.salary-slip-exact', ['data' => $data]);
         } catch (\Exception $e) {
-
             return view('teacher_payment.salary-slip-exact', [
-                'error' => "Unexpected error occurred.",
-                'teacherId' => $teacherId,
-                'yearMonth' => $yearMonth
+                'data' => [
+                    'status' => 'error',
+                    'message' => 'Unexpected error occurred.',
+                    'teacher_id' => $teacherId,
+                    'month_year' => $yearMonth
+                ]
             ]);
         }
     }
+
 
 
 

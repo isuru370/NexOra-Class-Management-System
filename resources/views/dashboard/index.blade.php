@@ -239,9 +239,9 @@
                 <button class="btn btn-sm btn-success" onclick="loadTimetable()">
                     <i class="fas fa-sync-alt me-1"></i>Refresh
                 </button>
-                <button class="btn btn-sm btn-info text-white" onclick="exportToExcel()">
+                {{-- <button class="btn btn-sm btn-info text-white" onclick="exportToExcel()">
                     <i class="fas fa-file-excel me-1"></i>Export
-                </button>
+                </button> --}}
             </div>
         </div>
         <div class="card-body">

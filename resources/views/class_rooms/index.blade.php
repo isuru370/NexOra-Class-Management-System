@@ -111,42 +111,12 @@
 
                     <!-- Action Bar -->
                     <div class="d-none" id="actionBar">
-                        <!-- First Row: Info and Export Controls -->
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="text-muted" id="classRoomCount">Showing 0 class rooms</span>
-                            </div>
-                            <div class="btn-group">
-                                <button class="btn btn-outline-primary btn-sm" onclick="exportTo('csv')">
-                                    <i class="fas fa-file-csv me-1"></i>CSV
-                                </button>
-                                <button class="btn btn-outline-primary btn-sm" onclick="exportTo('excel')">
-                                    <i class="fas fa-file-excel me-1"></i>Excel
-                                </button>
-                                <button class="btn btn-outline-primary btn-sm" onclick="window.print()">
-                                    <i class="fas fa-print me-1"></i>Print
-                                </button>
-                                <button class="btn btn-outline-primary btn-sm" onclick="exportTo('pdf')">
-                                    <i class="fas fa-file-pdf me-1"></i>PDF
-                                </button>
-                            </div>
-                        </div>
+                       
+                        
 
                         <!-- Second Row: Filters and Search -->
                         <div class="d-flex justify-content-between align-items-center">
                             <div class="d-flex align-items-center gap-2 flex-wrap">
-                                <!-- View Toggle -->
-                                <div class="btn-group btn-group-sm me-2">
-                                    <button type="button" class="btn btn-outline-secondary active" id="tableViewBtn"
-                                        title="Table View">
-                                        <i class="fas fa-table"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-outline-secondary" id="cardViewBtn"
-                                        title="Card View">
-                                        <i class="fas fa-th-large"></i>
-                                    </button>
-                                </div>
-
                                 <!-- Status Filter -->
                                 <div class="btn-group btn-group-sm me-2">
                                     <button type="button" class="btn btn-outline-secondary active" id="filterAll"
@@ -190,17 +160,6 @@
                                         <option value="">All Subjects</option>
                                     </select>
                                 </div>
-
-                                <!-- Rows Per Page -->
-                                <div class="d-flex align-items-center me-2">
-                                    <label for="rowsPerPage" class="form-label text-muted mb-0 me-2">Show:</label>
-                                    <select class="form-select form-select-sm" id="rowsPerPage" style="width: 80px;">
-                                        <option value="10">10</option>
-                                        <option value="25">25</option>
-                                        <option value="50">50</option>
-                                        <option value="100">100</option>
-                                    </select>
-                                </div>
                             </div>
 
                             <!-- Search Box -->
@@ -217,11 +176,6 @@
                         </div>
                     </div>
 
-                    <!-- Class Rooms Cards View -->
-                    <div class="row d-none" id="classRoomsCardsContainer">
-                        <!-- Class room cards will be loaded here via JavaScript -->
-                    </div>
-
                     <!-- Class Rooms Table -->
                     <div class="table-responsive" id="classRoomsTableContainer">
                         <table class="table table-hover" id="classRoomsTable">
@@ -230,8 +184,10 @@
                                     <th width="60" class="text-center">#</th>
                                     <th>Class Name</th>
                                     <th>Teacher</th>
+                                    <th>Percentage</th>
                                     <th>Subject</th>
                                     <th class="text-center">Grade</th>
+                                    <th class="text-center">Type</th>
                                     <th class="text-center">Status</th>
                                     <th width="180" class="text-center">Actions</th>
                                 </tr>
@@ -490,64 +446,6 @@
             color: white;
             border-color: #2c3e50;
         }
-
-        .class-room-card {
-            border: none;
-            border-radius: 15px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease;
-            margin-bottom: 20px;
-            overflow: hidden;
-        }
-
-        .class-room-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        .class-room-card .card-header {
-            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
-            color: white;
-            padding: 15px;
-            border-bottom: none;
-        }
-
-        .class-room-card .card-body {
-            padding: 20px;
-        }
-
-        .class-room-icon {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-            color: white;
-            margin: 0 auto 15px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
-        }
-
-        .class-room-info {
-            margin-bottom: 15px;
-        }
-
-        .class-room-info i {
-            width: 20px;
-            text-align: center;
-            margin-right: 10px;
-            color: #6a11cb;
-        }
-
-        .status-badges {
-            display: flex;
-            gap: 5px;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin: 10px 0;
-        }
     </style>
 @endpush
 
@@ -556,7 +454,7 @@
         // Global variables for pagination and filtering
         let currentPage = 1;
         let totalPages = 1;
-        let rowsPerPage = 10;
+        let rowsPerPage = 15;
         let totalRecords = 0;
         let currentStatusFilter = '';
         let currentOngoingFilter = '';
@@ -568,7 +466,6 @@
         let allGrades = [];
         let allTeachers = [];
         let allSubjects = [];
-        let currentView = 'table';
 
         // Wait for the DOM to be loaded
         document.addEventListener('DOMContentLoaded', function () {
@@ -581,7 +478,6 @@
             loadClassRooms();
 
             // Event listeners
-            const rowsPerPageEl = document.getElementById('rowsPerPage');
             const gradeFilterEl = document.getElementById('gradeFilter');
             const teacherFilterEl = document.getElementById('teacherFilter');
             const subjectFilterEl = document.getElementById('subjectFilter');
@@ -593,26 +489,16 @@
             const filterOngoingAllEl = document.getElementById('filterOngoingAll');
             const filterOngoingEl = document.getElementById('filterOngoing');
             const filterNotOngoingEl = document.getElementById('filterNotOngoing');
-            const tableViewBtn = document.getElementById('tableViewBtn');
-            const cardViewBtn = document.getElementById('cardViewBtn');
             const confirmActivateBtn = document.getElementById('confirmActivateBtn');
             const confirmDeactivateBtn = document.getElementById('confirmDeactivateBtn');
             const confirmStartOngoingBtn = document.getElementById('confirmStartOngoingBtn');
             const confirmStopOngoingBtn = document.getElementById('confirmStopOngoingBtn');
 
-            if (rowsPerPageEl) {
-                rowsPerPageEl.addEventListener('change', function () {
-                    rowsPerPage = parseInt(this.value);
-                    currentPage = 1;
-                    renderFilteredClassRooms();
-                });
-            }
-
             if (gradeFilterEl) {
                 gradeFilterEl.addEventListener('change', function () {
                     currentGradeFilter = this.value;
                     currentPage = 1;
-                    renderFilteredClassRooms();
+                    applyFiltersAndReload();
                 });
             }
 
@@ -620,7 +506,7 @@
                 teacherFilterEl.addEventListener('change', function () {
                     currentTeacherFilter = this.value;
                     currentPage = 1;
-                    renderFilteredClassRooms();
+                    applyFiltersAndReload();
                 });
             }
 
@@ -628,15 +514,15 @@
                 subjectFilterEl.addEventListener('change', function () {
                     currentSubjectFilter = this.value;
                     currentPage = 1;
-                    renderFilteredClassRooms();
+                    applyFiltersAndReload();
                 });
             }
 
             if (searchInputEl) {
                 searchInputEl.addEventListener('input', debounce(function (e) {
-                    currentSearch = e.target.value.toLowerCase();
+                    currentSearch = e.target.value;
                     currentPage = 1;
-                    renderFilteredClassRooms();
+                    applyFiltersAndReload();
                 }, 300));
             }
 
@@ -645,7 +531,7 @@
                     document.getElementById('searchInput').value = '';
                     currentSearch = '';
                     currentPage = 1;
-                    renderFilteredClassRooms();
+                    applyFiltersAndReload();
                 });
             }
 
@@ -653,18 +539,21 @@
             if (filterAllEl) {
                 filterAllEl.addEventListener('click', function () {
                     setActiveStatusFilter(this, '');
+                    applyFiltersAndReload();
                 });
             }
 
             if (filterActiveEl) {
                 filterActiveEl.addEventListener('click', function () {
                     setActiveStatusFilter(this, 'active');
+                    applyFiltersAndReload();
                 });
             }
 
             if (filterInactiveEl) {
                 filterInactiveEl.addEventListener('click', function () {
                     setActiveStatusFilter(this, 'inactive');
+                    applyFiltersAndReload();
                 });
             }
 
@@ -672,31 +561,21 @@
             if (filterOngoingAllEl) {
                 filterOngoingAllEl.addEventListener('click', function () {
                     setActiveOngoingFilter(this, '');
+                    applyFiltersAndReload();
                 });
             }
 
             if (filterOngoingEl) {
                 filterOngoingEl.addEventListener('click', function () {
                     setActiveOngoingFilter(this, 'ongoing');
+                    applyFiltersAndReload();
                 });
             }
 
             if (filterNotOngoingEl) {
                 filterNotOngoingEl.addEventListener('click', function () {
                     setActiveOngoingFilter(this, 'not_ongoing');
-                });
-            }
-
-            // View toggle
-            if (tableViewBtn) {
-                tableViewBtn.addEventListener('click', function () {
-                    setActiveView('table');
-                });
-            }
-
-            if (cardViewBtn) {
-                cardViewBtn.addEventListener('click', function () {
-                    setActiveView('card');
+                    applyFiltersAndReload();
                 });
             }
 
@@ -723,7 +602,6 @@
             const loadingSpinner = document.getElementById('loadingSpinner');
             const actionBar = document.getElementById('actionBar');
             const tableContainer = document.getElementById('classRoomsTableContainer');
-            const cardsContainer = document.getElementById('classRoomsCardsContainer');
             const paginationSection = document.getElementById('paginationSection');
             const emptyState = document.getElementById('emptyState');
             const errorMessage = document.getElementById('errorMessage');
@@ -731,7 +609,6 @@
             if (loadingSpinner) loadingSpinner.classList.remove('d-none');
             if (actionBar) actionBar.classList.add('d-none');
             if (tableContainer) tableContainer.classList.add('d-none');
-            if (cardsContainer) cardsContainer.classList.add('d-none');
             if (paginationSection) paginationSection.classList.add('d-none');
             if (emptyState) emptyState.classList.add('d-none');
             if (errorMessage) errorMessage.classList.add('d-none');
@@ -879,139 +756,62 @@
             });
         }
 
-        // Extract data from class rooms
-        function extractTeachersFromClassRooms(classRooms) {
-            const teachersMap = new Map();
-            
-            classRooms.forEach(classRoom => {
-                if (classRoom.teacher && classRoom.teacher.id) {
-                    if (!teachersMap.has(classRoom.teacher.id)) {
-                        teachersMap.set(classRoom.teacher.id, {
-                            id: classRoom.teacher.id,
-                            fname: classRoom.teacher.fname,
-                            lname: classRoom.teacher.lname
-                        });
-                    }
-                }
-            });
-            
-            return Array.from(teachersMap.values());
-        }
-
-        function extractSubjectsFromClassRooms(classRooms) {
-            const subjectsMap = new Map();
-            
-            classRooms.forEach(classRoom => {
-                if (classRoom.subject && classRoom.subject.id) {
-                    if (!subjectsMap.has(classRoom.subject.id)) {
-                        subjectsMap.set(classRoom.subject.id, {
-                            id: classRoom.subject.id,
-                            subject_name: classRoom.subject.subject_name
-                        });
-                    }
-                }
-            });
-            
-            return Array.from(subjectsMap.values());
-        }
-
-        function extractGradesFromClassRooms(classRooms) {
-            const gradesMap = new Map();
-            
-            classRooms.forEach(classRoom => {
-                if (classRoom.grade && classRoom.grade.id) {
-                    if (!gradesMap.has(classRoom.grade.id)) {
-                        gradesMap.set(classRoom.grade.id, {
-                            id: classRoom.grade.id,
-                            grade_name: classRoom.grade.grade_name
-                        });
-                    }
-                }
-            });
-            
-            return Array.from(gradesMap.values());
-        }
-
-        // Filter and View Functions
+        // Filter Functions
         function setActiveStatusFilter(button, status) {
-            document.querySelectorAll('#actionBar .btn-group:nth-of-type(2) .btn').forEach(btn => {
+            document.querySelectorAll('#actionBar .btn-group:nth-of-type(1) .btn').forEach(btn => {
                 btn.classList.remove('active');
             });
 
             button.classList.add('active');
             currentStatusFilter = status;
-            currentPage = 1;
-            renderFilteredClassRooms();
         }
 
         function setActiveOngoingFilter(button, ongoing) {
-            document.querySelectorAll('#actionBar .btn-group:nth-of-type(3) .btn').forEach(btn => {
+            document.querySelectorAll('#actionBar .btn-group:nth-of-type(2) .btn').forEach(btn => {
                 btn.classList.remove('active');
             });
 
             button.classList.add('active');
             currentOngoingFilter = ongoing;
-            currentPage = 1;
-            renderFilteredClassRooms();
-        }
-
-        function setActiveView(view) {
-            currentView = view;
-
-            const tableViewBtn = document.getElementById('tableViewBtn');
-            const cardViewBtn = document.getElementById('cardViewBtn');
-
-            if (tableViewBtn && cardViewBtn) {
-                tableViewBtn.classList.toggle('active', view === 'table');
-                cardViewBtn.classList.toggle('active', view === 'card');
-            }
-
-            const tableContainer = document.getElementById('classRoomsTableContainer');
-            const cardsContainer = document.getElementById('classRoomsCardsContainer');
-
-            if (tableContainer) tableContainer.classList.toggle('d-none', view !== 'table');
-            if (cardsContainer) cardsContainer.classList.toggle('d-none', view !== 'card');
-
-            renderFilteredClassRooms();
         }
 
         // Main Data Loading Function
-        function loadClassRooms() {
+        function loadClassRooms(page = 1) {
             showLoadingState();
-            fetch("{{ url('/api/class-rooms/all') }}")
+
+            const apiUrl = `{{ url('/api/class-rooms/all') }}?page=${page}`;
+
+            fetch(apiUrl)
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error('Network response was not ok');
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                     }
                     return response.json();
                 })
                 .then(data => {
                     if (data.status === 'success') {
-                        allClassRooms = data.data.map(classRoom => ({
+                        // Backend pagination metadata
+                        const paginationInfo = data.meta || {};
+
+                        // Current page data
+                        allClassRooms = Array.isArray(data.data) ? data.data.map(classRoom => ({
                             ...classRoom,
                             is_active: Boolean(classRoom.is_active),
                             is_ongoing: Boolean(classRoom.is_ongoing)
-                        }));
-                        
-                        // If APIs failed, extract from class rooms data
-                        if (allTeachers.length === 0) {
-                            allTeachers = extractTeachersFromClassRooms(allClassRooms);
-                            populateTeacherFilter(allTeachers);
-                        }
-                        
-                        if (allSubjects.length === 0) {
-                            allSubjects = extractSubjectsFromClassRooms(allClassRooms);
-                            populateSubjectFilter(allSubjects);
-                        }
-                        
-                        if (allGrades.length === 0) {
-                            allGrades = extractGradesFromClassRooms(allClassRooms);
-                            populateGradeFilter(allGrades);
-                        }
-                        
-                        renderFilteredClassRooms();
-                        updateStatistics(allClassRooms);
+                        })) : [];
+
+                        // Backend pagination info
+                        totalRecords = paginationInfo.total || 0;
+                        rowsPerPage = paginationInfo.per_page || 15;
+                        totalPages = paginationInfo.last_page || 1;
+                        currentPage = paginationInfo.current_page || 1;
+
+                        // Render current page data
+                        renderClassRoomsTable(allClassRooms);
+                        updateStatisticsFromBackend(paginationInfo);
+                        updatePagination();
                         showContentState();
+
                     } else {
                         throw new Error(data.message || 'Failed to load class rooms');
                     }
@@ -1022,73 +822,85 @@
                 });
         }
 
-        // Rendering Functions
-        function renderFilteredClassRooms() {
-            let filteredClassRooms = allClassRooms;
+        function applyFiltersAndReload() {
+            const params = new URLSearchParams();
 
-            // Apply filters
-            if (currentStatusFilter === 'active') {
-                filteredClassRooms = filteredClassRooms.filter(classRoom => classRoom.is_active);
-            } else if (currentStatusFilter === 'inactive') {
-                filteredClassRooms = filteredClassRooms.filter(classRoom => !classRoom.is_active);
-            }
+            // Add current filters to API call
+            if (currentStatusFilter) params.append('status', currentStatusFilter);
+            if (currentOngoingFilter) params.append('ongoing', currentOngoingFilter);
+            if (currentGradeFilter) params.append('grade_id', currentGradeFilter);
+            if (currentTeacherFilter) params.append('teacher_id', currentTeacherFilter);
+            if (currentSubjectFilter) params.append('subject_id', currentSubjectFilter);
+            if (currentSearch) params.append('search', currentSearch);
 
-            if (currentOngoingFilter === 'ongoing') {
-                filteredClassRooms = filteredClassRooms.filter(classRoom => classRoom.is_ongoing);
-            } else if (currentOngoingFilter === 'not_ongoing') {
-                filteredClassRooms = filteredClassRooms.filter(classRoom => !classRoom.is_ongoing);
-            }
+            loadClassRoomsWithParams(params);
+        }
 
-            if (currentGradeFilter) {
-                filteredClassRooms = filteredClassRooms.filter(classRoom =>
-                    classRoom.grade_id && classRoom.grade_id.toString() === currentGradeFilter
-                );
-            }
+        function loadClassRoomsWithParams(params, page = 1) {
+            showLoadingState();
 
-            if (currentTeacherFilter) {
-                filteredClassRooms = filteredClassRooms.filter(classRoom =>
-                    classRoom.teacher_id && classRoom.teacher_id.toString() === currentTeacherFilter
-                );
-            }
+            let apiUrl = `{{ url('/api/class-rooms/all') }}?page=${page}`;
 
-            if (currentSubjectFilter) {
-                filteredClassRooms = filteredClassRooms.filter(classRoom =>
-                    classRoom.subject_id && classRoom.subject_id.toString() === currentSubjectFilter
-                );
-            }
+            // Add filter parameters
+            params.forEach((value, key) => {
+                apiUrl += `&${key}=${encodeURIComponent(value)}`;
+            });
 
-            if (currentSearch) {
-                filteredClassRooms = filteredClassRooms.filter(classRoom =>
-                    (classRoom.class_name && classRoom.class_name.toLowerCase().includes(currentSearch)) ||
-                    (classRoom.teacher && classRoom.teacher.fname && classRoom.teacher.fname.toLowerCase().includes(currentSearch)) ||
-                    (classRoom.teacher && classRoom.teacher.lname && classRoom.teacher.lname.toLowerCase().includes(currentSearch)) ||
-                    (classRoom.subject && classRoom.subject.subject_name && classRoom.subject.subject_name.toLowerCase().includes(currentSearch)) ||
-                    (classRoom.grade && classRoom.grade.grade_name && classRoom.grade.grade_name.toLowerCase().includes(currentSearch))
-                );
-            }
+            fetch(apiUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Process data as before
+                        const paginationInfo = data.meta || {};
+                        allClassRooms = Array.isArray(data.data) ? data.data.map(classRoom => ({
+                            ...classRoom,
+                            is_active: Boolean(classRoom.is_active),
+                            is_ongoing: Boolean(classRoom.is_ongoing)
+                        })) : [];
 
-            totalRecords = filteredClassRooms.length;
-            totalPages = Math.ceil(totalRecords / rowsPerPage);
+                        totalRecords = paginationInfo.total || 0;
+                        rowsPerPage = paginationInfo.per_page || 15;
+                        totalPages = paginationInfo.last_page || 1;
+                        currentPage = paginationInfo.current_page || 1;
 
-            if (currentPage > totalPages && totalPages > 0) {
-                currentPage = totalPages;
-            } else if (currentPage < 1) {
-                currentPage = 1;
-            }
+                        renderClassRoomsTable(allClassRooms);
+                        updateStatisticsFromBackend(paginationInfo);
+                        updatePagination();
+                        showContentState();
 
-            const startIndex = (currentPage - 1) * rowsPerPage;
-            const endIndex = startIndex + rowsPerPage;
-            const paginatedClassRooms = filteredClassRooms.slice(startIndex, endIndex);
+                    } else {
+                        throw new Error(data.message || 'Failed to load class rooms');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading class rooms:', error);
+                    showErrorState('Error loading class rooms: ' + error.message);
+                });
+        }
 
-            const viewToUse = typeof currentView !== 'undefined' ? currentView : 'table';
-            
-            if (viewToUse === 'table') {
-                renderClassRoomsTable(paginatedClassRooms);
-            } else {
-                renderClassRoomsCards(paginatedClassRooms);
-            }
+        function updateStatisticsFromBackend(paginationInfo) {
+            const totalClasses = paginationInfo.total || 0;
 
-            updatePagination();
+            const totalClassesEl = document.getElementById('totalClasses');
+            const activeClassesEl = document.getElementById('activeClasses');
+            const ongoingClassesEl = document.getElementById('ongoingClasses');
+            const inactiveClassesEl = document.getElementById('inactiveClasses');
+
+            if (totalClassesEl) totalClassesEl.textContent = totalClasses;
+
+            // Calculate from current page data
+            const activeClasses = allClassRooms.filter(c => c.is_active).length;
+            const ongoingClasses = allClassRooms.filter(c => c.is_ongoing).length;
+            const inactiveClasses = allClassRooms.filter(c => !c.is_active).length;
+
+            if (activeClassesEl) activeClassesEl.textContent = activeClasses;
+            if (ongoingClassesEl) ongoingClassesEl.textContent = ongoingClasses;
+            if (inactiveClassesEl) inactiveClassesEl.textContent = inactiveClasses;
         }
 
         function renderClassRoomsTable(classRooms) {
@@ -1129,42 +941,31 @@
                     '<span class="badge bg-info rounded-pill"><i class="fas fa-play-circle me-1"></i>Ongoing</span>' :
                     '<span class="badge bg-light text-dark border rounded-pill"><i class="fas fa-stop-circle me-1"></i>Not Ongoing</span>';
 
-                // Logic for action buttons based on your rules:
-                // - If is_ongoing = 1, then is_active cannot be set to 0
-                // - If is_active = 0, then is_ongoing cannot be set to 1
-                
                 const activateDeactivateButton = isActive ?
                     (isOngoing ?
-                        // Ongoing class - cannot deactivate (set is_active to 0)
                         `<button class="btn btn-outline-warning" title="Cannot deactivate ongoing class" disabled>
                             <i class="fas fa-pause-circle"></i>
                         </button>` :
-                        // Active but not ongoing - can deactivate
                         `<button class="btn btn-outline-warning" title="Deactivate" 
                                 onclick="showDeactivateModal(${classRoom.id}, '${escapeHtml(classRoom.class_name)}', '${escapeHtml(classRoom.teacher ? classRoom.teacher.fname + ' ' + classRoom.teacher.lname : 'No Teacher')}')">
                             <i class="fas fa-pause-circle"></i>
                         </button>`
                     ) :
-                    // Inactive class - can activate
                     `<button class="btn btn-outline-success" title="Activate" 
                             onclick="showActivateModal(${classRoom.id}, '${escapeHtml(classRoom.class_name)}', '${escapeHtml(classRoom.teacher ? classRoom.teacher.fname + ' ' + classRoom.teacher.lname : 'No Teacher')}')">
                         <i class="fas fa-check-circle"></i>
                     </button>`;
 
                 const startStopOngoingButton = isOngoing ?
-                    // Ongoing - can stop
                     `<button class="btn btn-outline-dark rounded-end" title="Stop Ongoing" 
                             onclick="showStopOngoingModal(${classRoom.id}, '${escapeHtml(classRoom.class_name)}', '${escapeHtml(classRoom.teacher ? classRoom.teacher.fname + ' ' + classRoom.teacher.lname : 'No Teacher')}')">
                         <i class="fas fa-stop-circle"></i>
                     </button>` :
-                    // Not ongoing - check if can start
                     (isActive ?
-                        // Active class - can start ongoing
                         `<button class="btn btn-outline-info rounded-end" title="Start Ongoing" 
                                 onclick="showStartOngoingModal(${classRoom.id}, '${escapeHtml(classRoom.class_name)}', '${escapeHtml(classRoom.teacher ? classRoom.teacher.fname + ' ' + classRoom.teacher.lname : 'No Teacher')}')">
                             <i class="fas fa-play-circle"></i>
                         </button>` :
-                        // Inactive class - cannot start ongoing
                         `<button class="btn btn-outline-info rounded-end" title="Cannot start ongoing for inactive class" disabled>
                             <i class="fas fa-play-circle"></i>
                         </button>`
@@ -1187,6 +988,12 @@
                         <td>
                             <span class="badge bg-light text-dark border">
                                 <i class="fas fa-book me-1 text-primary"></i>
+                                ${classRoom.teacher_percentage ? classRoom.teacher_percentage : 'N/A'}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border">
+                                <i class="fas fa-book me-1 text-primary"></i>
                                 ${classRoom.subject ? classRoom.subject.subject_name : 'N/A'}
                             </span>
                         </td>
@@ -1195,6 +1002,9 @@
                                 <i class="fas fa-graduation-cap me-1"></i>
                                 ${classRoom.grade ? classRoom.grade.grade_name : 'N/A'}
                             </span>
+                        </td>
+                        <td class="text-center"> 
+                            ${getClassTypeBadge(classRoom.class_type)}
                         </td>
                         <td class="text-center">
                             <div class="d-flex flex-column gap-1 align-items-center">
@@ -1219,124 +1029,6 @@
                     </tr>
                 `;
                 tbody.innerHTML += row;
-            });
-        }
-
-        function renderClassRoomsCards(classRooms) {
-            const cardsContainer = document.getElementById('classRoomsCardsContainer');
-            const emptyState = document.getElementById('emptyState');
-            const paginationSection = document.getElementById('paginationSection');
-            const classRoomCount = document.getElementById('classRoomCount');
-
-            if (!cardsContainer) return;
-
-            cardsContainer.innerHTML = '';
-
-            if (classRooms.length === 0) {
-                cardsContainer.classList.add('d-none');
-                if (paginationSection) paginationSection.classList.add('d-none');
-                if (emptyState) emptyState.classList.remove('d-none');
-                if (classRoomCount) classRoomCount.textContent = 'Showing 0 class rooms';
-                return;
-            }
-
-            cardsContainer.classList.remove('d-none');
-            if (paginationSection) paginationSection.classList.remove('d-none');
-            if (emptyState) emptyState.classList.add('d-none');
-            if (classRoomCount) classRoomCount.textContent = `Showing ${classRooms.length} class rooms`;
-
-            classRooms.forEach((classRoom) => {
-                const isActive = classRoom.is_active;
-                const isOngoing = classRoom.is_ongoing;
-
-                const statusBadge = isActive ?
-                    '<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Active</span>' :
-                    '<span class="badge bg-secondary"><i class="fas fa-pause-circle me-1"></i>Inactive</span>';
-
-                const ongoingBadge = isOngoing ?
-                    '<span class="badge bg-info"><i class="fas fa-play-circle me-1"></i>Ongoing</span>' :
-                    '<span class="badge bg-light text-dark border"><i class="fas fa-stop-circle me-1"></i>Not Ongoing</span>';
-
-                // Same logic for card view buttons
-                const activateDeactivateButton = isActive ?
-                    (isOngoing ?
-                        `<button class="btn btn-outline-warning btn-sm" title="Cannot deactivate ongoing class" disabled>
-                            <i class="fas fa-pause-circle"></i>
-                        </button>` :
-                        `<button class="btn btn-outline-warning btn-sm" title="Deactivate" 
-                                onclick="showDeactivateModal(${classRoom.id}, '${escapeHtml(classRoom.class_name)}', '${escapeHtml(classRoom.teacher ? classRoom.teacher.fname + ' ' + classRoom.teacher.lname : 'No Teacher')}')">
-                            <i class="fas fa-pause-circle"></i>
-                        </button>`
-                    ) :
-                    `<button class="btn btn-outline-success btn-sm" title="Activate" 
-                            onclick="showActivateModal(${classRoom.id}, '${escapeHtml(classRoom.class_name)}', '${escapeHtml(classRoom.teacher ? classRoom.teacher.fname + ' ' + classRoom.teacher.lname : 'No Teacher')}')">
-                        <i class="fas fa-check-circle"></i>
-                    </button>`;
-
-                const startStopOngoingButton = isOngoing ?
-                    `<button class="btn btn-outline-dark btn-sm" title="Stop Ongoing" 
-                            onclick="showStopOngoingModal(${classRoom.id}, '${escapeHtml(classRoom.class_name)}', '${escapeHtml(classRoom.teacher ? classRoom.teacher.fname + ' ' + classRoom.teacher.lname : 'No Teacher')}')">
-                        <i class="fas fa-stop-circle"></i>
-                    </button>` :
-                    (isActive ?
-                        `<button class="btn btn-outline-info btn-sm" title="Start Ongoing" 
-                                onclick="showStartOngoingModal(${classRoom.id}, '${escapeHtml(classRoom.class_name)}', '${escapeHtml(classRoom.teacher ? classRoom.teacher.fname + ' ' + classRoom.teacher.lname : 'No Teacher')}')">
-                            <i class="fas fa-play-circle"></i>
-                        </button>` :
-                        `<button class="btn btn-outline-info btn-sm" title="Cannot start ongoing for inactive class" disabled>
-                            <i class="fas fa-play-circle"></i>
-                        </button>`
-                    );
-
-                const card = `
-                    <div class="col-xl-4 col-lg-6 col-md-6">
-                        <div class="card class-room-card">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="mb-0">${classRoom.class_name || 'No Name'}</h6>
-                                </div>
-                                <div class="status-badges">
-                                    ${statusBadge}
-                                    ${ongoingBadge}
-                                </div>
-                            </div>
-                            <div class="card-body text-center">
-                                <div class="class-room-icon">
-                                    <i class="fas fa-chalkboard-teacher"></i>
-                                </div>
-                                
-                                <div class="class-room-info text-start">
-                                    <div class="mb-2">
-                                        <i class="fas fa-user-tie"></i>
-                                        <span><strong>Teacher:</strong> ${classRoom.teacher ? classRoom.teacher.fname + ' ' + classRoom.teacher.lname : 'No Teacher'}</span>
-                                    </div>
-                                    <div class="mb-2">
-                                        <i class="fas fa-book"></i>
-                                        <span><strong>Subject:</strong> ${classRoom.subject ? classRoom.subject.subject_name : 'N/A'}</span>
-                                    </div>
-                                    <div class="mb-2">
-                                        <i class="fas fa-graduation-cap"></i>
-                                        <span><strong>Grade:</strong> ${classRoom.grade ? classRoom.grade.grade_name : 'N/A'}</span>
-                                    </div>
-                                </div>
-
-                                <div class="d-flex justify-content-center gap-2 mt-3">
-                                    <button class="btn btn-outline-primary btn-sm" 
-                                            onclick="viewClassRoom(${classRoom.id})">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                    <button class="btn btn-outline-warning btn-sm" 
-                                            onclick="editClassRoom(${classRoom.id})">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    ${activateDeactivateButton}
-                                    ${startStopOngoingButton}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                cardsContainer.innerHTML += card;
             });
         }
 
@@ -1401,26 +1093,28 @@
 
         function changePage(page) {
             if (page < 1 || page > totalPages) return;
-            currentPage = page;
-            renderFilteredClassRooms();
+            
+            // Apply filters if any
+            if (currentStatusFilter || currentOngoingFilter || currentGradeFilter || 
+                currentTeacherFilter || currentSubjectFilter || currentSearch) {
+                applyFiltersAndReloadWithPage(page);
+            } else {
+                loadClassRooms(page);
+            }
         }
 
-        // Statistics Function
-        function updateStatistics(classRooms) {
-            const totalClasses = classRooms.length;
-            const activeClasses = classRooms.filter(c => c.is_active).length;
-            const ongoingClasses = classRooms.filter(c => c.is_ongoing).length;
-            const inactiveClasses = classRooms.filter(c => !c.is_active).length;
+        function applyFiltersAndReloadWithPage(page) {
+            const params = new URLSearchParams();
 
-            const totalClassesEl = document.getElementById('totalClasses');
-            const activeClassesEl = document.getElementById('activeClasses');
-            const ongoingClassesEl = document.getElementById('ongoingClasses');
-            const inactiveClassesEl = document.getElementById('inactiveClasses');
+            // Add current filters to API call
+            if (currentStatusFilter) params.append('status', currentStatusFilter);
+            if (currentOngoingFilter) params.append('ongoing', currentOngoingFilter);
+            if (currentGradeFilter) params.append('grade_id', currentGradeFilter);
+            if (currentTeacherFilter) params.append('teacher_id', currentTeacherFilter);
+            if (currentSubjectFilter) params.append('subject_id', currentSubjectFilter);
+            if (currentSearch) params.append('search', currentSearch);
 
-            if (totalClassesEl) totalClassesEl.textContent = totalClasses;
-            if (activeClassesEl) activeClassesEl.textContent = activeClasses;
-            if (ongoingClassesEl) ongoingClassesEl.textContent = ongoingClasses;
-            if (inactiveClassesEl) inactiveClassesEl.textContent = inactiveClasses;
+            loadClassRoomsWithParams(params, page);
         }
 
         // Modal Functions
@@ -1480,7 +1174,7 @@
             if (confirmStopOngoingBtn) confirmStopOngoingBtn.setAttribute('data-class-room-id', classRoomId);
         }
 
-        // Confirmation Functions - Updated to match your routes
+        // Confirmation Functions
         function confirmActivateClassRoom() {
             const confirmActivateBtn = document.getElementById('confirmActivateBtn');
             if (!confirmActivateBtn) return;
@@ -1495,26 +1189,26 @@
                     'Accept': 'application/json'
                 }
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.status === 'success') {
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('activateClassRoomModal'));
-                    if (modal) modal.hide();
-                    showAlert('Class room activated successfully!', 'success');
-                    loadClassRooms();
-                } else {
-                    throw new Error(data.message || 'Failed to activate class room');
-                }
-            })
-            .catch(error => {
-                console.error('Error activating class room:', error);
-                showAlert('Error activating class room: ' + error.message, 'danger');
-            });
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.status === 'success') {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('activateClassRoomModal'));
+                        if (modal) modal.hide();
+                        showAlert('Class room activated successfully!', 'success');
+                        loadClassRooms();
+                    } else {
+                        throw new Error(data.message || 'Failed to activate class room');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error activating class room:', error);
+                    showAlert('Error activating class room: ' + error.message, 'danger');
+                });
         }
 
         function confirmDeactivateClassRoom() {
@@ -1531,26 +1225,26 @@
                     'Accept': 'application/json'
                 }
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.status === 'success') {
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('deactivateClassRoomModal'));
-                    if (modal) modal.hide();
-                    showAlert('Class room deactivated successfully!', 'success');
-                    loadClassRooms();
-                } else {
-                    throw new Error(data.message || 'Failed to deactivate class room');
-                }
-            })
-            .catch(error => {
-                console.error('Error deactivating class room:', error);
-                showAlert('Error deactivating class room: ' + error.message, 'danger');
-            });
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.status === 'success') {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('deactivateClassRoomModal'));
+                        if (modal) modal.hide();
+                        showAlert('Class room deactivated successfully!', 'success');
+                        loadClassRooms();
+                    } else {
+                        throw new Error(data.message || 'Failed to deactivate class room');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deactivating class room:', error);
+                    showAlert('Error deactivating class room: ' + error.message, 'danger');
+                });
         }
 
         function confirmStartOngoing() {
@@ -1567,26 +1261,26 @@
                     'Accept': 'application/json'
                 }
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.status === 'success') {
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('startOngoingModal'));
-                    if (modal) modal.hide();
-                    showAlert('Class session started successfully!', 'success');
-                    loadClassRooms();
-                } else {
-                    throw new Error(data.message || 'Failed to start class session');
-                }
-            })
-            .catch(error => {
-                console.error('Error starting class session:', error);
-                showAlert('Error starting class session: ' + error.message, 'danger');
-            });
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.status === 'success') {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('startOngoingModal'));
+                        if (modal) modal.hide();
+                        showAlert('Class session started successfully!', 'success');
+                        loadClassRooms();
+                    } else {
+                        throw new Error(data.message || 'Failed to start class session');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error starting class session:', error);
+                    showAlert('Error starting class session: ' + error.message, 'danger');
+                });
         }
 
         function confirmStopOngoing() {
@@ -1603,26 +1297,26 @@
                     'Accept': 'application/json'
                 }
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.status === 'success') {
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('stopOngoingModal'));
-                    if (modal) modal.hide();
-                    showAlert('Class session stopped successfully!', 'success');
-                    loadClassRooms();
-                } else {
-                    throw new Error(data.message || 'Failed to stop class session');
-                }
-            })
-            .catch(error => {
-                console.error('Error stopping class session:', error);
-                showAlert('Error stopping class session: ' + error.message, 'danger');
-            });
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.status === 'success') {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('stopOngoingModal'));
+                        if (modal) modal.hide();
+                        showAlert('Class session stopped successfully!', 'success');
+                        loadClassRooms();
+                    } else {
+                        throw new Error(data.message || 'Failed to stop class session');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error stopping class session:', error);
+                    showAlert('Error stopping class session: ' + error.message, 'danger');
+                });
         }
 
         function viewClassRoom(classRoomId) {
@@ -1634,6 +1328,20 @@
         }
 
         // Helper functions
+        function getClassTypeBadge(classType) {
+            if (!classType) {
+                return '<span class="badge bg-secondary">N/A</span>';
+            }
+
+            if (classType === 'online') {
+                return '<span class="badge bg-info"><i class="fas fa-laptop me-1"></i>Online</span>';
+            } else if (classType === 'offline') {
+                return '<span class="badge bg-warning text-dark"><i class="fas fa-school me-1"></i>Offline</span>';
+            } else {
+                return `<span class="badge bg-secondary">${classType}</span>`;
+            }
+        }
+
         function debounce(func, wait) {
             let timeout;
             return function executedFunction(...args) {

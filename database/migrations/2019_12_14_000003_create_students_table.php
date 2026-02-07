@@ -1,6 +1,7 @@
 <?php
 // database/migrations/xxxx_xx_xx_000014_create_students_table.php
 
+use App\Enums\ClassType;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -31,6 +32,8 @@ class CreateStudentsTable extends Migration
             $table->mediumText('img_url');
             $table->unsignedBigInteger('grade_id')
                 ->constrained('grades');
+            $table->string('class_type')
+                ->default(ClassType::OFFLINE);
             $table->boolean('admission');
             $table->boolean('is_freecard');
             $table->string('student_school')->nullable();

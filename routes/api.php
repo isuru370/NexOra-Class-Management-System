@@ -291,7 +291,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/class-wise/{teacherId}/{yearMonth}', [TeacherPaymentsController::class, 'getTeacherClassWiseStudentPaymentStatus']);
                 Route::get('/student-pay/{teacherId}/{yearMonth}', [TeacherPaymentsController::class, 'studentPaymentMonthCheck']);
         Route::get('/salary-slip/{teacherId}/{yearMonth}', [TeacherPaymentsController::class, 'fetchSalarySlipDataTest']);
+        Route::get('/expenses/{yearMonth}', [TeacherPaymentsController::class, 'teachersExpenses']);
         Route::get('/monthly-income/{yearMonth}', [TeacherPaymentsController::class, 'getMonthlyPayments']);
+        Route::post('/{id}/toggle-status', [TeacherPaymentsController::class, 'togglePaymentStatus']);
         Route::post('/', [TeacherPaymentsController::class, 'storeTeacherPayments']);
     });
 

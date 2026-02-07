@@ -21,9 +21,9 @@ class TeacherController extends Controller
         return $this->teacherService->getDropdownTeachers();
     }
 
-    public function fetchTeachers()
+    public function fetchTeachers(Request $request)
     {
-        return $this->teacherService->fetchTeachers();
+        return $this->teacherService->fetchTeachers($request);
     }
 
     public function fetchActiveTeachers()

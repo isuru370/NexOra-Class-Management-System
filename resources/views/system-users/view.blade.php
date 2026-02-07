@@ -84,27 +84,6 @@
                             <p class="text-muted mb-0">Manage all system users and their permissions</p>
                         </div>
                         <div class="d-flex gap-2">
-                            <!-- Filter Dropdown -->
-                            <div class="dropdown">
-                                <button class="btn btn-outline-primary dropdown-toggle" type="button"
-                                    data-bs-toggle="dropdown">
-                                    <i class="fas fa-filter me-2"></i>Filter
-                                </button>
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item filter-option" href="#" data-filter="all">All Users</a></li>
-                                    <li><a class="dropdown-item filter-option" href="#" data-filter="active">Active Only</a>
-                                    </li>
-                                    <li><a class="dropdown-item filter-option" href="#" data-filter="inactive">Inactive
-                                            Only</a></li>
-                                    <li>
-                                        <hr class="dropdown-divider">
-                                    </li>
-                                    <li><a class="dropdown-item filter-option" href="#" data-filter="admin">Admins</a></li>
-                                    <li><a class="dropdown-item filter-option" href="#" data-filter="user">Regular Users</a>
-                                    </li>
-                                </ul>
-                            </div>
-
                             <!-- Refresh Button -->
                             <button class="btn btn-outline-primary" id="refreshBtn" title="Refresh">
                                 <i class="fas fa-sync-alt"></i>
@@ -141,31 +120,6 @@
                     <!-- Action Bar -->
                     <div class="d-flex justify-content-between align-items-center mb-3 d-none" id="actionBar">
                         <div class="d-flex align-items-center gap-2">
-                            <div class="btn-group">
-                                <button class="btn btn-outline-primary btn-sm" onclick="exportTo('csv')">
-                                    <i class="fas fa-file-csv me-1"></i>CSV
-                                </button>
-                                <button class="btn btn-outline-primary btn-sm" onclick="exportTo('excel')">
-                                    <i class="fas fa-file-excel me-1"></i>Excel
-                                </button>
-                                <button class="btn btn-outline-primary btn-sm" onclick="window.print()">
-                                    <i class="fas fa-print me-1"></i>Print
-                                </button>
-                                <button class="btn btn-outline-primary btn-sm" onclick="exportTo('pdf')">
-                                    <i class="fas fa-file-pdf me-1"></i>PDF
-                                </button>
-                            </div>
-                            <span class="text-muted ms-2" id="userCount">Showing 0 users</span>
-                        </div>
-
-                        <div class="d-flex align-items-center gap-2">
-                            <!-- Bulk Actions -->
-                            <select class="form-select form-select-sm" style="width: 140px;" id="bulkActions">
-                                <option value="">Bulk Actions</option>
-                                <option value="activate">Activate Selected</option>
-                                <option value="deactivate">Deactivate Selected</option>
-                            </select>
-
                             <!-- Search Box -->
                             <div class="input-group input-group-sm" style="width: 280px;">
                                 <span class="input-group-text bg-transparent">
@@ -185,9 +139,6 @@
                         <table class="table table-hover table-striped" id="usersTable">
                             <thead class="table-dark">
                                 <tr>
-                                    <th width="50">
-                                        <input type="checkbox" class="form-check-input" id="selectAll">
-                                    </th>
                                     <th>User</th>
                                     <th>Contact</th>
                                     <th>User Type</th>
@@ -239,7 +190,6 @@
         </div>
     </div>
 
-
     <!-- Reactivate Confirmation Modal -->
     <div class="modal fade" id="reactivateModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -259,8 +209,6 @@
             </div>
         </div>
     </div>
-
-
 
     <!-- User Details Modal -->
     <div class="modal fade" id="userDetailsModal" tabindex="-1" aria-hidden="true">
@@ -368,7 +316,6 @@
             padding: 0.375rem 0.75rem;
         }
 
-        /* Custom scrollbar for table */
         .table-responsive::-webkit-scrollbar {
             height: 6px;
         }

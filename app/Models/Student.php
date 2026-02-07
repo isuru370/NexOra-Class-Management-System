@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ClassType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -31,6 +32,7 @@ class Student extends Model
         'is_active',
         'img_url',
         'grade_id',
+        'class_type',
         'admission',
         'is_freecard',
         'student_school'
@@ -50,5 +52,21 @@ class Student extends Model
     public function grade()
     {
         return $this->belongsTo(Grade::class);
+    }
+
+    public function isOnline(): bool
+    {
+        return $this->class_type === ClassType::ONLINE;
+    }
+
+    public function isOffline(): bool
+    {
+        return $this->class_type === ClassType::OFFLINE;
+    }
+
+    // Student.php
+    public function portalLogin()
+    {
+        return $this->hasOne(StudentPortalLogin::class);
     }
 }

@@ -7,8 +7,6 @@ let systemUsers = [];
 let filteredUsers = [];
 let deleteModalInstance = null;
 let reactivateModalInstance = null;
-let currentFilter = 'all';
-let selectedUsers = new Set();
 let searchDebounceTimer = null;
 
 // ========== MAIN FUNCTIONS ==========
@@ -53,9 +51,6 @@ function renderUsersTable(users) {
     const emptyState = document.getElementById('emptyState');
 
     tbody.innerHTML = '';
-    selectedUsers.clear();
-    document.getElementById('selectAll').checked = false;
-    updateBulkActionState();
 
     if (!users || users.length === 0) {
         tableContainer.classList.add('d-none');
@@ -81,9 +76,6 @@ function renderUsersTable(users) {
         tr.className = statusClass;
         
         tr.innerHTML = `
-            <td>
-                <input type="checkbox" class="form-check-input user-checkbox" data-user-id="${user.id}">
-            </td>
             <td>
                 <div class="d-flex align-items-center">
                     <div class="avatar-sm bg-primary rounded-circle d-flex align-items-center justify-content-center me-3 text-white fw-bold shadow">
@@ -128,20 +120,6 @@ function renderUsersTable(users) {
             </td>
         `;
         tbody.appendChild(tr);
-    });
-
-    // Add event listeners for checkboxes
-    document.querySelectorAll('.user-checkbox').forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            const userId = this.dataset.userId;
-            if (this.checked) {
-                selectedUsers.add(userId);
-            } else {
-                selectedUsers.delete(userId);
-                document.getElementById('selectAll').checked = false;
-            }
-            updateBulkActionState();
-        });
     });
 
     initializeTooltips();
@@ -354,10 +332,6 @@ function showSuccess(message) {
     alert(message); // Replace with your preferred notification system
 }
 
-function exportTo(format) {
-    showSuccess(`Export to ${format.toUpperCase()} feature would be implemented here`);
-}
-
 function initializeTooltips() {
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
     tooltipTriggerList.forEach(el => { 
@@ -381,157 +355,27 @@ function updateStatistics(users) {
     document.getElementById('activeUsers').textContent = activeUsers;
     document.getElementById('inactiveUsers').textContent = inactiveUsers;
     document.getElementById('adminUsers').textContent = adminUsers;
-    
-    // Update user count text
-    document.getElementById('userCount').textContent = `Showing ${filteredUsers.length} of ${totalUsers} users`;
 }
 
-/* ----------------------- Filter Functions ----------------------- */
-function initializeFilters() {
-    // Filter dropdown options
-    document.querySelectorAll('.filter-option').forEach(option => {
-        option.addEventListener('click', function(e) {
-            e.preventDefault();
-            currentFilter = this.dataset.filter;
-            applyFilter(currentFilter);
-            
-            // Update dropdown button text
-            const dropdownBtn = document.querySelector('.dropdown-toggle');
-            const filterText = this.textContent;
-            dropdownBtn.innerHTML = `<i class="fas fa-filter me-2"></i>${filterText}`;
-        });
-    });
-
-    // Bulk actions
-    document.getElementById('bulkActions').addEventListener('change', function() {
-        const action = this.value;
-        if (action && selectedUsers.size > 0) {
-            handleBulkAction(action);
-        }
-        this.value = '';
-    });
-
-    // Select all checkbox
-    document.getElementById('selectAll').addEventListener('change', function() {
-        const checkboxes = document.querySelectorAll('.user-checkbox');
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = this.checked;
-            const userId = checkbox.dataset.userId;
-            if (this.checked) {
-                selectedUsers.add(userId);
-            } else {
-                selectedUsers.delete(userId);
-            }
-        });
-        updateBulkActionState();
-    });
-
-    // Refresh button
-    document.getElementById('refreshBtn').addEventListener('click', function() {
-        loadSystemUsers();
-    });
+/* ----------------------- Event Handlers ----------------------- */
+function clearSearch() {
+    document.getElementById('searchInput').value = '';
+    applySearch('');
 }
 
-function applyFilter(filter) {
-    currentFilter = filter;
-    
-    switch(filter) {
-        case 'active':
-            filteredUsers = systemUsers.filter(user => user.is_active && user.user?.is_active);
-            break;
-        case 'inactive':
-            filteredUsers = systemUsers.filter(user => !user.is_active || !user.user?.is_active);
-            break;
-        case 'admin':
-            filteredUsers = systemUsers.filter(user => 
-                user.user?.user_type?.type?.toLowerCase() === 'admin'
-            );
-            break;
-        case 'user':
-            filteredUsers = systemUsers.filter(user => 
-                user.user?.user_type?.type?.toLowerCase() !== 'admin'
-            );
-            break;
-        default:
-            filteredUsers = [...systemUsers];
-    }
-    
-    renderUsersTable(filteredUsers);
+function handleDeactivateConfirm() {
+    if (currentUserId) deactivateUser(currentUserId);
 }
 
-/* ----------------------- Bulk Actions ----------------------- */
-function handleBulkAction(action) {
-    const userIds = Array.from(selectedUsers);
-    
-    if (action === 'activate') {
-        if (confirm(`Are you sure you want to activate ${userIds.length} users?`)) {
-            activateMultipleUsers(userIds);
-        }
-    } else if (action === 'deactivate') {
-        if (confirm(`Are you sure you want to deactivate ${userIds.length} users?`)) {
-            deactivateMultipleUsers(userIds);
-        }
-    }
+function handleReactivateConfirm() {
+    if (currentUserId) reactivateUser(currentUserId);
 }
 
-function activateMultipleUsers(userIds) {
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
-    const promises = userIds.map(userId => 
-        fetch(`/api/system-users/${userId}/reactivate`, {
-            method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken,
-                'Accept': 'application/json'
-            }
-        })
-    );
-
-    Promise.all(promises)
-        .then(() => {
-            showSuccess(`${userIds.length} users activated successfully`);
-            selectedUsers.clear();
-            document.getElementById('selectAll').checked = false;
-            loadSystemUsers();
-        })
-        .catch(error => {
-            console.error('Error activating users:', error);
-            showError('Failed to activate users');
-        });
+function handleRefresh() {
+    loadSystemUsers();
 }
 
-function deactivateMultipleUsers(userIds) {
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
-    const promises = userIds.map(userId => 
-        fetch(`/api/system-users/${userId}`, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken,
-                'Accept': 'application/json'
-            }
-        })
-    );
-
-    Promise.all(promises)
-        .then(() => {
-            showSuccess(`${userIds.length} users deactivated successfully`);
-            selectedUsers.clear();
-            document.getElementById('selectAll').checked = false;
-            loadSystemUsers();
-        })
-        .catch(error => {
-            console.error('Error deactivating users:', error);
-            showError('Failed to deactivate users');
-        });
-}
-
-function updateBulkActionState() {
-    const bulkSelect = document.getElementById('bulkActions');
-    bulkSelect.disabled = selectedUsers.size === 0;
-}
-
-// ========== EVENT LISTENER (අන්තිමට) ==========
+// ========== EVENT LISTENER ==========
 document.addEventListener('DOMContentLoaded', function () {
     console.log("System Users - DOM Content Loaded");
     
@@ -540,23 +384,27 @@ document.addEventListener('DOMContentLoaded', function () {
     reactivateModalInstance = new bootstrap.Modal(document.getElementById('reactivateModal'));
 
     // Event listeners
-    document.getElementById('clearSearchBtn').addEventListener('click', function () {
-        document.getElementById('searchInput').value = '';
-        applySearch('');
-    });
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
+    if (clearSearchBtn) {
+        clearSearchBtn.addEventListener('click', clearSearch);
+    }
 
-    document.getElementById('confirmDeleteBtn').addEventListener('click', function () {
-        if (currentUserId) deactivateUser(currentUserId);
-    });
+    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+    if (confirmDeleteBtn) {
+        confirmDeleteBtn.addEventListener('click', handleDeactivateConfirm);
+    }
 
-    document.getElementById('confirmReactivateBtn').addEventListener('click', function () {
-        if (currentUserId) reactivateUser(currentUserId);
-    });
+    const confirmReactivateBtn = document.getElementById('confirmReactivateBtn');
+    if (confirmReactivateBtn) {
+        confirmReactivateBtn.addEventListener('click', handleReactivateConfirm);
+    }
 
-    // Initialize enhanced features
-    initializeFilters();
-    
-    // Load users
+    const refreshBtn = document.getElementById('refreshBtn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', handleRefresh);
+    }
+
+    // Load users and initialize search
     loadSystemUsers();
     initializeSearch();
 });

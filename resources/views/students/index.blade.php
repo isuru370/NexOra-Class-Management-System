@@ -110,44 +110,9 @@
                     </div>
 
                     <!-- Action Bar -->
-                    <!-- Action Bar -->
                     <div class="d-none" id="actionBar">
-                        <!-- First Row: Info and Export Controls -->
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="text-muted" id="studentCount">Showing 0 students</span>
-                            </div>
-                            <div class="btn-group">
-                                <button class="btn btn-outline-primary btn-sm" onclick="exportTo('csv')">
-                                    <i class="fas fa-file-csv me-1"></i>CSV
-                                </button>
-                                <button class="btn btn-outline-primary btn-sm" onclick="exportTo('excel')">
-                                    <i class="fas fa-file-excel me-1"></i>Excel
-                                </button>
-                                <button class="btn btn-outline-primary btn-sm" onclick="window.print()">
-                                    <i class="fas fa-print me-1"></i>Print
-                                </button>
-                                <button class="btn btn-outline-primary btn-sm" onclick="exportTo('pdf')">
-                                    <i class="fas fa-file-pdf me-1"></i>PDF
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Second Row: Filters and Search -->
-                        <div class="d-flex justify-content-between align-items-center">
                             <div class="d-flex align-items-center gap-2 flex-wrap">
-                                <!-- View Toggle -->
-                                <div class="btn-group btn-group-sm me-2">
-                                    <button type="button" class="btn btn-outline-secondary active" id="tableViewBtn"
-                                        title="Table View">
-                                        <i class="fas fa-table"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-outline-secondary" id="cardViewBtn"
-                                        title="Card View">
-                                        <i class="fas fa-th-large"></i>
-                                    </button>
-                                </div>
-
                                 <!-- Filter Buttons -->
                                 <div class="btn-group btn-group-sm me-2">
                                     <button type="button" class="btn btn-outline-secondary active" id="filterAll"
@@ -193,11 +158,6 @@
                         </div>
                     </div>
 
-                    <!-- Students Cards View -->
-                    <div class="row d-none" id="studentsCardsContainer">
-                        <!-- Student cards will be loaded here via JavaScript -->
-                    </div>
-
                     <!-- Students Table -->
                     <div class="table-responsive" id="studentsTableContainer">
                         <table class="table table-hover" id="studentsTable">
@@ -208,6 +168,7 @@
                                     <th>Contact</th>
                                     <th class="text-center">Grade</th>
                                     <th class="text-center">Gender</th>
+                                    <th class="text-center">Type</th>
                                     <th class="text-center">Status</th>
                                     <th width="140" class="text-center">Actions</th>
                                 </tr>
@@ -282,7 +243,6 @@
     </div>
 
     <!-- Deactivate Student Modal -->
-
     <div class="modal fade" id="deactivateStudentModal" tabindex="-1" aria-labelledby="deactivateStudentModalLabel"
         aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
         <div class="modal-dialog modal-dialog-centered">
@@ -407,55 +367,6 @@
             color: white;
             border-color: #2c3e50;
         }
-
-        .student-card {
-            border: none;
-            border-radius: 15px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease;
-            margin-bottom: 20px;
-            overflow: hidden;
-        }
-
-        .student-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        .student-card .card-header {
-            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
-            color: white;
-            padding: 15px;
-            border-bottom: none;
-        }
-
-        .student-card .card-body {
-            padding: 20px;
-        }
-
-        .student-avatar {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-            color: white;
-            margin: 0 auto 15px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .student-info {
-            margin-bottom: 15px;
-        }
-
-        .student-info i {
-            width: 20px;
-            text-align: center;
-            margin-right: 10px;
-            color: #6a11cb;
-        }
     </style>
 @endpush
 
@@ -470,7 +381,6 @@
         let currentGradeFilter = '';
         let currentSearch = '';
         let allGrades = []; // Store grades for filtering
-        let currentView = 'table'; // 'table' or 'card'
 
         // Wait for the DOM to be loaded
         document.addEventListener('DOMContentLoaded', function () {
@@ -480,7 +390,7 @@
         function initializeStudentsPage() {
             // Load grades on page load
             loadGrades();
-            
+
             // Initial load of students
             loadStudents(currentPage);
 
@@ -492,8 +402,6 @@
             const filterAllEl = document.getElementById('filterAll');
             const filterActiveEl = document.getElementById('filterActive');
             const filterInactiveEl = document.getElementById('filterInactive');
-            const tableViewBtn = document.getElementById('tableViewBtn');
-            const cardViewBtn = document.getElementById('cardViewBtn');
             const confirmActivateBtn = document.getElementById('confirmActivateBtn');
             const confirmDeactivateBtn = document.getElementById('confirmDeactivateBtn');
 
@@ -546,19 +454,6 @@
             if (filterInactiveEl) {
                 filterInactiveEl.addEventListener('click', function () {
                     setActiveFilter(this, 'inactive');
-                });
-            }
-
-            // View toggle
-            if (tableViewBtn) {
-                tableViewBtn.addEventListener('click', function () {
-                    setActiveView('table');
-                });
-            }
-
-            if (cardViewBtn) {
-                cardViewBtn.addEventListener('click', function () {
-                    setActiveView('card');
                 });
             }
 
@@ -630,29 +525,6 @@
             loadStudents(currentPage);
         }
 
-        function setActiveView(view) {
-            currentView = view;
-
-            // Update active button
-            const tableViewBtn = document.getElementById('tableViewBtn');
-            const cardViewBtn = document.getElementById('cardViewBtn');
-
-            if (tableViewBtn && cardViewBtn) {
-                tableViewBtn.classList.toggle('active', view === 'table');
-                cardViewBtn.classList.toggle('active', view === 'card');
-            }
-
-            // Show/hide views
-            const tableContainer = document.getElementById('studentsTableContainer');
-            const cardsContainer = document.getElementById('studentsCardsContainer');
-
-            if (tableContainer) tableContainer.classList.toggle('d-none', view !== 'table');
-            if (cardsContainer) cardsContainer.classList.toggle('d-none', view !== 'card');
-
-            // Re-render students with current view
-            loadStudents(currentPage);
-        }
-
         // Main function to load students from API with pagination
         function loadStudents(page = 1) {
             showLoadingState();
@@ -663,19 +535,22 @@
                 per_page: rowsPerPage
             });
 
+            // Add search parameter
             if (currentSearch) {
                 params.append('search', currentSearch);
             }
 
-            // Note: The API currently doesn't support status or grade filtering
-            // You would need to add these to your backend API
-            // if (currentStatusFilter) {
-            //     params.append('is_active', currentStatusFilter === 'active' ? '1' : '0');
-            // }
-            
-            // if (currentGradeFilter) {
-            //     params.append('grade_id', currentGradeFilter);
-            // }
+            // Add Active/Inactive filter parameter
+            if (currentStatusFilter === 'active') {
+                params.append('is_active', '1');
+            } else if (currentStatusFilter === 'inactive') {
+                params.append('is_active', '0');
+            }
+
+            // Add Grade filter parameter
+            if (currentGradeFilter && currentGradeFilter !== '') {
+                params.append('grade_id', currentGradeFilter);
+            }
 
             fetch(`{{ url('/api/students') }}?${params.toString()}`)
                 .then(response => {
@@ -688,19 +563,14 @@
                     if (data.status === 'success') {
                         const students = data.data.students || [];
                         const pagination = data.data.pagination;
-                        
+
                         // Update pagination variables
                         currentPage = pagination.current_page;
                         totalPages = pagination.last_page;
                         totalRecords = pagination.total;
                         rowsPerPage = pagination.per_page;
 
-                        if (currentView === 'table') {
-                            renderStudentsTable(students);
-                        } else {
-                            renderStudentsCards(students);
-                        }
-                        
+                        renderStudentsTable(students);
                         updatePagination();
                         updateStatistics(students);
                         showContentState();
@@ -719,7 +589,6 @@
             const tableContainer = document.getElementById('studentsTableContainer');
             const emptyState = document.getElementById('emptyState');
             const paginationSection = document.getElementById('paginationSection');
-            const studentCount = document.getElementById('studentCount');
 
             if (!tbody) return;
 
@@ -729,14 +598,12 @@
                 if (tableContainer) tableContainer.classList.add('d-none');
                 if (paginationSection) paginationSection.classList.add('d-none');
                 if (emptyState) emptyState.classList.remove('d-none');
-                if (studentCount) studentCount.textContent = 'Showing 0 students';
                 return;
             }
 
             if (tableContainer) tableContainer.classList.remove('d-none');
             if (paginationSection) paginationSection.classList.remove('d-none');
             if (emptyState) emptyState.classList.add('d-none');
-            if (studentCount) studentCount.textContent = `Showing ${students.length} students`;
 
             students.forEach((student, index) => {
                 // Calculate row number based on pagination
@@ -756,179 +623,83 @@
                             '<i class="fas fa-genderless text-muted"></i>' :
                             '<i class="fas fa-question text-secondary"></i>';
 
+                // Determine class type (online/offline)
+                const classType = student.class_type || 'offline';
+                const typeBadge = classType === 'online' ?
+                    '<span class="badge bg-info rounded-pill"><i class="fas fa-globe me-1"></i>Online</span>' :
+                    '<span class="badge bg-secondary rounded-pill"><i class="fas fa-building me-1"></i>Offline</span>';
+
                 // Use placeholder icon if img_url is null or invalid
                 const avatarContent = student.img_url && isValidImageUrl(student.img_url) ?
                     `<img src="${student.img_url}" alt="${student.fname} ${student.lname}" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;">` :
                     `<div class="avatar-sm bg-primary bg-gradient rounded-circle text-white d-flex align-items-center justify-content-center">
-                        <span class="fw-bold">${student.fname ? student.fname.charAt(0) : ''}${student.lname ? student.lname.charAt(0) : ''}</span>
-                    </div>`;
+                            <span class="fw-bold">${student.fname ? student.fname.charAt(0) : ''}${student.lname ? student.lname.charAt(0) : ''}</span>
+                        </div>`;
 
                 const row = `
-                    <tr class="align-middle">
-                        <td class="text-center fw-bold text-muted">${rowNumber}</td>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                ${avatarContent}
-                                <div class="ms-3">
-                                    <h6 class="mb-0 fw-bold">${student.fname || ''} ${student.lname || ''}</h6>
-                                    <small class="text-muted">${student.custom_id || 'No ID'}</small>
-                                </div>
-                            </div>
-                        </td>
-                        <td>
-                            <div>
-                                <div class="mb-1">
-                                    <i class="fas fa-envelope text-muted me-2"></i>
-                                    <small>${student.email || 'No email'}</small>
-                                </div>
-                                <div>
-                                    <i class="fas fa-phone text-muted me-2"></i>
-                                    <small>${student.mobile || 'No phone'}</small>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="text-center">
-                            <span class="badge bg-light text-dark border">
-                                <i class="fas fa-graduation-cap me-1 text-primary"></i>
-                                ${student.grade ? student.grade.grade_name : 'N/A'}
-                            </span>
-                        </td>
-                        <td class="text-center">
-                            <span class="fs-5">${genderIcon}</span>
-                        </td>
-                        <td class="text-center">
-                            ${statusBadge}
-                        </td>
-                        <td class="text-center">
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-primary rounded-start" title="View" 
-                                        onclick="viewStudent('${student.custom_id}')">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                <button class="btn btn-outline-warning" title="Edit" 
-                                        onclick="editStudent('${student.custom_id}')">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                ${isActive ?
-                        `<button class="btn btn-outline-danger rounded-end" title="Deactivate" 
-                                            onclick="showDeactivateModal(${student.id}, '${escapeHtml(student.fname)} ${escapeHtml(student.lname)}', '${escapeHtml(student.email || 'No email')}')">
-                                        <i class="fas fa-user-slash"></i>
-                                    </button>` :
-                        `<button class="btn btn-outline-success rounded-end" title="Activate" 
-                                            onclick="showActivateModal(${student.id}, '${escapeHtml(student.fname)} ${escapeHtml(student.lname)}', '${escapeHtml(student.email || 'No email')}')">
-                                        <i class="fas fa-user-check"></i>
-                                    </button>`
-                    }
-                            </div>
-                        </td>
-                    </tr>
-                `;
-                tbody.innerHTML += row;
-            });
-        }
-
-        function renderStudentsCards(students) {
-            const cardsContainer = document.getElementById('studentsCardsContainer');
-            const emptyState = document.getElementById('emptyState');
-            const paginationSection = document.getElementById('paginationSection');
-            const studentCount = document.getElementById('studentCount');
-
-            if (!cardsContainer) return;
-
-            cardsContainer.innerHTML = '';
-
-            if (students.length === 0) {
-                cardsContainer.classList.add('d-none');
-                if (paginationSection) paginationSection.classList.add('d-none');
-                if (emptyState) emptyState.classList.remove('d-none');
-                if (studentCount) studentCount.textContent = 'Showing 0 students';
-                return;
-            }
-
-            cardsContainer.classList.remove('d-none');
-            if (paginationSection) paginationSection.classList.remove('d-none');
-            if (emptyState) emptyState.classList.add('d-none');
-            if (studentCount) studentCount.textContent = `Showing ${students.length} students`;
-
-            students.forEach((student) => {
-                const isActive = student.is_active;
-                const statusBadge = isActive ?
-                    '<span class="badge bg-success rounded-pill"><i class="fas fa-circle me-1"></i>Active</span>' :
-                    '<span class="badge bg-secondary rounded-pill"><i class="fas fa-circle me-1"></i>Inactive</span>';
-
-                const genderIcon = student.gender === 'male' ?
-                    '<i class="fas fa-mars text-primary"></i>' :
-                    student.gender === 'female' ?
-                        '<i class="fas fa-venus text-pink"></i>' :
-                        '<i class="fas fa-genderless text-muted"></i>';
-
-                // Use placeholder icon if img_url is null or invalid
-                const avatarContent = student.img_url && isValidImageUrl(student.img_url) ?
-                    `<img src="${student.img_url}" alt="${student.fname} ${student.lname}" class="rounded-circle" style="width: 80px; height: 80px; object-fit: cover;">` :
-                    `<div class="student-avatar bg-primary bg-gradient">
-                        <span class="fw-bold">${student.fname ? student.fname.charAt(0) : ''}${student.lname ? student.lname.charAt(0) : ''}</span>
-                    </div>`;
-
-                const card = `
-                    <div class="col-xl-4 col-lg-6 col-md-6">
-                        <div class="card student-card">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="mb-0">${student.custom_id || 'No ID'}</h6>
-                                </div>
-                                <div>
-                                    ${statusBadge}
-                                </div>
-                            </div>
-                            <div class="card-body text-center">
-                                ${avatarContent}
-                                <h5 class="card-title">${student.fname || ''} ${student.lname || ''}</h5>
-                                <p class="text-muted">${student.grade ? student.grade.grade_name : 'No Grade'}</p>
-
-                                <div class="student-info text-start">
-                                    <div class="mb-2">
-                                        <i class="fas fa-envelope"></i>
-                                        <span>${student.email || 'No email'}</span>
+                        <tr class="align-middle">
+                            <td class="text-center fw-bold text-muted">${rowNumber}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    ${avatarContent}
+                                    <div class="ms-3">
+                                        <h6 class="mb-0 fw-bold">${student.fname || ''} ${student.lname || ''}</h6>
+                                        <small class="text-muted">${student.custom_id || 'No ID'}</small>
                                     </div>
-                                    <div class="mb-2">
-                                        <i class="fas fa-phone"></i>
-                                        <span>${student.mobile || 'No phone'}</span>
-                                    </div>
-                                    <div class="mb-2">
-                                        <i class="fas fa-venus-mars"></i>
-                                        <span>${student.gender ? student.gender.charAt(0).toUpperCase() + student.gender.slice(1) : 'Not specified'}</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div>
+                                    <div class="mb-1">
+                                        <i class="fas fa-envelope text-muted me-2"></i>
+                                        <small>${student.email || 'No email'}</small>
                                     </div>
                                     <div>
-                                        <i class="fas fa-map-marker-alt"></i>
-                                        <span>${student.address1 || 'No address'}</span>
+                                        <i class="fas fa-phone text-muted me-2"></i>
+                                        <small>${student.mobile || 'No phone'}</small>
                                     </div>
                                 </div>
-
-                                <div class="d-flex justify-content-center gap-2 mt-3">
-                                    <button class="btn btn-outline-primary btn-sm" 
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-light text-dark border">
+                                    <i class="fas fa-graduation-cap me-1 text-primary"></i>
+                                    ${student.grade ? student.grade.grade_name : 'N/A'}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <span class="fs-5">${genderIcon}</span>
+                            </td>
+                            <td class="text-center">
+                                ${typeBadge}
+                            </td>
+                            <td class="text-center">
+                                ${statusBadge}
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary rounded-start" title="View" 
                                             onclick="viewStudent('${student.custom_id}')">
                                         <i class="fas fa-eye"></i>
                                     </button>
-                                    <button class="btn btn-outline-warning btn-sm" 
+                                    <button class="btn btn-outline-warning" title="Edit" 
                                             onclick="editStudent('${student.custom_id}')">
                                         <i class="fas fa-edit"></i>
                                     </button>
                                     ${isActive ?
-                        `<button class="btn btn-outline-danger btn-sm" 
+                        `<button class="btn btn-outline-danger rounded-end" title="Deactivate" 
                                                 onclick="showDeactivateModal(${student.id}, '${escapeHtml(student.fname)} ${escapeHtml(student.lname)}', '${escapeHtml(student.email || 'No email')}')">
                                             <i class="fas fa-user-slash"></i>
                                         </button>` :
-                        `<button class="btn btn-outline-success btn-sm" 
+                        `<button class="btn btn-outline-success rounded-end" title="Activate" 
                                                 onclick="showActivateModal(${student.id}, '${escapeHtml(student.fname)} ${escapeHtml(student.lname)}', '${escapeHtml(student.email || 'No email')}')">
                                             <i class="fas fa-user-check"></i>
                                         </button>`
                     }
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                cardsContainer.innerHTML += card;
+                            </td>
+                        </tr>
+                    `;
+                tbody.innerHTML += row;
             });
         }
 
@@ -957,10 +728,10 @@
             const prevLi = document.createElement('li');
             prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
             prevLi.innerHTML = `
-                <a class="page-link" href="#" onclick="changePage(${currentPage - 1}); return false;" aria-label="Previous">
-                    <span aria-hidden="true">Previous</span>
-                </a>
-            `;
+                    <a class="page-link" href="#" onclick="changePage(${currentPage - 1}); return false;" aria-label="Previous">
+                        <span aria-hidden="true">Previous</span>
+                    </a>
+                `;
             paginationLinks.appendChild(prevLi);
 
             // Page numbers
@@ -983,10 +754,10 @@
             const nextLi = document.createElement('li');
             nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
             nextLi.innerHTML = `
-                <a class="page-link" href="#" onclick="changePage(${currentPage + 1}); return false;" aria-label="Next">
-                    <span aria-hidden="true">Next</span>
-                </a>
-            `;
+                    <a class="page-link" href="#" onclick="changePage(${currentPage + 1}); return false;" aria-label="Next">
+                        <span aria-hidden="true">Next</span>
+                    </a>
+                `;
             paginationLinks.appendChild(nextLi);
         }
 
@@ -1007,10 +778,6 @@
             const inactiveStudentsEl = document.getElementById('inactiveStudents');
             const notPaidStudentsEl = document.getElementById('notPaidStudents');
 
-            // Note: For accurate total counts, you need a separate API endpoint
-            // For now, we'll show counts from current page only
-            const currentPageStudents = students.length;
-            
             if (totalStudentsEl) totalStudentsEl.textContent = totalRecords; // Use total from pagination
             if (activeStudentsEl) activeStudentsEl.textContent = activeStudents;
             if (inactiveStudentsEl) inactiveStudentsEl.textContent = inactiveStudents;
@@ -1127,7 +894,6 @@
             const loadingSpinner = document.getElementById('loadingSpinner');
             const actionBar = document.getElementById('actionBar');
             const studentsTableContainer = document.getElementById('studentsTableContainer');
-            const studentsCardsContainer = document.getElementById('studentsCardsContainer');
             const paginationSection = document.getElementById('paginationSection');
             const emptyState = document.getElementById('emptyState');
             const errorMessage = document.getElementById('errorMessage');
@@ -1135,7 +901,6 @@
             if (loadingSpinner) loadingSpinner.classList.remove('d-none');
             if (actionBar) actionBar.classList.add('d-none');
             if (studentsTableContainer) studentsTableContainer.classList.add('d-none');
-            if (studentsCardsContainer) studentsCardsContainer.classList.add('d-none');
             if (paginationSection) paginationSection.classList.add('d-none');
             if (emptyState) emptyState.classList.add('d-none');
             if (errorMessage) errorMessage.classList.add('d-none');
@@ -1193,9 +958,9 @@
             const alertDiv = document.createElement('div');
             alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
             alertDiv.innerHTML = `
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
 
             const container = document.querySelector('.container') || document.querySelector('.card-body');
             if (container) {
@@ -1207,10 +972,6 @@
                     }
                 }, 5000);
             }
-        }
-
-        function exportTo(format) {
-            showAlert(`Exporting to ${format.toUpperCase()} format...`, 'info');
         }
     </script>
 @endpush

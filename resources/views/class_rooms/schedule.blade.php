@@ -46,15 +46,38 @@
                             </div>
                         </div>
                         <div class="card-body">
-                            <!-- Search Bar -->
+                            <!-- Search and Filter Bar -->
                             <div class="row mb-3">
                                 <div class="col-md-6">
-                                    <div class="input-group">
-                                        <span class="input-group-text bg-transparent">
-                                            <i class="fas fa-search"></i>
-                                        </span>
-                                        <input type="text" class="form-control"
-                                            placeholder="Search by grade, subject or teacher..." id="classSearch">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <!-- Class Type Filter Buttons -->
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button"
+                                                class="btn btn-outline-secondary active class-type-filter-btn"
+                                                id="filterClassAll" data-type="">All</button>
+                                            <button type="button" class="btn btn-outline-info class-type-filter-btn"
+                                                id="filterClassOnline" data-type="online">Online</button>
+                                            <button type="button" class="btn btn-outline-warning class-type-filter-btn"
+                                                id="filterClassOffline" data-type="offline">Offline</button>
+                                        </div>
+
+                                        <!-- Search Input -->
+                                        <div class="input-group" style="width: 300px;">
+                                            <span class="input-group-text bg-transparent">
+                                                <i class="fas fa-search"></i>
+                                            </span>
+                                            <input type="text" class="form-control"
+                                                placeholder="Search by grade, subject or teacher..." id="classSearch">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Pagination Container -->
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <div id="classesPaginationContainer" class="d-none">
+                                        <!-- Pagination controls will be loaded here -->
                                     </div>
                                 </div>
                             </div>
@@ -69,7 +92,7 @@
                                             <th>Teacher</th>
                                             <th>Subject</th>
                                             <th>Grade</th>
-                                            
+                                            <th class="text-center">Type</th> <!-- Add this column -->
                                             <th width="100" class="text-center">Actions</th>
                                         </tr>
                                     </thead>
@@ -77,6 +100,14 @@
                                         <!-- Active classes will be loaded here -->
                                     </tbody>
                                 </table>
+                            </div>
+
+                            <!-- Remove pagination containers -->
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <!-- Remove this entire div -->
+                                    <!-- <div id="classesPaginationContainer" class="d-none"></div> -->
+                                </div>
                             </div>
 
                             <!-- Pagination for Active Classes -->
@@ -360,30 +391,30 @@
             background-color: #e9ecef;
             border-color: #dee2e6;
         }
-        
+
         /* Sri Lankan Date Format */
         .sl-date {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        
+
         /* Status Badge */
         .status-badge {
             font-size: 0.75rem;
             padding: 0.25rem 0.5rem;
         }
-        
+
         .status-active {
             background-color: #d1e7dd;
             color: #0f5132;
             border: 1px solid #badbcc;
         }
-        
+
         .status-inactive {
             background-color: #f8d7da;
             color: #842029;
             border: 1px solid #f5c2c7;
         }
-        
+
         .status-ongoing {
             background-color: #cff4fc;
             color: #055160;
@@ -396,11 +427,12 @@
     <script>
         let allActiveClasses = [];
         let allCategories = [];
-
-        // Pagination variables
-        let classesCurrentPage = 1;
-        let categoriesCurrentPage = 1;
-        const recordsPerPage = 10;
+        let activeClassesCurrentPage = 1;
+        let activeClassesTotalPages = 1;
+        let activeClassesTotalRecords = 0;
+        let activeClassesPerPage = 10;
+        let currentClassTypeFilter = '';
+        let currentClassSearch = '';
 
         document.addEventListener('DOMContentLoaded', function () {
             // Load data on page load
@@ -410,15 +442,40 @@
             // Search functionality
             const classSearch = document.getElementById('classSearch');
             classSearch.addEventListener('input', debounce(function () {
-                filterActiveClasses();
+                currentClassSearch = this.value;
+                activeClassesCurrentPage = 1; // Reset to first page
+                loadActiveClasses();
             }, 300));
+
+            // Class type filter buttons
+            const filterClassAll = document.getElementById('filterClassAll');
+            const filterClassOnline = document.getElementById('filterClassOnline');
+            const filterClassOffline = document.getElementById('filterClassOffline');
+
+            if (filterClassAll) {
+                filterClassAll.addEventListener('click', function () {
+                    setActiveClassTypeFilter('', this);
+                });
+            }
+
+            if (filterClassOnline) {
+                filterClassOnline.addEventListener('click', function () {
+                    setActiveClassTypeFilter('online', this);
+                });
+            }
+
+            if (filterClassOffline) {
+                filterClassOffline.addEventListener('click', function () {
+                    setActiveClassTypeFilter('offline', this);
+                });
+            }
 
             // Category modal events
             const saveCategoryBtn = document.getElementById('saveCategoryBtn');
-            saveCategoryBtn.addEventListener('click', saveCategory);
+            if (saveCategoryBtn) saveCategoryBtn.addEventListener('click', saveCategory);
 
             const updateCategoryBtn = document.getElementById('updateCategoryBtn');
-            updateCategoryBtn.addEventListener('click', updateCategory);
+            if (updateCategoryBtn) updateCategoryBtn.addEventListener('click', updateCategory);
 
             // Tab change event - reload data when switching tabs
             const tabs = document.querySelectorAll('button[data-bs-toggle="tab"]');
@@ -434,60 +491,38 @@
             });
         });
 
-        // ================= SRI LANKAN DATE FORMAT FUNCTIONS =================
-        // Format date to Sri Lankan format (DD-MM-YYYY)
-        function formatDateToSriLankan(dateString) {
-            if (!dateString) return 'N/A';
-            
-            try {
-                const date = new Date(dateString);
-                if (isNaN(date.getTime())) return dateString;
-                
-                const day = date.getDate().toString().padStart(2, '0');
-                const month = (date.getMonth() + 1).toString().padStart(2, '0');
-                const year = date.getFullYear();
-                
-                return `${day}-${month}-${year}`;
-            } catch (error) {
-                console.error('Error formatting date:', error, dateString);
-                return dateString;
-            }
-        }
+        // Class type filter function
+        function setActiveClassTypeFilter(type, button) {
+            // Remove active class from all filter buttons
+            document.querySelectorAll('.class-type-filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
 
-        // Format time to Sri Lankan 12-hour format
-        function formatTimeToSriLankan(dateString) {
-            if (!dateString) return '';
-            
-            try {
-                const date = new Date(dateString);
-                if (isNaN(date.getTime())) return '';
-                
-                let hours = date.getHours();
-                let minutes = date.getMinutes().toString().padStart(2, '0');
-                const ampm = hours >= 12 ? 'PM' : 'AM';
-                hours = hours % 12;
-                hours = hours ? hours : 12; // Convert 0 to 12
-                
-                return `${hours}:${minutes} ${ampm}`;
-            } catch (error) {
-                console.error('Error formatting time:', error);
-                return '';
-            }
-        }
+            // Add active class to clicked button
+            button.classList.add('active');
 
-        // Format date and time to Sri Lankan format
-        function formatDateTimeToSriLankan(dateString) {
-            const datePart = formatDateToSriLankan(dateString);
-            const timePart = formatTimeToSriLankan(dateString);
-            
-            return timePart ? `${datePart} ${timePart}` : datePart;
+            // Set filter and reload
+            currentClassTypeFilter = type;
+            activeClassesCurrentPage = 1;
+            loadActiveClasses();
         }
 
         // ================= ACTIVE CLASSES FUNCTIONS =================
-        function loadActiveClasses() {
+        function loadActiveClasses(page = 1) {
             showClassesLoading();
 
-            fetch("{{ url('/api/class-rooms/active') }}")
+            // Build query parameters
+            let apiUrl = `{{ url('/api/class-rooms/active') }}?page=${page}`;
+
+            if (currentClassTypeFilter) {
+                apiUrl += `&class_type=${currentClassTypeFilter}`;
+            }
+
+            if (currentClassSearch) {
+                apiUrl += `&search=${encodeURIComponent(currentClassSearch)}`;
+            }
+
+            fetch(apiUrl)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
@@ -495,27 +530,28 @@
                     return response.json();
                 })
                 .then(data => {
-                    // Handle different response formats
-                    let classesArray = [];
-                    
-                    if (data.status === 'success' && data.data) {
-                        classesArray = data.data;
-                    } else if (Array.isArray(data)) {
-                        classesArray = data;
-                    } else if (data.classes) {
-                        classesArray = data.classes;
-                    } else {
-                        throw new Error('Invalid response format from active classes API');
-                    }
+                    if (data.status === 'success') {
+                        // Store the paginated data
+                        allActiveClasses = processClassData(data.data);
 
-                    // Process the classes data
-                    allActiveClasses = processClassData(classesArray);
-                    renderActiveClassesTable(allActiveClasses);
-                    hideClassesLoading();
+                        // Update pagination info
+                        if (data.meta) {
+                            activeClassesTotalPages = data.meta.last_page || 1;
+                            activeClassesTotalRecords = data.meta.total || 0;
+                            activeClassesPerPage = data.meta.per_page || 10;
+                            activeClassesCurrentPage = data.meta.current_page || 1;
+                        }
+
+                        renderActiveClassesTable(allActiveClasses);
+                        updateActiveClassesPagination();
+                        hideClassesLoading();
+                    } else {
+                        throw new Error(data.message || 'Failed to load active classes');
+                    }
                 })
                 .catch(error => {
                     console.error('Error loading active classes:', error);
-                    showAlert('Error loading active classes. Please check console for details.', 'danger');
+                    showAlert('Error loading active classes. Please try again.', 'danger');
                     hideClassesLoading();
 
                     // Show empty state
@@ -534,7 +570,7 @@
                 // Ensure proper date formatting
                 created_at: classRoom.created_at || new Date().toISOString(),
                 updated_at: classRoom.updated_at || new Date().toISOString(),
-                // Ensure teacher object exists
+                // Ensure relationships exist
                 teacher: classRoom.teacher || { fname: 'N/A', lname: '', custom_id: '' },
                 subject: classRoom.subject || { subject_name: 'N/A' },
                 grade: classRoom.grade || { grade_name: 'N/A' }
@@ -556,7 +592,6 @@
         function renderActiveClassesTable(classes) {
             const tbody = document.getElementById('activeClassesTableBody');
             const emptyState = document.getElementById('classesEmpty');
-            const paginationContainer = document.getElementById('classesPaginationContainer');
 
             if (!tbody) return;
 
@@ -564,139 +599,128 @@
 
             if (classes.length === 0) {
                 emptyState.classList.remove('d-none');
-                paginationContainer.classList.add('d-none');
                 return;
             }
 
             emptyState.classList.add('d-none');
-            paginationContainer.classList.remove('d-none');
 
-            // Calculate pagination
-            const totalPages = Math.ceil(classes.length / recordsPerPage);
-            const startIndex = (classesCurrentPage - 1) * recordsPerPage;
-            const endIndex = startIndex + recordsPerPage;
-            const paginatedClasses = classes.slice(startIndex, endIndex);
-
-            // Render table rows
-            paginatedClasses.forEach((classRoom, index) => {
-                const actualIndex = startIndex + index;
-
+            // Render classes
+            classes.forEach((classRoom, index) => {
                 // Check if class is ongoing to show Add Student button
                 const showAddStudentButton = classRoom.is_ongoing === true;
 
-                // Format dates to Sri Lankan format
-                const createdDate = formatDateToSriLankan(classRoom.created_at);
+                // Class type badge (Online/Offline)
+                const classTypeBadge = getClassTypeBadge(classRoom.class_type);
 
                 // Status badges
-                const isActiveBadge = classRoom.is_active ? 
-                    '<span class="badge status-active status-badge">Active</span>' : 
+                const isActiveBadge = classRoom.is_active ?
+                    '<span class="badge status-active status-badge">Active</span>' :
                     '<span class="badge status-inactive status-badge">Inactive</span>';
-                
-                const isOngoingBadge = classRoom.is_ongoing ? 
-                    '<span class="badge status-ongoing status-badge ms-1">Ongoing</span>' : 
+
+                const isOngoingBadge = classRoom.is_ongoing ?
+                    '<span class="badge status-ongoing status-badge ms-1">Ongoing</span>' :
                     '';
 
                 const row = `
-                    <tr>
-                        <td class="fw-bold text-muted">${actualIndex + 1}</td>
-                        <td>
-                            <h6 class="mb-0 fw-bold">${classRoom.class_name || 'No Name'}</h6>
-                        </td>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <div>
-                                    <h6 class="mb-0">${classRoom.teacher.fname} ${classRoom.teacher.lname}</h6>
-                                    <small class="text-muted">${classRoom.teacher.custom_id || ''}</small>
-                                </div>
-                            </div>
-                        </td>
-                        <td>
-                            <span class="badge bg-light text-dark border">
-                                <i class="fas fa-book me-1 text-primary"></i>
-                                ${classRoom.subject.subject_name}
-                            </span>
-                        </td>
-                        <td>
-                            <span class="badge bg-primary bg-gradient">
-                                <i class="fas fa-graduation-cap me-1"></i>
-                                ${classRoom.grade.grade_name}
-                            </span>
-                        </td>
-                        
-                        <td class="text-center">
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-primary" title="View Class Details" 
-                                        onclick="viewClassSchedule(${classRoom.id})">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                ${showAddStudentButton ? `
-                                <button class="btn btn-outline-success" title="Add Student To Class" 
-                                        onclick="addStudentToClass(${classRoom.id})">
-                                    <i class="fas fa-user-plus"></i>
-                                </button>
-                                ` : ''}
-                            </div>
-                        </td>
-                    </tr>
-                `;
+                            <tr>
+                                <td class="fw-bold text-muted">${(activeClassesCurrentPage - 1) * activeClassesPerPage + index + 1}</td>
+                                <td>
+                                    <h6 class="mb-0 fw-bold">${classRoom.class_name || 'No Name'}</h6>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div>
+                                            <h6 class="mb-0">${classRoom.teacher.fname} ${classRoom.teacher.lname}</h6>
+                                            <small class="text-muted">${classRoom.teacher.custom_id || ''}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border">
+                                        <i class="fas fa-book me-1 text-primary"></i>
+                                        ${classRoom.subject.subject_name}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary bg-gradient">
+                                        <i class="fas fa-graduation-cap me-1"></i>
+                                        ${classRoom.grade.grade_name}
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    ${classTypeBadge}
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" title="View Class Details" 
+                                                onclick="viewClassSchedule(${classRoom.id})">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        ${showAddStudentButton ? `
+                                        <button class="btn btn-outline-success" title="Add Student To Class" 
+                                                onclick="addStudentToClass(${classRoom.id})">
+                                            <i class="fas fa-user-plus"></i>
+                                        </button>
+                                        ` : ''}
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
                 tbody.innerHTML += row;
             });
-
-            // Update pagination controls
-            updateClassesPaginationControls(classes.length, totalPages);
         }
 
-        function updateClassesPaginationControls(totalRecords, totalPages) {
-            const paginationDiv = document.getElementById('classesPaginationContainer');
-            const startRecord = ((classesCurrentPage - 1) * recordsPerPage) + 1;
-            const endRecord = Math.min(classesCurrentPage * recordsPerPage, totalRecords);
+        // Update pagination controls
+        function updateActiveClassesPagination() {
+            const paginationContainer = document.getElementById('classesPaginationContainer');
+            if (!paginationContainer) return;
 
-            paginationDiv.innerHTML = `
-                <div class="row align-items-center">
-                    <div class="col-md-6">
-                        <div class="d-flex align-items-center">
-                            <span class="text-muted me-2">Show:</span>
-                            <select class="form-select form-select-sm" style="width: auto;" onchange="changeClassesRecordsPerPage(this.value)">
-                                <option value="10" ${recordsPerPage === 10 ? 'selected' : ''}>10</option>
-                                <option value="25" ${recordsPerPage === 25 ? 'selected' : ''}>25</option>
-                                <option value="50" ${recordsPerPage === 50 ? 'selected' : ''}>50</option>
-                                <option value="100" ${recordsPerPage === 100 ? 'selected' : ''}>100</option>
-                            </select>
-                            <span class="text-muted ms-2">records per page</span>
+            if (activeClassesTotalPages <= 1) {
+                paginationContainer.classList.add('d-none');
+                return;
+            }
+
+            paginationContainer.classList.remove('d-none');
+
+            const startRecord = ((activeClassesCurrentPage - 1) * activeClassesPerPage) + 1;
+            const endRecord = Math.min(activeClassesCurrentPage * activeClassesPerPage, activeClassesTotalRecords);
+
+            paginationContainer.innerHTML = `
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <div class="d-flex align-items-center">
+                                    <span class="text-muted">
+                                        Showing ${startRecord} to ${endRecord} of ${activeClassesTotalRecords} active classes
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <nav>
+                                    <ul class="pagination pagination-sm mb-0 justify-content-end">
+                                        <li class="page-item ${activeClassesCurrentPage === 1 ? 'disabled' : ''}">
+                                            <a class="page-link" href="#" onclick="changeActiveClassesPage(${activeClassesCurrentPage - 1})">
+                                                <i class="fas fa-chevron-left"></i>
+                                            </a>
+                                        </li>
+
+                                        ${generatePageNumbers(activeClassesCurrentPage, activeClassesTotalPages)}
+
+                                        <li class="page-item ${activeClassesCurrentPage === activeClassesTotalPages ? 'disabled' : ''}">
+                                            <a class="page-link" href="#" onclick="changeActiveClassesPage(${activeClassesCurrentPage + 1})">
+                                                <i class="fas fa-chevron-right"></i>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col-md-6 text-end">
-                        <div class="d-flex align-items-center justify-content-end">
-                            <span class="text-muted me-3">
-                                Showing ${startRecord} to ${endRecord} of ${totalRecords} records
-                            </span>
-                            <nav>
-                                <ul class="pagination pagination-sm mb-0">
-                                    <li class="page-item ${classesCurrentPage === 1 ? 'disabled' : ''}">
-                                        <a class="page-link" href="#" onclick="changeClassesPage(${classesCurrentPage - 1})">
-                                            <i class="fas fa-chevron-left"></i>
-                                        </a>
-                                    </li>
-
-                                    ${generateClassesPageNumbers(totalPages)}
-
-                                    <li class="page-item ${classesCurrentPage === totalPages ? 'disabled' : ''}">
-                                        <a class="page-link" href="#" onclick="changeClassesPage(${classesCurrentPage + 1})">
-                                            <i class="fas fa-chevron-right"></i>
-                                        </a>
-                                    </li>
-                                </ul>
-                            </nav>
-                        </div>
-                    </div>
-                </div>
-            `;
+                    `;
         }
 
-        function generateClassesPageNumbers(totalPages) {
+        function generatePageNumbers(currentPage, totalPages) {
             let pageNumbers = '';
             const maxPagesToShow = 5;
-            let startPage = Math.max(1, classesCurrentPage - Math.floor(maxPagesToShow / 2));
+            let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
             let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
 
             if (endPage - startPage + 1 < maxPagesToShow) {
@@ -705,43 +729,40 @@
 
             for (let i = startPage; i <= endPage; i++) {
                 pageNumbers += `
-                    <li class="page-item ${classesCurrentPage === i ? 'active' : ''}">
-                        <a class="page-link" href="#" onclick="changeClassesPage(${i})">${i}</a>
-                    </li>
-                `;
+                            <li class="page-item ${currentPage === i ? 'active' : ''}">
+                                <a class="page-link" href="#" onclick="changeActiveClassesPage(${i})">${i}</a>
+                            </li>
+                        `;
             }
 
             return pageNumbers;
         }
 
-        function changeClassesPage(page) {
-            if (page < 1 || page > Math.ceil(allActiveClasses.length / recordsPerPage)) return;
-            classesCurrentPage = page;
-            renderActiveClassesTable(allActiveClasses);
+        function changeActiveClassesPage(page) {
+            if (page < 1 || page > activeClassesTotalPages) return;
+            loadActiveClasses(page);
         }
 
-        function changeClassesRecordsPerPage(newSize) {
-            recordsPerPage = parseInt(newSize);
-            classesCurrentPage = 1;
-            renderActiveClassesTable(allActiveClasses);
-        }
+        // Class type badge generator
+        function getClassTypeBadge(classType) {
+            if (!classType) {
+                return '<span class="badge bg-secondary">N/A</span>';
+            }
 
-        function filterActiveClasses() {
-            const searchTerm = document.getElementById('classSearch').value.toLowerCase();
-            const filteredClasses = allActiveClasses.filter(classRoom =>
-                (classRoom.grade && classRoom.grade.grade_name && classRoom.grade.grade_name.toLowerCase().includes(searchTerm)) ||
-                (classRoom.subject && classRoom.subject.subject_name && classRoom.subject.subject_name.toLowerCase().includes(searchTerm)) ||
-                (classRoom.teacher && classRoom.teacher.fname && classRoom.teacher.fname.toLowerCase().includes(searchTerm)) ||
-                (classRoom.teacher && classRoom.teacher.lname && classRoom.teacher.lname.toLowerCase().includes(searchTerm)) ||
-                (classRoom.class_name && classRoom.class_name.toLowerCase().includes(searchTerm))
-            );
-            classesCurrentPage = 1; // Reset to first page when filtering
-            renderActiveClassesTable(filteredClasses);
+            if (classType === 'online') {
+                return '<span class="badge bg-info"><i class="fas fa-laptop me-1"></i>Online</span>';
+            } else if (classType === 'offline') {
+                return '<span class="badge bg-warning text-dark"><i class="fas fa-school me-1"></i>Offline</span>';
+            } else {
+                return `<span class="badge bg-secondary">${classType}</span>`;
+            }
         }
 
         function showClassesLoading() {
             document.getElementById('classesLoading').classList.remove('d-none');
             document.getElementById('activeClassesTableBody').closest('.table-responsive').classList.add('d-none');
+            const paginationContainer = document.getElementById('classesPaginationContainer');
+            if (paginationContainer) paginationContainer.classList.add('d-none');
         }
 
         function hideClassesLoading() {
@@ -754,7 +775,6 @@
         }
 
         function addStudentToClass(classId) {
-            // Use the correct route with parameter
             window.location.href = `/students/add_student_to_class/${classId}`;
         }
 
@@ -772,7 +792,7 @@
                 .then(data => {
                     // Handle different response formats
                     let categoriesArray = [];
-                    
+
                     if (data.status === 'success' && data.data) {
                         categoriesArray = data.data;
                     } else if (Array.isArray(data)) {
@@ -814,124 +834,32 @@
 
             if (categories.length === 0) {
                 emptyState.classList.remove('d-none');
-                paginationContainer.classList.add('d-none');
+                if (paginationContainer) paginationContainer.classList.add('d-none');
                 return;
             }
 
             emptyState.classList.add('d-none');
-            paginationContainer.classList.remove('d-none');
+            if (paginationContainer) paginationContainer.classList.add('d-none');
 
-            // Calculate pagination
-            const totalPages = Math.ceil(categories.length / recordsPerPage);
-            const startIndex = (categoriesCurrentPage - 1) * recordsPerPage;
-            const endIndex = startIndex + recordsPerPage;
-            const paginatedCategories = categories.slice(startIndex, endIndex);
-
-            // Render table rows with Sri Lankan date format
-            paginatedCategories.forEach((category, index) => {
-                const actualIndex = startIndex + index;
-                const createdDate = formatDateToSriLankan(category.created_at);
-                
+            // Render all categories at once (no pagination)
+            categories.forEach((category, index) => {
                 const row = `
-                    <tr>
-                        <td class="fw-bold text-muted">${actualIndex + 1}</td>
-                        <td>${category.category_name}</td>
-                        <td class="sl-date">${createdDate}</td>
-                        <td class="text-center">
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-warning" title="Edit" 
-                                        onclick="showEditCategoryModal(${category.id}, '${escapeHtml(category.category_name)}')">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
+                                    <tr>
+                                        <td class="fw-bold text-muted">${index + 1}</td>
+                                        <td>${category.category_name}</td>
+                                        <td class="sl-date">${formatDateToSriLankan(category.created_at)}</td>
+                                        <td class="text-center">
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-warning" title="Edit" 
+                                                        onclick="showEditCategoryModal(${category.id}, '${escapeHtml(category.category_name)}')">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                `;
                 tbody.innerHTML += row;
             });
-
-            // Update pagination controls
-            updateCategoriesPaginationControls(categories.length, totalPages);
-        }
-
-        function updateCategoriesPaginationControls(totalRecords, totalPages) {
-            const paginationDiv = document.getElementById('categoriesPaginationContainer');
-            const startRecord = ((categoriesCurrentPage - 1) * recordsPerPage) + 1;
-            const endRecord = Math.min(categoriesCurrentPage * recordsPerPage, totalRecords);
-
-            paginationDiv.innerHTML = `
-                <div class="row align-items-center">
-                    <div class="col-md-6">
-                        <div class="d-flex align-items-center">
-                            <span class="text-muted me-2">Show:</span>
-                            <select class="form-select form-select-sm" style="width: auto;" onchange="changeCategoriesRecordsPerPage(this.value)">
-                                <option value="10" ${recordsPerPage === 10 ? 'selected' : ''}>10</option>
-                                <option value="25" ${recordsPerPage === 25 ? 'selected' : ''}>25</option>
-                                <option value="50" ${recordsPerPage === 50 ? 'selected' : ''}>50</option>
-                                <option value="100" ${recordsPerPage === 100 ? 'selected' : ''}>100</option>
-                            </select>
-                            <span class="text-muted ms-2">records per page</span>
-                        </div>
-                    </div>
-                    <div class="col-md-6 text-end">
-                        <div class="d-flex align-items-center justify-content-end">
-                            <span class="text-muted me-3">
-                                Showing ${startRecord} to ${endRecord} of ${totalRecords} records
-                            </span>
-                            <nav>
-                                <ul class="pagination pagination-sm mb-0">
-                                    <li class="page-item ${categoriesCurrentPage === 1 ? 'disabled' : ''}">
-                                        <a class="page-link" href="#" onclick="changeCategoriesPage(${categoriesCurrentPage - 1})">
-                                            <i class="fas fa-chevron-left"></i>
-                                        </a>
-                                    </li>
-
-                                    ${generateCategoriesPageNumbers(totalPages)}
-
-                                    <li class="page-item ${categoriesCurrentPage === totalPages ? 'disabled' : ''}">
-                                        <a class="page-link" href="#" onclick="changeCategoriesPage(${categoriesCurrentPage + 1})">
-                                            <i class="fas fa-chevron-right"></i>
-                                        </a>
-                                    </li>
-                                </ul>
-                            </nav>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        function generateCategoriesPageNumbers(totalPages) {
-            let pageNumbers = '';
-            const maxPagesToShow = 5;
-            let startPage = Math.max(1, categoriesCurrentPage - Math.floor(maxPagesToShow / 2));
-            let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
-
-            if (endPage - startPage + 1 < maxPagesToShow) {
-                startPage = Math.max(1, endPage - maxPagesToShow + 1);
-            }
-
-            for (let i = startPage; i <= endPage; i++) {
-                pageNumbers += `
-                    <li class="page-item ${categoriesCurrentPage === i ? 'active' : ''}">
-                        <a class="page-link" href="#" onclick="changeCategoriesPage(${i})">${i}</a>
-                    </li>
-                `;
-            }
-
-            return pageNumbers;
-        }
-
-        function changeCategoriesPage(page) {
-            if (page < 1 || page > Math.ceil(allCategories.length / recordsPerPage)) return;
-            categoriesCurrentPage = page;
-            renderCategoriesTable(allCategories);
-        }
-
-        function changeCategoriesRecordsPerPage(newSize) {
-            recordsPerPage = parseInt(newSize);
-            categoriesCurrentPage = 1;
-            renderCategoriesTable(allCategories);
         }
 
         function showCategoriesLoading() {
@@ -1088,13 +1016,31 @@
                 .replace(/'/g, "&#039;");
         }
 
+        function formatDateToSriLankan(dateString) {
+            if (!dateString) return 'N/A';
+
+            try {
+                const date = new Date(dateString);
+                if (isNaN(date.getTime())) return dateString;
+
+                const day = date.getDate().toString().padStart(2, '0');
+                const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                const year = date.getFullYear();
+
+                return `${day}-${month}-${year}`;
+            } catch (error) {
+                console.error('Error formatting date:', error, dateString);
+                return dateString;
+            }
+        }
+
         function showAlert(message, type) {
             const alertDiv = document.createElement('div');
             alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
             alertDiv.innerHTML = `
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
+                        ${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
 
             const container = document.querySelector('.container') || document.querySelector('.card-body');
             if (container) {

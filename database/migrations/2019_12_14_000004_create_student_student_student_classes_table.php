@@ -19,8 +19,14 @@ class CreateStudentStudentStudentClassesTable extends Migration
             $table->foreignId('student_classes_id')
                 ->constrained('student_classes');
 
-            $table->foreignId('class_category_has_student_class_id')
-                ->constrained('class_category_has_student_classes');
+            $table->unsignedBigInteger('class_category_has_student_class_id');
+
+            $table->foreign(
+                'class_category_has_student_class_id',
+                'fk_cc_hs_class'
+            )->references('id')
+                ->on('class_category_has_student_classes');
+
 
             $table->boolean('status');
             $table->boolean('is_free_card')->default(false);

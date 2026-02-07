@@ -1,222 +1,347 @@
 @extends('layouts.app')
 
-@section('title', 'Teacher Income History')
-@section('page-title', 'Teacher Income History')
+@section('title', 'Teacher Salary History')
+@section('page-title', 'Teacher Salary History')
 
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
     <li class="breadcrumb-item"><a href="{{ route('teacher_payment.index') }}">Teacher Payments</a></li>
-    <li class="breadcrumb-item active">Teacher Income History</li>
+    <li class="breadcrumb-item active">Teacher Salary History</li>
 @endsection
 
 @section('content')
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    
+
     <div class="container-fluid">
-        <!-- Month/Year Selector -->
+        <!-- Header Card -->
         <div class="row mb-3">
             <div class="col-md-12">
-                <div class="card">
-                    <div class="card-body py-2">
-                        <div class="row g-2 align-items-center">
-                            <div class="col-md-3">
-                                <label class="form-label mb-0 small">Month</label>
-                                <select class="form-select form-select-sm" id="monthSelect" name="month">
-                                    @php
-                                        $currentMonth = date('m');
-                                        // Default: previous month
-                                        $defaultMonth = $currentMonth == 1 ? 12 : $currentMonth - 1;
-                                    @endphp
-                                    @for($i = 1; $i <= 12; $i++)
-                                        <option value="{{ str_pad($i, 2, '0', STR_PAD_LEFT) }}" 
-                                                {{ $i == $defaultMonth ? 'selected' : '' }}>
-                                            {{ date('F', mktime(0, 0, 0, $i, 1)) }}
-                                        </option>
-                                    @endfor
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label mb-0 small">Year</label>
-                                <select class="form-select form-select-sm" id="yearSelect" name="year">
-                                    @php
-                                        $currentYear = date('Y');
-                                        $currentMonth = date('m');
-                                        // If current month is January, default to previous year
-                                        $defaultYear = $currentMonth == 1 ? $currentYear - 1 : $currentYear;
-                                    @endphp
-                                    @for($year = date('Y'); $year >= 2020; $year--)
-                                        <option value="{{ $year }}" {{ $year == $defaultYear ? 'selected' : '' }}>
-                                            {{ $year }}
-                                        </option>
-                                    @endfor
-                                </select>
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-3"
+                                        style="width: 50px; height: 50px;">
+                                        <i class="fas fa-history text-white" style="font-size: 1.2rem;"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="mb-0 fw-bold">Salary History</h4>
+                                        <small class="text-muted">View past salary payments for teacher</small>
+                                    </div>
+                                </div>
                             </div>
                             <div class="col-md-6 text-end">
-                                <div class="badge bg-info text-dark fs-6 px-3 py-2" id="selectedMonthYear">
-                                    {{ date('F Y', strtotime('-1 month')) }}
+                                <div class="badge bg-light text-dark border py-2 px-3 rounded">
+                                    <i class="fas fa-user-graduate me-1"></i>
+                                    Teacher ID: <span id="teacherIdDisplay">-</span>
                                 </div>
-                                <small class="text-muted d-block mt-1">Only previous months available</small>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        
-        <!-- In your HTML template, update the currentMonthWarning div -->
-        <div class="row mb-3 d-none" id="currentMonthWarning">
+
+        <!-- Teacher Info Card -->
+        <div class="row mb-3">
             <div class="col-md-12">
-                <div class="alert alert-info alert-dismissible fade show py-2" role="alert">
-                    <div class="d-flex align-items-center">
-                        <i class="fas fa-info-circle me-2"></i>
-                        <div>
-                            <strong>Viewing Current Month</strong>
-                            <p class="mb-0 small">You can view current month data, but payments can only be made for previous months. The pay button is disabled for the current month.</p>
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3 text-center">
+                                <div class="mb-3">
+                                    <div class="bg-info rounded-circle d-flex align-items-center justify-content-center mx-auto"
+                                        style="width: 80px; height: 80px;">
+                                        <i class="fas fa-user-tie text-white" style="font-size: 2rem;"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-9">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label class="text-muted small mb-1 d-block">Teacher Name</label>
+                                            <h5 class="fw-bold mb-0" id="teacherName">-</h5>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label class="text-muted small mb-1 d-block">Teacher ID</label>
+                                            <p class="fw-bold mb-0" id="teacherId">-</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label class="text-muted small mb-1 d-block">Subject</label>
+                                            <p class="fw-bold mb-0" id="subjectName">-</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <label class="text-muted small mb-1 d-block">Overall Status</label>
+                                                <span class="badge bg-success px-3 py-2 rounded"
+                                                    id="overallStatus">Active</span>
+                                            </div>
+                                            <div class="text-end">
+                                                <small class="text-muted">Last Updated: <span
+                                                        id="lastUpdated">-</span></small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             </div>
         </div>
 
-<!-- Also remove or update the "Current Month Not Available" block since it's no longer needed -->
-<div id="currentMonthBlock" class="text-center d-none">
-    <div class="alert alert-info py-2">
-        <h6 class="mb-1"><i class="fas fa-calendar-alt"></i> Current Month Data</h6>
-        <p class="mb-0 small">Viewing current month's collection data. Payment processing available only for previous months.</p>
-    </div>
-</div>
-
-        <!-- Teacher Summary Section -->
+        <!-- Month Selection Card -->
         <div class="row mb-3">
             <div class="col-md-12">
-                <div class="card">
-                    <div class="card-header bg-info text-white py-2">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold small text-muted mb-2">Select Month</label>
+                                    <select class="form-select" id="monthSelect" name="month">
+                                        @php
+                                            $currentMonth = date('m');
+                                            // Default: previous month
+                                            $defaultMonth = $currentMonth == 1 ? 12 : $currentMonth - 1;
+                                        @endphp
+                                        @for($i = 1; $i <= 12; $i++)
+                                            <option value="{{ str_pad($i, 2, '0', STR_PAD_LEFT) }}" {{ $i == $defaultMonth ? 'selected' : '' }}>
+                                                {{ date('F', mktime(0, 0, 0, $i, 1)) }}
+                                            </option>
+                                        @endfor
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold small text-muted mb-2">Select Year</label>
+                                    <select class="form-select" id="yearSelect" name="year">
+                                        @php
+                                            $currentYear = date('Y');
+                                            $currentMonth = date('m');
+                                            // If current month is January, default to previous year
+                                            $defaultYear = $currentMonth == 1 ? $currentYear - 1 : $currentYear;
+                                        @endphp
+                                        @for($year = date('Y'); $year >= 2020; $year--)
+                                            <option value="{{ $year }}" {{ $year == $defaultYear ? 'selected' : '' }}>
+                                                {{ $year }}
+                                            </option>
+                                        @endfor
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-center">
+                                    <div class="badge bg-primary text-white py-3 px-4 rounded mb-2">
+                                        <h5 class="mb-0" id="selectedMonthYear">{{ date('F Y', strtotime('-1 month')) }}
+                                        </h5>
+                                    </div>
+                                    <small class="text-muted d-block">Viewing salary data for selected month</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Salary Summary Cards -->
+        <div class="row mb-3">
+            <!-- Total Collections -->
+            <div class="col-md-3 mb-3">
+                <div class="card border-0 border-start border-primary border-4 shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3"
+                                style="width: 40px; height: 40px;">
+                                <i class="fas fa-money-bill-wave text-primary" style="font-size: 1rem;"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0 small text-muted">Total Collections</h6>
+                                <h4 class="fw-bold text-primary mb-0" id="totalCollections">LKR 0.00</h4>
+                            </div>
+                        </div>
+                        <small class="text-muted">Total student payments for the month</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Teacher's Share -->
+            <div class="col-md-3 mb-3">
+                <div class="card border-0 border-start border-success border-4 shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="bg-success bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3"
+                                style="width: 40px; height: 40px;">
+                                <i class="fas fa-user-tie text-success" style="font-size: 1rem;"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0 small text-muted">Teacher's Share</h6>
+                                <h4 class="fw-bold text-success mb-0" id="teacherShare">LKR 0.00</h4>
+                            </div>
+                        </div>
+                        <small class="text-muted">Teacher's percentage of total collections</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advance Payments -->
+            <div class="col-md-3 mb-3">
+                <div class="card border-0 border-start border-warning border-4 shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="bg-warning bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3"
+                                style="width: 40px; height: 40px;">
+                                <i class="fas fa-hand-holding-usd text-warning" style="font-size: 1rem;"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0 small text-muted">Advance Payments</h6>
+                                <h4 class="fw-bold text-warning mb-0" id="advancePayments">LKR 0.00</h4>
+                            </div>
+                        </div>
+                        <small class="text-muted">Payments made in advance</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Net Payable -->
+            <div class="col-md-3 mb-3">
+                <div class="card border-0 border-start border-info border-4 shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="bg-info bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3"
+                                style="width: 40px; height: 40px;">
+                                <i class="fas fa-money-check-alt text-info" style="font-size: 1rem;"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0 small text-muted">Net Payable</h6>
+                                <h4 class="fw-bold text-info mb-0" id="netPayable">LKR 0.00</h4>
+                            </div>
+                        </div>
+                        <small class="text-muted">(Teacher's Share - Advance Payments)</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Status Card -->
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <h6 class="fw-bold mb-2">Salary Payment Status</h6>
+                                <div id="paymentStatusSection">
+                                    <!-- Payment status will be loaded here -->
+                                    <div class="text-center py-4">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                        <p class="text-muted mt-2">Loading payment status...</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-light border-0 h-100">
+                                    <div class="card-body d-flex flex-column justify-content-center">
+                                        <h6 class="text-muted mb-3 text-center">Payment Action</h6>
+                                        <div class="text-center">
+                                            <button class="btn btn-success px-4 py-3" id="payTeacherBtn" disabled
+                                                style="border-radius: 8px; font-size: 1.1rem;">
+                                                <i class="fas fa-money-check-alt me-2"></i> Pay Salary
+                                            </button>
+                                            <small class="text-muted d-block mt-2">Click to process salary payment</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Classes Summary -->
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white border-bottom py-3">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-info rounded-circle d-flex align-items-center justify-content-center me-2"
+                                style="width: 32px; height: 32px;">
+                                <i class="fas fa-chalkboard-teacher text-white" style="font-size: 0.9rem;"></i>
+                            </div>
+                            <h6 class="mb-0 fw-bold">Classes Summary</h6>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row" id="classesCards">
+                            <!-- Classes will be populated here -->
+                            <div class="col-12 text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading classes...</span>
+                                </div>
+                                <p class="text-muted mt-2">Loading classes data...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Advance Payment History -->
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white border-bottom py-3">
                         <div class="d-flex justify-content-between align-items-center">
-                            <h6 class="card-title mb-0" id="teacherNameTitle">
-                                <i class="fas fa-user-graduate me-1"></i> Teacher's Income Summary
-                            </h6>
-                            <div class="badge bg-light text-dark" id="summaryMonthYear">
-                                {{ date('F Y', strtotime('-1 month')) }}
+                            <div class="d-flex align-items-center">
+                                <div class="bg-warning rounded-circle d-flex align-items-center justify-content-center me-2"
+                                    style="width: 32px; height: 32px;">
+                                    <i class="fas fa-history text-white" style="font-size: 0.9rem;"></i>
+                                </div>
+                                <h6 class="mb-0 fw-bold">Advance Payment History</h6>
+                            </div>
+                            <div class="badge bg-light text-dark py-2 px-3">
+                                <i class="fas fa-filter me-1"></i> Current Month
                             </div>
                         </div>
                     </div>
                     <div class="card-body">
-                        <div class="row">
-                            <!-- Teacher Information -->
-                            <div class="col-md-4 mb-3">
-                                <div class="card h-100 border-primary">
-                                    <div class="card-header bg-primary text-white py-2">
-                                        <h6 class="mb-0 small"><i class="fas fa-info-circle me-1"></i> Teacher Information</h6>
-                                    </div>
-                                    <div class="card-body py-2">
-                                        <div class="mb-2">
-                                            <label class="form-label text-muted small mb-1">Teacher ID</label>
-                                            <p class="fw-bold mb-0" id="teacherId">-</p>
-                                        </div>
-                                        <div class="mb-2">
-                                            <label class="form-label text-muted small mb-1">Name</label>
-                                            <p class="fw-bold mb-0" id="teacherName">-</p>
-                                        </div>
-                                        <div class="mb-2">
-                                            <label class="form-label text-muted small mb-1">Subject</label>
-                                            <p class="fw-bold mb-0" id="subjectName">-</p>
-                                        </div>
-                                        <div class="mb-0">
-                                            <label class="form-label text-muted small mb-1">Payment Status</label>
-                                            <br>
-                                            <span class="badge bg-warning" id="salaryStatus">-</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Financial Summary -->
-                            <div class="col-md-8 mb-3">
-                                <div class="card h-100 border-success">
-                                    <div class="card-header bg-success text-white py-2">
-                                        <h6 class="mb-0 small"><i class="fas fa-chart-bar me-1"></i> Financial Summary</h6>
-                                    </div>
-                                    <div class="card-body py-2">
-                                        <!-- Quick Stats -->
-                                        <div class="row mb-3">
-                                            <div class="col-md-6">
-                                                <div class="card bg-light h-100">
-                                                    <div class="card-body py-2">
-                                                        <h6 class="card-title text-muted small mb-1">Total Collections</h6>
-                                                        <h4 class="fw-bold text-primary mb-0" id="totalCollections">LKR 0.00</h4>
-                                                        <small class="text-muted">From students</small>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <div class="card bg-light h-100">
-                                                    <div class="card-body py-2">
-                                                        <h6 class="card-title text-muted small mb-1">Advance Payments</h6>
-                                                        <h4 class="fw-bold text-warning mb-0" id="advancePayments">LKR 0.00</h4>
-                                                        <small class="text-muted">Paid in advance</small>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Percentage Split -->
-                                        <div class="row mb-3">
-                                            <div class="col-md-12">
-                                                <div class="progress" style="height: 20px;">
-                                                    <div class="progress-bar bg-primary" id="teacherPercentageBar" style="width: 0%">
-                                                        <span class="small fw-bold" id="teacherPercentageTextBar">Teacher: 0%</span>
-                                                    </div>
-                                                    <div class="progress-bar bg-secondary" id="institutionPercentageBar" style="width: 0%">
-                                                        <span class="small fw-bold" id="institutionPercentageTextBar">Institution: 0%</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Shares -->
-                                        <div class="row mb-3">
-                                            <div class="col-md-6">
-                                                <div class="card bg-primary text-white h-100">
-                                                    <div class="card-body py-2">
-                                                        <h6 class="card-title small mb-1">Teacher's Share</h6>
-                                                        <h4 class="fw-bold mb-0" id="teacherShare">LKR 0.00</h4>
-                                                        <small id="teacherPercentageText">0% of total</small>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <div class="card bg-secondary text-white h-100">
-                                                    <div class="card-body py-2">
-                                                        <h6 class="card-title small mb-1">Institution's Share</h6>
-                                                        <h4 class="fw-bold mb-0" id="institutionShare">LKR 0.00</h4>
-                                                        <small id="institutionPercentageText">0% of total</small>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Net Payable -->
-                                        <div class="row">
-                                            <div class="col-md-12">
-                                                <div class="card bg-warning">
-                                                    <div class="card-body py-2 text-center">
-                                                        <h6 class="card-title mb-1">
-                                                            <i class="fas fa-money-bill-wave me-1"></i> Net Payable to Teacher
-                                                        </h6>
-                                                        <h3 class="fw-bold my-1" id="netPayable">LKR 0.00</h3>
-                                                        <small class="text-muted">(Teacher's Share - Advance Payments)</small>
-                                                        <div class="mt-2">
-                                                            <button class="btn btn-sm btn-success px-3" id="payTeacherBtn" disabled>
-                                                                <i class="fas fa-money-check-alt me-1"></i> Pay Teacher
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover table-borderless" id="advancePaymentsTable">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th class="small text-muted py-2">Date & Time</th>
+                                        <th class="small text-muted py-2">Amount</th>
+                                        <th class="small text-muted py-2">Reason Code</th>
+                                        <th class="small text-muted py-2">Payment For</th>
+                                        <th class="small text-muted py-2">Status</th>
+                                        <th class="small text-muted py-2">Processed By</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="advancePaymentsTableBody">
+                                    <!-- Data will be populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="advanceEmptyState" class="text-center d-none">
+                            <div class="alert alert-light border py-5">
+                                <i class="fas fa-info-circle fa-2x text-muted mb-3"></i>
+                                <h6 class="mb-1 text-muted">No Advance Payments</h6>
+                                <p class="mb-0 small text-muted">No advance payments found for this teacher.</p>
                             </div>
                         </div>
                     </div>
@@ -224,121 +349,61 @@
             </div>
         </div>
 
-        <!-- Classes Breakdown -->
+        <!-- Detailed Payment Records -->
         <div class="row mb-3">
             <div class="col-md-12">
-                <div class="card">
-                    <div class="card-header bg-warning text-dark py-2">
-                        <h6 class="card-title mb-0">
-                            <i class="fas fa-chalkboard-teacher me-1"></i> Classes Breakdown
-                        </h6>
-                    </div>
-                    <div class="card-body py-2">
-                        <div class="row" id="classesCards">
-                            <div class="col-12 text-center">
-                                <div class="alert alert-light mb-0">
-                                    <i class="fas fa-spinner fa-spin me-1"></i> Loading class data...
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Detailed Payment Table -->
-        <div class="row mb-3">
-            <div class="col-md-12">
-                <div class="card">
-                    <div class="card-header bg-dark text-white py-2">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white border-bottom py-3">
                         <div class="d-flex justify-content-between align-items-center">
-                            <h6 class="card-title mb-0">
-                                <i class="fas fa-table me-1"></i> Detailed Payment Records
-                            </h6>
+                            <div class="d-flex align-items-center">
+                                <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-2"
+                                    style="width: 32px; height: 32px;">
+                                    <i class="fas fa-table text-white" style="font-size: 0.9rem;"></i>
+                                </div>
+                                <h6 class="mb-0 fw-bold">Detailed Payment Records</h6>
+                            </div>
                             <div class="btn-group">
-                                <button class="btn btn-sm btn-light px-2 py-1" id="exportTableExcelBtn">
+                                <button class="btn btn-sm btn-outline-primary px-3 py-1" id="exportTableExcelBtn">
                                     <i class="fas fa-file-excel me-1"></i> Excel
                                 </button>
-                                <button class="btn btn-sm btn-light px-2 py-1" id="exportTablePdfBtn">
+                                <button class="btn btn-sm btn-outline-danger px-3 py-1" id="exportTablePdfBtn">
                                     <i class="fas fa-file-pdf me-1"></i> PDF
                                 </button>
                             </div>
                         </div>
                     </div>
-                    <div class="card-body py-2">
+                    <div class="card-body">
                         <!-- Loading Spinner -->
                         <div id="tableLoadingSpinner" class="text-center">
                             <div class="spinner-border text-primary" role="status">
                                 <span class="visually-hidden">Loading...</span>
                             </div>
-                            <p class="mt-2 small">Loading payment data...</p>
+                            <p class="mt-2 small text-muted">Loading payment data...</p>
                         </div>
 
-                        <!-- Table -->
-                        <div class="table-responsive d-none" id="tableContainer">
-                            <table class="table table-bordered table-hover table-sm" id="paymentTable">
-                                <thead class="table-primary" id="paymentTableHeader">
-                                    <!-- Dynamic header -->
-                                </thead>
-                                <tbody id="paymentTableBody">
-                                    <!-- Dynamic data -->
-                                </tbody>
-                                <tfoot class="table-secondary" id="paymentTableFooter">
-                                    <!-- Dynamic footer -->
-                                </tfoot>
-                            </table>
+                        <!-- Table Container -->
+                        <div class="d-none" id="tableContainer">
+                            <div class="table-responsive">
+                                <table class="table table-hover table-borderless" id="paymentTable">
+                                    <thead class="bg-light" id="paymentTableHeader">
+                                        <!-- Dynamic header will be populated here -->
+                                    </thead>
+                                    <tbody id="paymentTableBody">
+                                        <!-- Data will be populated by JavaScript -->
+                                    </tbody>
+                                    <tfoot class="bg-light fw-bold" id="paymentTableFooter">
+                                        <!-- Dynamic footer will be populated here -->
+                                    </tfoot>
+                                </table>
+                            </div>
                         </div>
 
                         <!-- Empty State -->
                         <div id="tableEmptyState" class="text-center d-none">
-                            <div class="alert alert-info py-2">
-                                <h6 class="mb-1"><i class="fas fa-info-circle"></i> No Payment Data</h6>
-                                <p class="mb-0 small">No payment records found for the selected month.</p>
-                            </div>
-                        </div>
-
-                        <!-- Current Month Block -->
-                        <div id="currentMonthBlock" class="text-center d-none">
-                            <div class="alert alert-warning py-2">
-                                <h6 class="mb-1"><i class="fas fa-calendar-times"></i> Current Month Not Available</h6>
-                                <p class="mb-0 small">Current month's data cannot be viewed. Please select a previous month.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Salary Payments History -->
-        <div class="row mb-3">
-            <div class="col-md-12">
-                <div class="card">
-                    <div class="card-header bg-danger text-white py-2">
-                        <h6 class="card-title mb-0">
-                            <i class="fas fa-history me-1"></i> Advance Payment History
-                        </h6>
-                    </div>
-                    <div class="card-body py-2">
-                        <div class="table-responsive d-none" id="salaryTableContainer">
-                            <table class="table table-hover table-sm" id="salaryPaymentsTable">
-                                <thead class="table-danger">
-                                    <tr>
-                                        <th class="small">Date</th>
-                                        <th class="small">Amount</th>
-                                        <th class="small">Reason Code</th>
-                                        <th class="small">Payment For</th>
-                                        <th class="small">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="salaryPaymentsTableBody">
-                                    <!-- Dynamic data -->
-                                </tbody>
-                            </table>
-                        </div>
-                        <div id="salaryEmptyState" class="text-center d-none">
-                            <div class="alert alert-warning py-2">
-                                <h6 class="mb-1"><i class="fas fa-info-circle"></i> No Advance Payments</h6>
-                                <p class="mb-0 small">No Advance payments found for this teacher.</p>
+                            <div class="alert alert-light border py-5">
+                                <i class="fas fa-info-circle fa-2x text-muted mb-3"></i>
+                                <h6 class="mb-1 text-muted">No Payment Data</h6>
+                                <p class="mb-0 small text-muted">No payment records found for the selected month.</p>
                             </div>
                         </div>
                     </div>
@@ -350,112 +415,227 @@
 
 @push('styles')
     <style>
+        :root {
+            --primary-color: #4e73df;
+            --success-color: #1cc88a;
+            --warning-color: #f6c23e;
+            --danger-color: #e74a3b;
+            --info-color: #36b9cc;
+            --light-color: #f8f9fc;
+            --dark-color: #5a5c69;
+        }
+
+        body {
+            background-color: #f8f9fc;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
         .card {
-            box-shadow: 0 0.1rem 0.2rem rgba(0, 0, 0, 0.05);
-            transition: box-shadow 0.3s ease;
+            border-radius: 0.5rem;
+            border: 1px solid #e3e6f0;
+            transition: all 0.3s ease;
         }
-        
+
         .card:hover {
-            box-shadow: 0 0.3rem 0.6rem rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15) !important;
         }
-        
-        .progress {
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        
-        .progress-bar {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.75rem;
-        }
-        
-        .badge {
-            font-size: 0.75em;
-            padding: 0.25em 0.5em;
-        }
-        
-        .table th, .table td {
-            padding: 0.3rem 0.5rem;
-            vertical-align: middle;
-            font-size: 0.85rem;
-        }
-        
-        .table-primary th {
-            background-color: #e3f2fd;
-        }
-        
+
         .card-header {
-            padding: 0.5rem 0.75rem;
+            background-color: white;
+            border-bottom: 1px solid #e3e6f0;
         }
-        
-        .card-body {
-            padding: 0.75rem;
-        }
-        
-        .form-select, .form-control {
-            border-radius: 0.25rem;
-            font-size: 0.875rem;
-        }
-        
-        @media (max-width: 768px) {
-            .table-responsive {
-                font-size: 0.75rem;
-            }
-            
-            .card-body .row > div {
-                margin-bottom: 0.5rem;
-            }
-            
-            .progress-bar span {
-                font-size: 0.7rem;
-            }
-        }
-        
-        .class-card {
-            border-left: 3px solid #0d6efd;
-            transition: transform 0.2s;
-        }
-        
-        .class-card:hover {
-            transform: translateY(-3px);
-        }
-        
-        .student-progress .progress {
-            height: 6px;
-        }
-        
-        .btn-sm {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.875rem;
-        }
-        
-        .small {
+
+        .table {
             font-size: 0.85rem;
+            margin-bottom: 0;
         }
-        
-        .disabled-month {
-            opacity: 0.5;
+
+        .table th {
+            font-weight: 600;
+            color: #5a5c69;
+            background-color: #f8f9fc;
+            border-bottom: 2px solid #e3e6f0;
+            padding: 0.75rem 1rem;
+        }
+
+        .table td {
+            padding: 0.75rem 1rem;
+            vertical-align: middle;
+            border-bottom: 1px solid #e3e6f0;
+        }
+
+        .table tbody tr:hover {
+            background-color: #f8f9fc;
+        }
+
+        .table-borderless td,
+        .table-borderless th {
+            border: none;
+        }
+
+        .btn {
+            border-radius: 0.35rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            padding: 0.375rem 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-success {
+            background-color: var(--success-color);
+            border-color: var(--success-color);
+        }
+
+        .btn-success:hover {
+            background-color: #17a673;
+            border-color: #17a673;
+            transform: translateY(-1px);
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-success:disabled {
+            background-color: #b7e4d4;
+            border-color: #b7e4d4;
             cursor: not-allowed;
         }
-        .btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
 
-.current-month-data {
-    border: 2px dashed #0dcaf0;
-    background-color: rgba(13, 202, 240, 0.05);
-}
-        .current-month-warning {
-            animation: pulse 2s infinite;
+        .btn-outline-primary,
+        .btn-outline-danger {
+            border-width: 1px;
         }
-        
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.7; }
-            100% { opacity: 1; }
+
+        .badge {
+            font-size: 0.75em;
+            font-weight: 600;
+            padding: 0.35em 0.65em;
+            border-radius: 0.35rem;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
+            color: #5a5c69;
+        }
+
+        .text-primary {
+            color: var(--primary-color) !important;
+        }
+
+        .text-success {
+            color: var(--success-color) !important;
+        }
+
+        .text-warning {
+            color: var(--warning-color) !important;
+        }
+
+        .text-danger {
+            color: var(--danger-color) !important;
+        }
+
+        .text-info {
+            color: var(--info-color) !important;
+        }
+
+        .bg-primary {
+            background-color: var(--primary-color) !important;
+        }
+
+        .bg-success {
+            background-color: var(--success-color) !important;
+        }
+
+        .bg-warning {
+            background-color: var(--warning-color) !important;
+        }
+
+        .bg-danger {
+            background-color: var(--danger-color) !important;
+        }
+
+        .bg-info {
+            background-color: var(--info-color) !important;
+        }
+
+        .spinner-border {
+            width: 1.5rem;
+            height: 1.5rem;
+        }
+
+        .alert-light {
+            background-color: #f8f9fc;
+            border-color: #e3e6f0;
+        }
+
+        /* Payment status styles */
+        .payment-status-card {
+            border-left: 4px solid;
+            transition: all 0.3s;
+        }
+
+        .payment-status-card.paid {
+            border-left-color: var(--success-color);
+            background-color: rgba(28, 200, 138, 0.05);
+        }
+
+        .payment-status-card.unpaid {
+            border-left-color: var(--warning-color);
+            background-color: rgba(246, 194, 62, 0.05);
+        }
+
+        .payment-status-card.pending {
+            border-left-color: var(--info-color);
+            background-color: rgba(54, 185, 204, 0.05);
+        }
+
+        /* Number formatting */
+        .currency {
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+            letter-spacing: -0.5px;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .card-body {
+                padding: 1rem;
+            }
+
+            .table {
+                font-size: 0.8rem;
+            }
+
+            .btn {
+                padding: 0.25rem 0.5rem;
+                font-size: 0.8rem;
+            }
+
+            h4 {
+                font-size: 1.25rem;
+            }
+
+            h6 {
+                font-size: 0.9rem;
+            }
+        }
+
+        /* Print styles */
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+
+            .card {
+                border: 1px solid #ddd !important;
+                box-shadow: none !important;
+            }
+
+            .table {
+                font-size: 0.8rem;
+            }
         }
     </style>
 @endpush
@@ -472,1550 +652,1659 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
     <script>
-    (function () {
-        'use strict';
+        (function () {
+            'use strict';
 
-        // CSRF Token
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-
-        // Global variables
-        let teacherData = null;
-        let allPayments = [];
-        let allGrades = [];
-        const teacherId = window.location.pathname.split('/').pop() || '{{ $teacher_id ?? 18 }}';
-        let currentMonth = '';
-        let currentYear = '';
-
-        // DOM Elements
-        const teacherNameTitle = document.getElementById('teacherNameTitle');
-        const selectedMonthYear = document.getElementById('selectedMonthYear');
-        const summaryMonthYear = document.getElementById('summaryMonthYear');
-        const teacherIdElement = document.getElementById('teacherId');
-        const teacherNameElement = document.getElementById('teacherName');
-        const subjectNameElement = document.getElementById('subjectName');
-        const salaryStatusElement = document.getElementById('salaryStatus');
-        const totalCollectionsElement = document.getElementById('totalCollections');
-        const advancePaymentsElement = document.getElementById('advancePayments');
-        const teacherShareElement = document.getElementById('teacherShare');
-        const institutionShareElement = document.getElementById('institutionShare');
-        const netPayableElement = document.getElementById('netPayable');
-        const teacherPercentageBar = document.getElementById('teacherPercentageBar');
-        const institutionPercentageBar = document.getElementById('institutionPercentageBar');
-        const teacherPercentageText = document.getElementById('teacherPercentageText');
-        const institutionPercentageText = document.getElementById('institutionPercentageText');
-        const classesCards = document.getElementById('classesCards');
-        const paymentTableBody = document.getElementById('paymentTableBody');
-        const paymentTableHeader = document.getElementById('paymentTableHeader');
-        const paymentTableFooter = document.getElementById('paymentTableFooter');
-        const tableLoadingSpinner = document.getElementById('tableLoadingSpinner');
-        const tableEmptyState = document.getElementById('tableEmptyState');
-        const currentMonthBlock = document.getElementById('currentMonthBlock');
-        const tableContainer = document.getElementById('tableContainer');
-        const salaryPaymentsTableBody = document.getElementById('salaryPaymentsTableBody');
-        const salaryEmptyState = document.getElementById('salaryEmptyState');
-        const salaryTableContainer = document.getElementById('salaryTableContainer');
-        const monthSelect = document.getElementById('monthSelect');
-        const yearSelect = document.getElementById('yearSelect');
-        const exportTableExcelBtn = document.getElementById('exportTableExcelBtn');
-        const exportTablePdfBtn = document.getElementById('exportTablePdfBtn');
-        const payTeacherBtn = document.getElementById('payTeacherBtn');
-        const currentMonthWarning = document.getElementById('currentMonthWarning');
-
-        // Helper function to convert string to number
-        function convertStringToNumber(value) {
-            if (value === null || value === undefined || value === '') return 0;
-            if (typeof value === 'number') return value;
-            if (typeof value === 'string') {
-                // Remove all non-numeric characters except decimal point and minus sign
-                const cleanValue = value.toString()
-                    .replace(/[^\d.-]/g, '')
-                    .replace(/,/g, '');
-                const numeric = parseFloat(cleanValue);
-                return isNaN(numeric) ? 0 : numeric;
-            }
-            return 0;
-        }
-
-        // Convert API response string values to numbers
-        function convertApiResponseToNumbers(apiData) {
-            if (!apiData || typeof apiData !== 'object') return apiData;
-            
-            const converted = JSON.parse(JSON.stringify(apiData));
-            
-            // Convert top-level numeric fields
-            const numericFields = [
-                'total_payments_this_month',
-                'advance_payment_this_month',
-                'net_payable',
-                'teacher_percentage',
-                'institution_percentage',
-                'teacher_share',
-                'institution_share'
-            ];
-            
-            numericFields.forEach(field => {
-                if (converted[field] !== undefined) {
-                    converted[field] = convertStringToNumber(converted[field]);
-                }
-            });
-            
-            // Convert teacher_id
-            if (converted.teacher_id !== undefined) {
-                converted.teacher_id = convertStringToNumber(converted.teacher_id);
-            }
-            
-            // Convert salary_payments array
-            if (converted.salary_payments && Array.isArray(converted.salary_payments)) {
-                converted.salary_payments = converted.salary_payments.map(payment => ({
-                    ...payment,
-                    id: convertStringToNumber(payment.id),
-                    payment: convertStringToNumber(payment.payment),
-                    status: payment.status ? 1 : 0,
-                    user_id: convertStringToNumber(payment.user_id),
-                    teacher_id: convertStringToNumber(payment.teacher_id)
-                }));
-            }
-            
-            // Convert classes array
-            if (converted.classes && Array.isArray(converted.classes)) {
-                converted.classes = converted.classes.map(cls => {
-                    const convertedClass = { ...cls };
-                    
-                    // Convert class_id
-                    convertedClass.class_id = convertStringToNumber(cls.class_id);
-                    
-                    // Convert total_students and students_paid
-                    convertedClass.total_students = convertStringToNumber(cls.total_students);
-                    convertedClass.students_paid = convertStringToNumber(cls.students_paid);
-                    
-                    // Convert payments object values
-                    if (convertedClass.payments && typeof convertedClass.payments === 'object') {
-                        const convertedPayments = {};
-                        Object.entries(convertedClass.payments).forEach(([date, amount]) => {
-                            convertedPayments[date] = convertStringToNumber(amount);
-                        });
-                        convertedClass.payments = convertedPayments;
-                    }
-                    
-                    return convertedClass;
-                });
-            }
-            
-            return converted;
-        }
-
-        // Format currency function
-        function formatCurrency(amount) {
-            // Convert to number if it's a string
-            const numericAmount = convertStringToNumber(amount);
-            
-            return new Intl.NumberFormat('en-LK', {
-                style: 'currency',
-                currency: 'LKR',
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            }).format(numericAmount);
-        }
-
-        function formatDate(dateString) {
-            if (!dateString) return '-';
-            try {
-                const date = new Date(dateString);
-                return date.toLocaleDateString('en-GB', {
-                    day: '2-digit',
-                    month: 'short',
-                    year: 'numeric'
-                });
-            } catch (e) {
-                return dateString;
-            }
-        }
-
-        function formatDateTable(dateString) {
-            if (!dateString) return '-';
-            try {
-                const date = new Date(dateString);
-                return date.toLocaleDateString('en-GB', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: '2-digit'
-                }).replace(/\//g, '/');
-            } catch (e) {
-                return dateString;
-            }
-        }
-
-        function getMonthName(monthNumber) {
-            const months = [
-                'January', 'February', 'March', 'April', 'May', 'June',
-                'July', 'August', 'September', 'October', 'November', 'December'
-            ];
-            const monthIndex = parseInt(monthNumber) - 1;
-            return months[monthIndex] || 'Unknown';
-        }
-
-        function isCurrentMonth(month, year) {
-            if (!month || !year) return false;
-            const now = new Date();
-            const currentMonth = (now.getMonth() + 1).toString().padStart(2, '0');
-            const currentYear = now.getFullYear().toString();
-            return month === currentMonth && year === currentYear;
-        }
-
-        function getPreviousMonthYear() {
-            const now = new Date();
-            let month, year;
-            
-            if (now.getMonth() === 0) {
-                month = '12';
-                year = (now.getFullYear() - 1).toString();
-            } else {
-                month = now.getMonth().toString().padStart(2, '0');
-                year = now.getFullYear().toString();
-            }
-            
-            return { month, year };
-        }
-
-        // UI Functions
-        function showLoading(show) {
-            if (tableLoadingSpinner) {
-                if (show) {
-                    tableLoadingSpinner.classList.remove('d-none');
-                } else {
-                    tableLoadingSpinner.classList.add('d-none');
-                }
-            }
-        }
-
-        function showTable(show) {
-            if (tableContainer) {
-                if (show) {
-                    tableContainer.classList.remove('d-none');
-                } else {
-                    tableContainer.classList.add('d-none');
-                }
-            }
-        }
-
-        function showCurrentMonthBlock(show) {
-            if (currentMonthBlock) {
-                if (show) {
-                    currentMonthBlock.classList.remove('d-none');
-                    currentMonthWarning.classList.remove('d-none');
-                } else {
-                    currentMonthBlock.classList.add('d-none');
-                    currentMonthWarning.classList.add('d-none');
-                }
-            }
-        }
-
-        function showEmptyState(show) {
-            if (tableEmptyState) {
-                if (show) {
-                    tableEmptyState.classList.remove('d-none');
-                } else {
-                    tableEmptyState.classList.add('d-none');
-                }
-            }
-        }
-
-        function showSalaryTable(show) {
-            if (salaryTableContainer) {
-                if (show) {
-                    salaryTableContainer.classList.remove('d-none');
-                } else {
-                    salaryTableContainer.classList.add('d-none');
-                }
-            }
-        }
-
-        function showSalaryEmptyState(show) {
-            if (salaryEmptyState) {
-                if (show) {
-                    salaryEmptyState.classList.remove('d-none');
-                } else {
-                    salaryEmptyState.classList.add('d-none');
-                }
-            }
-        }
-
-        function updateSelectedMonthYear(month, year) {
-            if (!month || !year) {
-                const prev = getPreviousMonthYear();
-                month = prev.month;
-                year = prev.year;
-            }
-            
-            if (selectedMonthYear) {
-                selectedMonthYear.textContent = `${getMonthName(month)} ${year}`;
-            }
-            if (summaryMonthYear) {
-                summaryMonthYear.textContent = `${getMonthName(month)} ${year}`;
-            }
-            currentMonth = month;
-            currentYear = year;
-        }
-
-        // Data Fetching with string to number conversion
-        async function fetchTeacherData(month, year) {
-    // Validate month and year
-    if (!month || !year) {
-        console.error('Month or year is undefined:', { month, year });
-        const prev = getPreviousMonthYear();
-        month = prev.month;
-        year = prev.year;
-    }
-
-    showLoading(true);
-    showTable(false);
-    showCurrentMonthBlock(false); // Remove this block entirely
-    showEmptyState(false);
-    showSalaryTable(false);
-    showSalaryEmptyState(false);
-
-    try {
-        const url = `/api/teacher-payments/monthly-income/${teacherId}/${year}-${month}`;
-        console.log('Fetching from:', url);
-        
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        console.log('Raw API Response:', data);
-        
-        if (data.status === 'success') {
-            // CONVERT STRING VALUES TO NUMBERS
-            teacherData = convertApiResponseToNumbers(data);
-            console.log('Converted Teacher Data:', teacherData);
-            
-            renderAllSections();
-        } else {
-            throw new Error(data.message || 'Failed to load data');
-        }
-    } catch (error) {
-        console.error('Error fetching teacher data:', error);
-        showEmptyState(true);
-    } finally {
-        showLoading(false);
-    }
-}
-
-        function renderAllSections() {
-            if (!teacherData) return;
-            
-            renderTeacherData();
-            renderClassesCards();
-            renderPaymentTable();
-            renderSalaryPayments();
-            showTable(true);
-        }
-
-        // Render teacher data with safe numeric values
-        function renderTeacherData() {
-           if (!teacherData) return;
-
-            // Teacher Information
-            if (teacherNameTitle) {
-                teacherNameTitle.innerHTML = `<i class="fas fa-user-graduate me-1"></i> ${teacherData.teacher_name || 'Teacher'}'s Income`;
-            }
-            
-            if (teacherIdElement) {
-                teacherIdElement.textContent = teacherData.teacher_id || '-';
-            }
-            
-            if (teacherNameElement) {
-                teacherNameElement.textContent = teacherData.teacher_name || '-';
-            }
-            
-            if (subjectNameElement) {
-                subjectNameElement.textContent = teacherData.subject_name || '-';
-            }
-            
-            if (salaryStatusElement) {
-                const isPaid = teacherData.is_salary_paid || false;
-                salaryStatusElement.textContent = isPaid ? 'Salary Paid' : 'Salary Not Paid';
-                salaryStatusElement.className = `badge bg-${isPaid ? 'success' : 'warning'}`;
-            }
-
-            // Financial Summary
-            if (totalCollectionsElement) {
-                totalCollectionsElement.textContent = formatCurrency(teacherData.total_payments_this_month || 0);
-            }
-            
-            if (advancePaymentsElement) {
-                advancePaymentsElement.textContent = formatCurrency(teacherData.advance_payment_this_month || 0);
-            }
-            
-            if (teacherShareElement) {
-                teacherShareElement.textContent = formatCurrency(teacherData.teacher_share || 0);
-            }
-            
-            if (institutionShareElement) {
-                institutionShareElement.textContent = formatCurrency(teacherData.institution_share || 0);
-            }
-            
-            if (netPayableElement) {
-                netPayableElement.textContent = formatCurrency(teacherData.net_payable || 0);
-            }
-
-            // Percentages
-            const teacherPercentage = convertStringToNumber(teacherData.teacher_percentage) || 0;
-            const institutionPercentage = convertStringToNumber(teacherData.institution_percentage) || 0;
-
-            if (teacherPercentageText) {
-                teacherPercentageText.textContent = `${teacherPercentage}% of total`;
-            }
-            
-            if (institutionPercentageText) {
-                institutionPercentageText.textContent = `${institutionPercentage}% of total`;
-            }
-
-            if (teacherPercentageBar) {
-                teacherPercentageBar.style.width = `${teacherPercentage}%`;
-                const teacherPercentageTextBar = document.getElementById('teacherPercentageTextBar');
-                if (teacherPercentageTextBar) {
-                    teacherPercentageTextBar.textContent = `Teacher: ${teacherPercentage}%`;
-                }
-            }
-            
-            if (institutionPercentageBar) {
-                institutionPercentageBar.style.width = `${institutionPercentage}%`;
-                const institutionPercentageTextBar = document.getElementById('institutionPercentageTextBar');
-                if (institutionPercentageTextBar) {
-                    institutionPercentageTextBar.textContent = `Institution: ${institutionPercentage}%`;
-                }
-            }
-
-            // Pay Button
-            if (payTeacherBtn) {
-        const netPayable = convertStringToNumber(teacherData.net_payable) || 0;
-        const isPaid = teacherData.is_salary_paid || false;
-        const isCurrent = isCurrentMonth(currentMonth, currentYear);
-        
-        if (netPayable > 0 && !isPaid && !isCurrent) {
-            // Only enable if not current month, not paid, and has payable amount
-            payTeacherBtn.disabled = false;
-            payTeacherBtn.title = `Pay ${formatCurrency(netPayable)}`;
-            payTeacherBtn.innerHTML = '<i class="fas fa-money-check-alt me-1"></i> Pay Teacher';
-            payTeacherBtn.classList.remove('d-none');
-        } else {
-            payTeacherBtn.disabled = true;
-            
-            if (isCurrent) {
-                payTeacherBtn.title = 'Current month - payment not available yet';
-                payTeacherBtn.innerHTML = '<i class="fas fa-calendar-times me-1"></i> Current Month';
-                payTeacherBtn.classList.add('d-none'); // Hide the button entirely for current month
-            } else if (isPaid) {
-                payTeacherBtn.title = 'Salary already paid';
-                payTeacherBtn.innerHTML = '<i class="fas fa-check-circle me-1"></i> Already Paid';
-            } else {
-                payTeacherBtn.title = 'No amount payable';
-                payTeacherBtn.innerHTML = '<i class="fas fa-money-check-alt me-1"></i> Pay Teacher';
-            }
-        }
-    }
-        }
-
-        // Render classes cards with numeric values
-        function renderClassesCards() {
-            if (!teacherData || !classesCards || !teacherData.classes) return;
-
-            classesCards.innerHTML = '';
-
-            if (!teacherData.classes.length) {
-                classesCards.innerHTML = `
-                    <div class="col-12 text-center">
-                        <div class="alert alert-light mb-0">
-                            <i class="fas fa-info-circle me-1"></i> No class data available
-                        </div>
-                    </div>
-                `;
-                return;
-            }
-
-            const teacherPercentage = convertStringToNumber(teacherData.teacher_percentage) || 0;
-
-            teacherData.classes.forEach(cls => {
-                // Calculate total paid from payments object
-                let totalPaid = 0;
-                if (cls.payments && typeof cls.payments === 'object') {
-                    Object.values(cls.payments).forEach(val => {
-                        totalPaid += convertStringToNumber(val);
-                    });
-                }
-                
-                const totalStudents = convertStringToNumber(cls.total_students) || 0;
-                const studentsPaid = convertStringToNumber(cls.students_paid) || 0;
-                
-                const percentagePaid = totalStudents > 0 ? 
-                    Math.round((studentsPaid / totalStudents) * 100) : 0;
-                
-                // Calculate teacher share
-                const teacherShare = totalPaid * teacherPercentage / 100;
-                
-                const card = document.createElement('div');
-                card.className = 'col-md-6 col-lg-4 mb-3';
-                card.innerHTML = `
-                    <div class="card class-card h-100">
-                        <div class="card-header bg-light py-2">
-                            <h6 class="mb-0 small">${cls.class_name || 'Unnamed Class'}</h6>
-                            <small class="text-muted">Grade: ${cls.grade_name || 'N/A'}</small>
-                        </div>
-                        <div class="card-body py-2">
-                            <div class="mb-2">
-                                <div class="d-flex justify-content-between mb-1">
-                                    <span class="text-muted small">Paid Students</span>
-                                    <span class="fw-bold small">${studentsPaid}/${totalStudents}</span>
-                                </div>
-                                <div class="student-progress">
-                                    <div class="progress">
-                                        <div class="progress-bar bg-success" style="width: ${percentagePaid}%"></div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="mb-1">
-                                <div class="d-flex justify-content-between">
-                                    <span class="text-muted small">Collection:</span>
-                                    <span class="fw-bold small">${formatCurrency(totalPaid)}</span>
-                                </div>
-                            </div>
-                            <div class="mb-1">
-                                <div class="d-flex justify-content-between">
-                                    <span class="text-muted small">Teacher's Share:</span>
-                                    <span class="fw-bold text-success small">${formatCurrency(teacherShare)}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                
-                classesCards.appendChild(card);
-            });
-        }
-
-        // Render payment table with numeric values
-        function renderPaymentTable() {
-            if (!teacherData || !paymentTableBody || !teacherData.classes) {
-                showEmptyState(true);
-                return;
-            }
-
-            paymentTableBody.innerHTML = '';
-            allPayments = [];
-            allGrades = [];
-
-            // Collect unique dates and grades
-            const allDates = new Set();
-            const gradeSet = new Set();
-            
-            teacherData.classes.forEach(cls => {
-                const grade = cls.grade_name;
-                if (grade) {
-                    gradeSet.add(grade);
-                }
-                
-                if (cls.payments && typeof cls.payments === 'object') {
-                    Object.keys(cls.payments).forEach(date => {
-                        allDates.add(date);
-                    });
-                }
-            });
-
-            const sortedDates = Array.from(allDates).sort((a, b) => new Date(a) - new Date(b));
-            allGrades = Array.from(gradeSet).sort();
-
-            if (sortedDates.length === 0) {
-                showEmptyState(true);
-                showTable(false);
-                return;
-            }
-
-            showEmptyState(false);
-
-            // Render header
-            renderTableHeader();
-
-            // Calculate totals
-            const totals = {
-                gradeTotals: {},
-                totalCollection: 0,
-                institutionShare: 0,
-                teacherShare: 0
+            // Configuration
+            const CONFIG = {
+                API_TIMEOUT: 30000,
+                MAX_RETRIES: 2,
+                RETRY_DELAY: 1000,
+                AUTO_CLOSE_TIMEOUT: 15000,
+                TOAST_DURATION: 3000,
+                PRINT_WINDOW_DELAY: 1000,
+                REFRESH_DELAY: 2000
             };
 
-            allGrades.forEach(grade => {
-                totals.gradeTotals[grade] = 0;
-            });
+            // State management
+            const state = {
+                teacherData: null,
+                allPayments: [],
+                allGrades: [],
+                currentFetchId: 0,
+                abortController: null,
+                isProcessingPayment: false
+            };
 
-            const teacherPercentage = convertStringToNumber(teacherData.teacher_percentage) || 0;
-            const institutionPercentage = convertStringToNumber(teacherData.institution_percentage) || 0;
+            // DOM elements cache
+            const elements = {
+                teacherName: document.getElementById('teacherName'),
+                teacherId: document.getElementById('teacherId'),
+                teacherIdDisplay: document.getElementById('teacherIdDisplay'),
+                subjectName: document.getElementById('subjectName'),
+                selectedMonthYear: document.getElementById('selectedMonthYear'),
+                totalCollections: document.getElementById('totalCollections'),
+                teacherShare: document.getElementById('teacherShare'),
+                advancePayments: document.getElementById('advancePayments'),
+                netPayable: document.getElementById('netPayable'),
+                paymentStatusSection: document.getElementById('paymentStatusSection'),
+                payTeacherBtn: document.getElementById('payTeacherBtn'),
+                classesCards: document.getElementById('classesCards'),
+                advancePaymentsTableBody: document.getElementById('advancePaymentsTableBody'),
+                advanceEmptyState: document.getElementById('advanceEmptyState'),
+                paymentTableBody: document.getElementById('paymentTableBody'),
+                paymentTableHeader: document.getElementById('paymentTableHeader'),
+                paymentTableFooter: document.getElementById('paymentTableFooter'),
+                tableLoadingSpinner: document.getElementById('tableLoadingSpinner'),
+                tableContainer: document.getElementById('tableContainer'),
+                tableEmptyState: document.getElementById('tableEmptyState'),
+                monthSelect: document.getElementById('monthSelect'),
+                yearSelect: document.getElementById('yearSelect'),
+                exportTableExcelBtn: document.getElementById('exportTableExcelBtn'),
+                exportTablePdfBtn: document.getElementById('exportTablePdfBtn'),
+                lastUpdated: document.getElementById('lastUpdated'),
+                overallStatus: document.getElementById('overallStatus')
+            };
 
-            // Create rows
-            sortedDates.forEach(date => {
-                const rowData = {
-                    date: date,
-                    gradePayments: {},
+            // Utility functions
+            const utils = {
+                csrfToken: document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+
+                teacherId: (() => {
+                    const pathParts = window.location.pathname.split('/').filter(part => part);
+                    return pathParts[pathParts.length - 1] || '{{ $teacher_id ?? 18 }}';
+                })(),
+
+                formatCurrency(amount) {
+                    let numericAmount = amount;
+                    if (typeof amount === 'string') {
+                        numericAmount = amount.toString()
+                            .replace(/[^\d.-]/g, '')
+                            .replace(/,/g, '');
+                    }
+                    numericAmount = parseFloat(numericAmount);
+                    if (isNaN(numericAmount) || numericAmount === null || numericAmount === undefined) {
+                        numericAmount = 0;
+                    }
+                    return new Intl.NumberFormat('en-LK', {
+                        style: 'currency',
+                        currency: 'LKR',
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    }).format(numericAmount);
+                },
+
+                formatNumber(num) {
+                    if (num == null || num === '' || num === undefined) return '0';
+                    const n = parseFloat(num);
+                    if (isNaN(n)) return '0';
+                    return new Intl.NumberFormat('en-LK', {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0
+                    }).format(n);
+                },
+
+                formatDateTime(dateTimeString) {
+                    try {
+                        const date = new Date(dateTimeString);
+                        return date.toLocaleString('en-GB', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: true
+                        });
+                    } catch (error) {
+                        console.warn('Invalid datetime format:', dateTimeString);
+                        return dateTimeString;
+                    }
+                },
+
+                formatDateTable(dateString) {
+                    try {
+                        const date = new Date(dateString);
+                        return date.toLocaleDateString('en-GB', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: '2-digit'
+                        }).replace(/\//g, '/');
+                    } catch (error) {
+                        console.warn('Invalid date format for table:', dateString);
+                        return dateString;
+                    }
+                },
+
+                getMonthName(monthNumber) {
+                    const months = [
+                        'January', 'February', 'March', 'April', 'May', 'June',
+                        'July', 'August', 'September', 'October', 'November', 'December'
+                    ];
+                    const monthIndex = parseInt(monthNumber) - 1;
+                    return months[monthIndex] || 'Unknown';
+                },
+
+                toNumber(value) {
+                    if (value == null || value === '' || value === undefined) return 0;
+                    if (typeof value === 'number') return value;
+                    const cleaned = String(value)
+                        .replace(/[^\d.-]/g, '')
+                        .replace(/,/g, '');
+                    const num = parseFloat(cleaned);
+                    return isNaN(num) ? 0 : num;
+                },
+
+                toInt(value) {
+                    return Math.floor(this.toNumber(value));
+                },
+
+                showToast(message, type = 'info') {
+                    const toast = document.createElement('div');
+                    const bgColor = {
+                        success: '#1cc88a',
+                        error: '#e74a3b',
+                        warning: '#f6c23e',
+                        info: '#36b9cc'
+                    }[type] || '#36b9cc';
+
+                    const icon = {
+                        success: 'fa-check-circle',
+                        error: 'fa-exclamation-circle',
+                        warning: 'fa-exclamation-triangle',
+                        info: 'fa-info-circle'
+                    }[type] || 'fa-info-circle';
+
+                    toast.style.cssText = `
+                                            position: fixed;
+                                            top: 20px;
+                                            right: 20px;
+                                            background: ${bgColor};
+                                            color: white;
+                                            padding: 12px 20px;
+                                            border-radius: 8px;
+                                            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                                            z-index: 999999;
+                                            animation: slideIn 0.3s ease-out;
+                                            font-size: 0.875rem;
+                                            font-weight: 500;
+                                        `;
+
+                    toast.innerHTML = `
+                                            <div style="display: flex; align-items: center;">
+                                                <i class="fas ${icon} me-2"></i>
+                                                <span>${message}</span>
+                                            </div>
+                                        `;
+
+                    document.body.appendChild(toast);
+
+                    setTimeout(() => {
+                        toast.style.animation = 'slideOut 0.3s ease-out';
+                        setTimeout(() => toast.remove(), 300);
+                    }, CONFIG.TOAST_DURATION);
+
+                    return toast;
+                },
+
+                checkPrintingEnabled() {
+                    try {
+                        // First check localStorage
+                        const teacherReceiptSettings = localStorage.getItem('teacher_receipt_settings');
+                        if (teacherReceiptSettings) {
+                            const settings = JSON.parse(teacherReceiptSettings);
+                            return settings.teacher_receipt_enabled === true;
+                        }
+
+                        // Check if global function exists (from settings page)
+                        if (typeof window.getTeacherReceiptStatus === 'function') {
+                            return window.getTeacherReceiptStatus();
+                        }
+
+                        return false; // Default to false if no setting found
+                    } catch (error) {
+                        console.error('Error checking printing status:', error);
+                        return false;
+                    }
+                },
+
+                checkEmailEnabled() {
+                    try {
+                        const emailSettings = localStorage.getItem('email_enabled');
+                        if (emailSettings) {
+                            const settings = JSON.parse(emailSettings);
+                            return settings.email_enabled === true;
+                        }
+                        if (typeof window.getEmailStatus === 'function') {
+                            return window.getEmailStatus();
+                        }
+                        return false;
+                    } catch (error) {
+                        console.error('Error checking email status:', error);
+                        return false;
+                    }
+                },
+
+
+                formatMonthYearForURL(monthYear) {
+                    const parts = monthYear.split(' ');
+                    if (parts.length === 2) {
+                        const year = parts[0];
+                        const monthName = parts[1];
+                        const monthMap = {
+                            'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04',
+                            'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08',
+                            'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'
+                        };
+                        const monthNumber = monthMap[monthName] || '01';
+                        return `${year}-${monthNumber}`;
+                    }
+                    return monthYear;
+                },
+
+                debounce(func, wait) {
+                    let timeout;
+                    return function executedFunction(...args) {
+                        const later = () => {
+                            clearTimeout(timeout);
+                            func(...args);
+                        };
+                        clearTimeout(timeout);
+                        timeout = setTimeout(later, wait);
+                    };
+                },
+
+                isCurrentMonth(month, year) {
+                    if (!month || !year) return false;
+                    const now = new Date();
+                    const currentMonth = (now.getMonth() + 1).toString().padStart(2, '0');
+                    const currentYear = now.getFullYear().toString();
+                    return month === currentMonth && year === currentYear;
+                },
+
+                getPreviousMonthYear() {
+                    const now = new Date();
+                    let month, year;
+
+                    if (now.getMonth() === 0) {
+                        month = '12';
+                        year = (now.getFullYear() - 1).toString();
+                    } else {
+                        month = now.getMonth().toString().padStart(2, '0');
+                        year = now.getFullYear().toString();
+                    }
+
+                    return { month, year };
+                }
+            };
+
+            // UI State Management
+            const ui = {
+                showTableLoading(show) {
+                    if (elements.tableLoadingSpinner) {
+                        if (show) {
+                            elements.tableLoadingSpinner.classList.remove('d-none');
+                        } else {
+                            elements.tableLoadingSpinner.classList.add('d-none');
+                        }
+                    }
+                },
+
+                showTableContainer(show) {
+                    if (elements.tableContainer) {
+                        if (show) {
+                            elements.tableContainer.classList.remove('d-none');
+                        } else {
+                            elements.tableContainer.classList.add('d-none');
+                        }
+                    }
+                },
+
+                showTableEmptyState(show) {
+                    if (elements.tableEmptyState) {
+                        if (show) {
+                            elements.tableEmptyState.classList.remove('d-none');
+                        } else {
+                            elements.tableEmptyState.classList.add('d-none');
+                        }
+                    }
+                },
+
+                showAdvanceEmptyState(show) {
+                    if (elements.advanceEmptyState) {
+                        if (show) {
+                            elements.advanceEmptyState.classList.remove('d-none');
+                        } else {
+                            elements.advanceEmptyState.classList.add('d-none');
+                        }
+                    }
+                },
+
+                updateSelectedMonthYear(month, year) {
+                    if (elements.selectedMonthYear) {
+                        elements.selectedMonthYear.textContent =
+                            `${utils.getMonthName(month)} ${year}`;
+                    }
+                },
+
+                enablePayButton(enable) {
+                    if (elements.payTeacherBtn) {
+                        elements.payTeacherBtn.disabled = !enable;
+                    }
+                },
+
+                setPayButtonLoading(loading) {
+                    if (elements.payTeacherBtn) {
+                        if (loading) {
+                            elements.payTeacherBtn.disabled = true;
+                            elements.payTeacherBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Processing...';
+                        } else {
+                            elements.payTeacherBtn.innerHTML = '<i class="fas fa-money-check-alt me-2"></i> Pay Salary';
+                        }
+                    }
+                },
+
+                updateLastUpdated() {
+                    if (elements.lastUpdated) {
+                        const now = new Date();
+                        elements.lastUpdated.textContent = now.toLocaleString('en-GB', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                    }
+                }
+            };
+
+            // Data fetching
+            async function fetchTeacherData(month, year) {
+                const fetchId = ++state.currentFetchId;
+
+                if (state.abortController) {
+                    state.abortController.abort();
+                }
+
+                state.abortController = new AbortController();
+                const timeoutId = setTimeout(() => {
+                    state.abortController.abort();
+                }, CONFIG.API_TIMEOUT);
+
+                try {
+                    ui.showTableLoading(true);
+                    ui.showTableContainer(false);
+                    ui.showTableEmptyState(false);
+
+                    const url = `/api/teacher-payments/monthly-income/${utils.teacherId}/${year}-${month}`;
+
+                    const response = await fetch(url, {
+                        signal: state.abortController.signal,
+                        headers: {
+                            'Accept': 'application/json',
+                            'Cache-Control': 'no-cache'
+                        }
+                    });
+
+                    clearTimeout(timeoutId);
+
+                    if (fetchId !== state.currentFetchId) {
+                        return;
+                    }
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+
+                    if (data.status === 'success') {
+                        state.teacherData = data;
+                        renderAllData();
+                    } else {
+                        throw new Error(data.message || 'Failed to load teacher data');
+                    }
+                } catch (error) {
+                    if (error.name === 'AbortError') {
+                        console.log('Fetch aborted');
+                        return;
+                    }
+
+                    console.error('Error fetching teacher data:', error);
+
+                    ui.showTableEmptyState(true);
+                    utils.showToast('Failed to load salary data. Please try again.', 'error');
+                } finally {
+                    clearTimeout(timeoutId);
+                    ui.showTableLoading(false);
+                }
+            }
+
+            // Render functions
+            function renderAllData() {
+                if (!state.teacherData) return;
+
+                renderTeacherInfo();
+                renderFinancialSummary();
+                renderPaymentStatus();
+                renderClassesCards();
+                renderAdvancePayments();
+                renderPaymentTable();
+                ui.updateLastUpdated();
+            }
+
+            function renderTeacherInfo() {
+                if (!state.teacherData) return;
+
+                const data = state.teacherData;
+
+                if (elements.teacherName) elements.teacherName.textContent = data.teacher_name || '-';
+                if (elements.teacherId) elements.teacherId.textContent = data.teacher_id || '-';
+                if (elements.teacherIdDisplay) elements.teacherIdDisplay.textContent = data.teacher_id || '-';
+
+                // Extract subject from classes if not in main data
+                let subject = data.subject_name;
+                if (!subject && data.classes && data.classes.length > 0) {
+                    subject = data.classes[0].subject_name;
+                }
+                if (elements.subjectName) elements.subjectName.textContent = subject || '-';
+            }
+
+            function renderFinancialSummary() {
+                if (!state.teacherData) return;
+
+                const data = state.teacherData;
+
+                const totalCollections = utils.toNumber(data.total_payments_this_month || 0);
+                const advancePayments = utils.toNumber(data.advance_payment_this_month || 0);
+                const teacherShare = utils.toNumber(data.total_teacher_share || 0);
+                const netPayable = utils.toNumber(data.net_payable || 0);
+
+                if (elements.totalCollections) {
+                    elements.totalCollections.textContent = utils.formatCurrency(totalCollections);
+                }
+
+                if (elements.teacherShare) {
+                    elements.teacherShare.textContent = utils.formatCurrency(teacherShare);
+                }
+
+                if (elements.advancePayments) {
+                    elements.advancePayments.textContent = utils.formatCurrency(advancePayments);
+                }
+
+                if (elements.netPayable) {
+                    elements.netPayable.textContent = utils.formatCurrency(netPayable);
+                }
+            }
+
+            function renderPaymentStatus() {
+                if (!state.teacherData || !elements.paymentStatusSection) return;
+
+                const data = state.teacherData;
+                const isPaid = data.is_salary_paid || false;
+                const netPayable = utils.toNumber(data.net_payable || 0);
+                const month = elements.monthSelect ? elements.monthSelect.value : '';
+                const year = elements.yearSelect ? elements.yearSelect.value : '';
+                const isCurrentMonth = utils.isCurrentMonth(month, year);
+
+                let statusHtml = '';
+                let buttonEnabled = false;
+                let buttonText = '';
+                let buttonTitle = '';
+
+                if (isPaid) {
+                    // Salary already paid
+                    statusHtml = `
+                                            <div class="payment-status-card paid p-3 rounded">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="bg-success rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                                        <i class="fas fa-check-circle text-white" style="font-size: 1.2rem;"></i>
+                                                    </div>
+                                                    <div>
+                                                        <h5 class="fw-bold text-success mb-1">Salary Paid</h5>
+                                                        <p class="text-muted mb-0">Salary has been paid for this month.</p>
+                                                    </div>
+                                                </div>
+                                                <div class="mt-3">
+                                                    <div class="row">
+                                                        <div class="col-md-6">
+                                                            <small class="text-muted">Payment Amount</small>
+                                                            <p class="fw-bold mb-0">${utils.formatCurrency(netPayable)}</p>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <small class="text-muted">Status</small>
+                                                            <p class="fw-bold mb-0"><span class="badge bg-success">Completed</span></p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        `;
+                    buttonEnabled = false;
+                    buttonText = '<i class="fas fa-check-circle me-2"></i> Already Paid';
+                    buttonTitle = 'Salary already paid for this month';
+                } else if (isCurrentMonth) {
+                    // Current month - payment not available
+                    statusHtml = `
+                                            <div class="payment-status-card pending p-3 rounded">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="bg-info rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                                        <i class="fas fa-calendar-alt text-white" style="font-size: 1.2rem;"></i>
+                                                    </div>
+                                                    <div>
+                                                        <h5 class="fw-bold text-info mb-1">Current Month</h5>
+                                                        <p class="text-muted mb-0">Payment processing available after month ends.</p>
+                                                    </div>
+                                                </div>
+                                                <div class="mt-3">
+                                                    <div class="row">
+                                                        <div class="col-md-6">
+                                                            <small class="text-muted">Net Payable</small>
+                                                            <p class="fw-bold mb-0">${utils.formatCurrency(netPayable)}</p>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <small class="text-muted">Status</small>
+                                                            <p class="fw-bold mb-0"><span class="badge bg-info">Pending</span></p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        `;
+                    buttonEnabled = false;
+                    buttonText = '<i class="fas fa-calendar-times me-2"></i> Current Month';
+                    buttonTitle = 'Payment not available for current month';
+                } else if (netPayable > 0) {
+                    // Payment available
+                    statusHtml = `
+                                            <div class="payment-status-card unpaid p-3 rounded">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="bg-warning rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                                        <i class="fas fa-money-bill-wave text-white" style="font-size: 1.2rem;"></i>
+                                                    </div>
+                                                    <div>
+                                                        <h5 class="fw-bold text-warning mb-1">Payment Due</h5>
+                                                        <p class="text-muted mb-0">Salary payment is pending for this month.</p>
+                                                    </div>
+                                                </div>
+                                                <div class="mt-3">
+                                                    <div class="row">
+                                                        <div class="col-md-6">
+                                                            <small class="text-muted">Amount Payable</small>
+                                                            <p class="fw-bold mb-0">${utils.formatCurrency(netPayable)}</p>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <small class="text-muted">Status</small>
+                                                            <p class="fw-bold mb-0"><span class="badge bg-warning">Pending Payment</span></p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        `;
+                    buttonEnabled = true;
+                    buttonText = '<i class="fas fa-money-check-alt me-2"></i> Pay Salary';
+                    buttonTitle = `Pay ${utils.formatCurrency(netPayable)}`;
+                } else {
+                    // No payment due (amount is 0 or negative)
+                    statusHtml = `
+                                            <div class="payment-status-card paid p-3 rounded">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                                        <i class="fas fa-check text-white" style="font-size: 1.2rem;"></i>
+                                                    </div>
+                                                    <div>
+                                                        <h5 class="fw-bold text-secondary mb-1">No Payment Due</h5>
+                                                        <p class="text-muted mb-0">No salary payment required for this month.</p>
+                                                    </div>
+                                                </div>
+                                                <div class="mt-3">
+                                                    <div class="row">
+                                                        <div class="col-md-6">
+                                                            <small class="text-muted">Net Payable</small>
+                                                            <p class="fw-bold mb-0">${utils.formatCurrency(netPayable)}</p>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <small class="text-muted">Status</small>
+                                                            <p class="fw-bold mb-0"><span class="badge bg-secondary">Not Required</span></p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        `;
+                    buttonEnabled = netPayable >= 0; // Enable even if amount is 0
+                    buttonText = netPayable === 0 ?
+                        '<i class="fas fa-check-circle me-2"></i> Mark as Paid (LKR 0)' :
+                        '<i class="fas fa-money-check-alt me-2"></i> Pay Salary';
+                    buttonTitle = netPayable === 0 ? 'Mark as paid (no amount)' : 'Pay salary';
+                }
+
+                elements.paymentStatusSection.innerHTML = statusHtml;
+
+                // Update pay button
+                if (elements.payTeacherBtn) {
+                    elements.payTeacherBtn.disabled = !buttonEnabled;
+                    elements.payTeacherBtn.innerHTML = buttonText;
+                    elements.payTeacherBtn.title = buttonTitle;
+                }
+            }
+
+            function renderClassesCards() {
+                if (!state.teacherData || !elements.classesCards || !state.teacherData.classes) return;
+
+                elements.classesCards.innerHTML = '';
+
+                if (state.teacherData.classes.length === 0) {
+                    elements.classesCards.innerHTML = `
+                                            <div class="col-12 text-center py-4">
+                                                <i class="fas fa-chalkboard-teacher fa-2x text-muted mb-3"></i>
+                                                <p class="text-muted">No classes found for this teacher.</p>
+                                            </div>
+                                        `;
+                    return;
+                }
+
+                state.teacherData.classes.forEach((cls, index) => {
+                    const totalStudents = utils.toInt(cls.total_students || 0);
+                    const paidStudents = utils.toInt(cls.paid_students || 0);
+                    const unpaidStudents = utils.toInt(cls.unpaid_students || 0);
+                    const freeCardStudents = utils.toInt(cls.free_card_students || 0);
+                    const percentagePaid = totalStudents > 0 ? Math.round((paidStudents / totalStudents) * 100) : 0;
+
+                    // Calculate total from daily payments
+                    let totalCollection = 0;
+                    if (cls.daily_payments && typeof cls.daily_payments === 'object') {
+                        Object.values(cls.daily_payments).forEach(val => {
+                            totalCollection += utils.toNumber(val);
+                        });
+                    }
+
+                    const teacherShare = utils.toNumber(cls.teacher_share || 0);
+                    const teacherPercentage = cls.teacher_percentage || '0';
+
+                    const card = document.createElement('div');
+                    card.className = 'col-md-6 col-lg-4 mb-3';
+                    card.innerHTML = `
+                                            <div class="card border-0 shadow-sm h-100">
+                                                <div class="card-header bg-white border-bottom py-2">
+                                                    <div class="d-flex justify-content-between align-items-center">
+                                                        <h6 class="mb-0 small fw-bold text-truncate" title="${cls.class_name || 'Class'}">
+                                                            ${cls.class_name || 'Class'}
+                                                        </h6>
+                                                        <span class="badge bg-primary">Grade ${cls.grade_name || 'N/A'}</span>
+                                                    </div>
+                                                    <small class="text-muted">${cls.subject_name || 'Subject'}</small>
+                                                </div>
+                                                <div class="card-body">
+                                                    <!-- Students Stats -->
+                                                    <div class="mb-3">
+                                                        <div class="d-flex justify-content-between mb-1">
+                                                            <span class="text-muted small">Students:</span>
+                                                            <span class="fw-bold small">${utils.formatNumber(totalStudents)}</span>
+                                                        </div>
+                                                        <div class="progress mb-1" style="height: 6px;">
+                                                            <div class="progress-bar bg-success" style="width: ${percentagePaid}%"></div>
+                                                        </div>
+                                                        <div class="row small text-center">
+                                                            <div class="col-4">
+                                                                <span class="text-success fw-bold">${utils.formatNumber(paidStudents)}</span>
+                                                                <div class="text-muted">Paid</div>
+                                                            </div>
+                                                            <div class="col-4">
+                                                                <span class="text-danger fw-bold">${utils.formatNumber(unpaidStudents)}</span>
+                                                                <div class="text-muted">Unpaid</div>
+                                                            </div>
+                                                            <div class="col-4">
+                                                                <span class="text-info fw-bold">${utils.formatNumber(freeCardStudents)}</span>
+                                                                <div class="text-muted">Free</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Financial Stats -->
+                                                    <div class="border-top pt-2">
+                                                        <div class="mb-1">
+                                                            <div class="d-flex justify-content-between">
+                                                                <span class="text-muted small">Total:</span>
+                                                                <span class="fw-bold small">${utils.formatCurrency(totalCollection)}</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="mb-1">
+                                                            <div class="d-flex justify-content-between">
+                                                                <span class="text-muted small">Teacher (${teacherPercentage}%):</span>
+                                                                <span class="fw-bold text-success small">${utils.formatCurrency(teacherShare)}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        `;
+
+                    elements.classesCards.appendChild(card);
+                });
+            }
+
+            function renderAdvancePayments() {
+                if (!state.teacherData || !elements.advancePaymentsTableBody) return;
+
+                elements.advancePaymentsTableBody.innerHTML = '';
+
+                // Check if we have advance_payment_records in response
+                if (state.teacherData.advance_payment_records &&
+                    Array.isArray(state.teacherData.advance_payment_records) &&
+                    state.teacherData.advance_payment_records.length > 0) {
+
+                    state.teacherData.advance_payment_records.forEach(record => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                                                <td>${utils.formatDateTime(record.date)}</td>
+                                                <td class="fw-bold">${utils.formatCurrency(record.payment)}</td>
+                                                <td>
+                                                    <span class="badge bg-info">
+                                                        ${record.reason_code || 'N/A'}
+                                                    </span>
+                                                    ${record.reason ? `<br><small class="text-muted">${record.reason}</small>` : ''}
+                                                </td>
+                                                <td>${record.payment_for || 'N/A'}</td>
+                                                <td>
+                                                    <span class="badge ${record.status ? 'bg-success' : 'bg-danger'}">
+                                                        ${record.status ? 'Active' : 'Deleted'}
+                                                    </span>
+                                                </td>
+                                                <td>${record.user_name || 'System'}</td>
+                                            `;
+                        elements.advancePaymentsTableBody.appendChild(row);
+                    });
+
+                    ui.showAdvanceEmptyState(false);
+                } else {
+                    ui.showAdvanceEmptyState(true);
+                }
+            }
+
+            function renderPaymentTable() {
+                if (!state.teacherData || !elements.paymentTableBody) {
+                    ui.showTableEmptyState(true);
+                    ui.showTableContainer(false);
+                    return;
+                }
+
+                elements.paymentTableBody.innerHTML = '';
+                state.allPayments = [];
+                state.allGrades = new Set();
+
+                // Collect all unique dates and grades from daily_payments
+                const dateMap = new Map();
+
+                state.teacherData.classes.forEach(cls => {
+                    const grade = cls.grade_name;
+                    if (grade) state.allGrades.add(grade);
+
+                    if (cls.daily_payments && typeof cls.daily_payments === 'object') {
+                        Object.entries(cls.daily_payments).forEach(([date, amount]) => {
+                            if (!dateMap.has(date)) {
+                                dateMap.set(date, {
+                                    date: date,
+                                    gradePayments: {},
+                                    totalCollection: 0
+                                });
+                            }
+                            const dayData = dateMap.get(date);
+                            dayData.gradePayments[grade] = (dayData.gradePayments[grade] || 0) + utils.toNumber(amount);
+                            dayData.totalCollection += utils.toNumber(amount);
+                        });
+                    }
+                });
+
+                // Convert to array and sort by date
+                const sortedDates = Array.from(dateMap.values()).sort((a, b) =>
+                    new Date(a.date) - new Date(b.date)
+                );
+
+                state.allGrades = Array.from(state.allGrades).sort();
+
+                if (sortedDates.length === 0) {
+                    ui.showTableEmptyState(true);
+                    ui.showTableContainer(false);
+                    return;
+                }
+
+                ui.showTableEmptyState(false);
+                ui.showTableContainer(true);
+                renderTableHeader();
+
+                // Calculate totals
+                const totals = {
+                    gradeTotals: {},
                     totalCollection: 0,
                     institutionShare: 0,
                     teacherShare: 0
                 };
 
-                allGrades.forEach(grade => {
-                    rowData.gradePayments[grade] = 0;
+                state.allGrades.forEach(grade => {
+                    totals.gradeTotals[grade] = 0;
                 });
 
-                teacherData.classes.forEach(cls => {
-                    const grade = cls.grade_name;
-                    const payment = cls.payments && cls.payments[date] ? convertStringToNumber(cls.payments[date]) : 0;
-                    
-                    if (payment > 0 && grade && rowData.gradePayments[grade] !== undefined) {
-                        rowData.gradePayments[grade] += payment;
-                        totals.gradeTotals[grade] += payment;
-                    }
+                // Calculate overall teacher percentage average from all classes
+                let totalTeacherPercentage = 0;
+                let validClassesCount = 0;
+
+                if (state.teacherData.classes && state.teacherData.classes.length > 0) {
+                    state.teacherData.classes.forEach(cls => {
+                        const percentage = utils.toNumber(cls.teacher_percentage);
+                        if (percentage > 0) {
+                            totalTeacherPercentage += percentage;
+                            validClassesCount++;
+                        }
+                    });
+                }
+
+                const avgTeacherPercentage = validClassesCount > 0 ? totalTeacherPercentage / validClassesCount : 0;
+                const avgInstitutionPercentage = 100 - avgTeacherPercentage;
+
+                // Render table rows
+                sortedDates.forEach(dayData => {
+                    const row = document.createElement('tr');
+                    let rowHTML = `<td class="fw-bold">${utils.formatDateTable(dayData.date)}</td>`;
+
+                    state.allGrades.forEach(grade => {
+                        const amount = dayData.gradePayments[grade] || 0;
+                        totals.gradeTotals[grade] += amount;
+                        rowHTML += `<td>${amount > 0 ? utils.formatCurrency(amount) : '-'}</td>`;
+                    });
+
+                    totals.totalCollection += dayData.totalCollection;
+
+                    // Calculate shares based on average percentages
+                    const teacherShare = dayData.totalCollection * avgTeacherPercentage / 100;
+                    const institutionShare = dayData.totalCollection * avgInstitutionPercentage / 100;
+
+                    totals.teacherShare += teacherShare;
+                    totals.institutionShare += institutionShare;
+
+                    rowHTML += `
+                                            <td class="fw-bold text-primary">${utils.formatCurrency(dayData.totalCollection)}</td>
+                                            <td class="text-secondary">${utils.formatCurrency(institutionShare)}</td>
+                                            <td class="fw-bold text-success">${utils.formatCurrency(teacherShare)}</td>
+                                        `;
+
+                    row.innerHTML = rowHTML;
+                    elements.paymentTableBody.appendChild(row);
+
+                    // Store for export
+                    state.allPayments.push({
+                        ...dayData,
+                        institutionShare,
+                        teacherShare
+                    });
                 });
 
-                rowData.totalCollection = Object.values(rowData.gradePayments).reduce((sum, val) => sum + val, 0);
-                rowData.institutionShare = rowData.totalCollection * institutionPercentage / 100;
-                rowData.teacherShare = rowData.totalCollection * teacherPercentage / 100;
-
-                totals.totalCollection += rowData.totalCollection;
-                totals.institutionShare += rowData.institutionShare;
-                totals.teacherShare += rowData.teacherShare;
-
-                allPayments.push(rowData);
-
-                const row = document.createElement('tr');
-                
-                let rowHTML = `<td class="fw-bold">${formatDateTable(date)}</td>`;
-                
-                allGrades.forEach(grade => {
-                    const amount = rowData.gradePayments[grade];
-                    rowHTML += `<td>${amount > 0 ? formatCurrency(amount) : '-'}</td>`;
-                });
-                
-                rowHTML += `
-                    <td class="fw-bold bg-light text-primary">${formatCurrency(rowData.totalCollection)}</td>
-                    <td class="bg-light text-secondary">${formatCurrency(rowData.institutionShare)}</td>
-                    <td class="fw-bold bg-success text-white">${formatCurrency(rowData.teacherShare)}</td>
-                `;
-                
-                row.innerHTML = rowHTML;
-                paymentTableBody.appendChild(row);
-            });
-
-            renderTableFooter(totals);
-        }
-
-        function renderTableHeader() {
-            if (!paymentTableHeader) return;
-
-            paymentTableHeader.innerHTML = '';
-
-            const teacherPercentage = convertStringToNumber(teacherData.teacher_percentage) || 0;
-            const institutionPercentage = convertStringToNumber(teacherData.institution_percentage) || 0;
-
-            const headerRow = document.createElement('tr');
-            headerRow.innerHTML = `
-                <th rowspan="2">Date (DD/MM/YY)</th>
-                ${allGrades.map(grade => `<th colspan="1">Grade ${grade}</th>`).join('')}
-                <th rowspan="2" class="bg-light text-primary">Total Collection</th>
-                <th colspan="2" class="text-center" rowspan="2">Percentage Split</th>
-            `;
-            
-            paymentTableHeader.appendChild(headerRow);
-
-            const percentageRow = document.createElement('tr');
-            percentageRow.innerHTML = `
-                ${allGrades.map(() => '<td></td>').join('')}
-                <td class="bg-light text-secondary">${institutionPercentage}%</td>
-                <td class="bg-success text-white">${teacherPercentage}%</td>
-            `;
-            paymentTableHeader.appendChild(percentageRow);
-        }
-
-        function renderTableFooter(totals) {
-            if (!paymentTableFooter) return;
-
-            paymentTableFooter.innerHTML = '';
-
-            const footerRow = document.createElement('tr');
-            footerRow.innerHTML = `<td class="fw-bold">Totals</td>`;
-            
-            allGrades.forEach(grade => {
-                footerRow.innerHTML += `<td class="fw-bold">${formatCurrency(totals.gradeTotals[grade] || 0)}</td>`;
-            });
-            
-            footerRow.innerHTML += `
-                <td class="fw-bold bg-light text-primary">${formatCurrency(totals.totalCollection)}</td>
-                <td class="fw-bold bg-light text-secondary">${formatCurrency(totals.institutionShare)}</td>
-                <td class="fw-bold bg-success text-white">${formatCurrency(totals.teacherShare)}</td>
-            `;
-            
-            paymentTableFooter.appendChild(footerRow);
-        }
-
-        // Render salary payments with numeric values
-        function renderSalaryPayments() {
-            if (!teacherData || !salaryPaymentsTableBody) return;
-
-            salaryPaymentsTableBody.innerHTML = '';
-
-            if (!teacherData.salary_payments || teacherData.salary_payments.length === 0) {
-                showSalaryEmptyState(true);
-                showSalaryTable(false);
-                return;
+                renderTableFooter(totals, avgTeacherPercentage, avgInstitutionPercentage);
             }
 
-            showSalaryEmptyState(false);
-            showSalaryTable(true);
+            function renderTableHeader() {
+                if (!elements.paymentTableHeader) return;
 
-            teacherData.salary_payments.forEach(payment => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${formatDate(payment.date)}</td>
-                    <td class="fw-bold">${formatCurrency(payment.payment)}</td>
-                    <td><span class="badge bg-info">${payment.reason_code || 'N/A'}</span></td>
-                    <td>${payment.payment_for || 'N/A'}</td>
-                    <td>
-                        <span class="badge ${payment.status == 1 ? 'bg-success' : 'bg-warning'}">
-                            ${payment.status == 1 ? 'Paid' : 'Pending'}
-                        </span>
-                    </td>
-                `;
-                salaryPaymentsTableBody.appendChild(row);
-            });
-        }
+                elements.paymentTableHeader.innerHTML = `
+                                        <tr>
+                                            <th class="py-2">Date</th>
+                                            ${state.allGrades.map(grade => `<th class="py-2">Grade ${grade}</th>`).join('')}
+                                            <th class="py-2 text-primary">Total</th>
+                                            <th class="py-2 text-secondary">Institution</th>
+                                            <th class="py-2 text-success">Teacher</th>
+                                        </tr>
+                                    `;
+            }
 
-        // Event Handlers
-        function setupMonthYearSelectors() {
-            if (!monthSelect || !yearSelect) return;
+            function renderTableFooter(totals, teacherPercentage, institutionPercentage) {
+                if (!elements.paymentTableFooter) return;
 
-            monthSelect.addEventListener('change', function() {
-                handleMonthYearChange();
-            });
+                elements.paymentTableFooter.innerHTML = `
+                                        <tr>
+                                            <td class="fw-bold py-2">Totals</td>
+                                            ${state.allGrades.map(grade => `
+                                                <td class="fw-bold py-2">${utils.formatCurrency(totals.gradeTotals[grade] || 0)}</td>
+                                            `).join('')}
+                                            <td class="fw-bold py-2 text-primary">${utils.formatCurrency(totals.totalCollection)}</td>
+                                            <td class="fw-bold py-2 text-secondary">${utils.formatCurrency(totals.institutionShare)}<br><small>(${institutionPercentage.toFixed(1)}%)</small></td>
+                                            <td class="fw-bold py-2 text-success">${utils.formatCurrency(totals.teacherShare)}<br><small>(${teacherPercentage.toFixed(1)}%)</small></td>
+                                        </tr>
+                                    `;
+            }
 
-            yearSelect.addEventListener('change', function() {
-                handleMonthYearChange();
-            });
-        }
+            // Event Handlers
+            function setupMonthYearSelectors() {
+                if (!elements.monthSelect || !elements.yearSelect) return;
 
-        function handleMonthYearChange() {
-    const month = monthSelect.value;
-    const year = yearSelect.value;
-    
-    if (!month || !year) {
-        console.error('Month or year is undefined');
-        return;
-    }
-    
-    // Instead of blocking current month, allow viewing but disable payment
-    updateSelectedMonthYear(month, year);
-    fetchTeacherData(month, year);
-    
-    // Show/hide current month warning
-    if (isCurrentMonth(month, year)) {
-        currentMonthWarning.classList.remove('d-none');
-    } else {
-        currentMonthWarning.classList.add('d-none');
-    }
-}
+                elements.monthSelect.addEventListener('change', function () {
+                    handleMonthYearChange();
+                });
 
-        function setupPayTeacherButton() {
-            if (!payTeacherBtn) return;
+                elements.yearSelect.addEventListener('change', function () {
+                    handleMonthYearChange();
+                });
+            }
 
-            payTeacherBtn.addEventListener('click', function () {
-                if (!teacherData) return;
-                
-                const netPayable = convertStringToNumber(teacherData.net_payable) || 0;
-                const isPaid = teacherData.is_salary_paid || false;
-                
-                if (netPayable <= 0 || isPaid) {
+            function handleMonthYearChange() {
+                const month = elements.monthSelect.value;
+                const year = elements.yearSelect.value;
+
+                if (!month || !year) {
+                    console.error('Month or year is undefined');
                     return;
                 }
 
-                const amount = netPayable;
-                const teacherName = teacherData.teacher_name;
-                const teacherId = convertStringToNumber(teacherData.teacher_id);
-                const monthYear = `${getMonthName(currentMonth)} ${currentYear}`;
-                const formattedAmount = formatCurrency(amount);
+                ui.updateSelectedMonthYear(month, year);
+                fetchTeacherData(month, year);
+            }
 
-                // Show custom confirmation
-                showPaymentConfirmation(teacherName, formattedAmount, monthYear, function (confirmed) {
-                    if (confirmed) {
-                        processPayment(teacherId, teacherName, amount, monthYear);
+            function setupPayTeacherButton() {
+                if (!elements.payTeacherBtn) return;
+
+                elements.payTeacherBtn.addEventListener('click', function () {
+                    if (!state.teacherData || state.teacherData.is_salary_paid) {
+                        utils.showToast('Salary already paid for this month', 'warning');
+                        return;
                     }
+
+                    const amount = utils.toNumber(state.teacherData.net_payable || 0);
+                    const teacherName = state.teacherData.teacher_name;
+                    const teacherId = state.teacherData.teacher_id;
+                    const month = elements.monthSelect ? elements.monthSelect.value : '';
+                    const year = elements.yearSelect ? elements.yearSelect.value : '';
+                    const monthYear = `${utils.getMonthName(month)} ${year}`;
+
+                    // Always allow payment even if amount is 0
+                    showPaymentConfirmation(teacherName, amount, monthYear, function (confirmed) {
+                        if (confirmed) {
+                            processPayment(teacherId, teacherName, amount, monthYear);
+                        }
+                    });
                 });
-            });
-        }
+            }
 
-        // Custom confirmation
-        function showPaymentConfirmation(teacherName, amount, monthYear, callback) {
-            const modal = document.createElement('div');
-            modal.id = 'paymentConfirmation';
-            modal.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.6);
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                z-index: 9998;
-            `;
+            // Payment processing functions
+            function showPaymentConfirmation(teacherName, amount, monthYear, callback) {
+                const modal = document.createElement('div');
+                modal.id = 'paymentConfirmation';
+                modal.style.cssText = `
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        background: rgba(0, 0, 0, 0.5);
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        z-index: 9998;
+                        backdrop-filter: blur(2px);
+                    `;
 
-            modal.innerHTML = `
-                <div style="
-                    background: white;
-                    padding: 20px;
-                    border-radius: 8px;
-                    max-width: 350px;
-                    width: 90%;
-                    box-shadow: 0 5px 20px rgba(0,0,0,0.2);
-                ">
-                    <div style="text-align: center; margin-bottom: 15px;">
-                        <h5 style="margin: 0 0 15px 0; color: #333;">Confirm Payment</h5>
-                    </div>
+                // Get the selected month and year
+                const selectedMonth = elements.monthSelect ? utils.getMonthName(elements.monthSelect.value) : '';
+                const selectedYear = elements.yearSelect ? elements.yearSelect.value : '';
+                const displayMonthYear = `${selectedMonth} ${selectedYear}`;
 
-                    <div style="margin-bottom: 15px;">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                            <span style="color: #666;">Teacher:</span>
-                            <strong>${teacherName}</strong>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                            <span style="color: #666;">Amount:</span>
-                            <strong style="color: #28a745;">${amount}</strong>
-                        </div>
-                        <div style="display: flex; justify-content: space-between;">
-                            <span style="color: #666;">Period:</span>
-                            <strong>${monthYear}</strong>
-                        </div>
-                    </div>
-
-                    <div style="display: flex; gap: 10px;">
-                        <button id="confirmBtn" style="
-                            background: #28a745;
-                            color: white;
-                            border: none;
-                            padding: 8px 20px;
-                            border-radius: 4px;
-                            cursor: pointer;
-                            font-size: 14px;
-                            flex: 1;
+                modal.innerHTML = `
+                        <div style="
+                            background: white;
+                            padding: 25px;
+                            border-radius: 12px;
+                            max-width: 400px;
+                            width: 90%;
+                            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
                         ">
-                            Confirm
-                        </button>
+                            <div style="text-align: center; margin-bottom: 20px;">
+                                <div style="
+                                    width: 60px;
+                                    height: 60px;
+                                    background: #4e73df;
+                                    border-radius: 50%;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    margin: 0 auto 15px;
+                                ">
+                                    <i class="fas fa-money-check-alt" style="font-size: 24px; color: white;"></i>
+                                </div>
+                                <h5 style="margin: 0 0 5px 0; color: #333; font-weight: 600;">Confirm Salary Payment</h5>
+                                <p style="color: #666; font-size: 14px; margin: 0;">Please review the payment details</p>
+                            </div>
 
-                        <button id="cancelBtn" style="
-                            background: #dc3545;
-                            color: white;
-                            border: none;
-                            padding: 8px 20px;
-                            border-radius: 4px;
-                            cursor: pointer;
-                            font-size: 14px;
-                            flex: 1;
-                        ">
-                            Cancel
-                        </button>
-                    </div>
-                </div>
-            `;
+                            <div style="
+                                background: #f8f9fc;
+                                padding: 15px;
+                                border-radius: 8px;
+                                margin-bottom: 20px;
+                            ">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #e3e6f0;">
+                                    <span style="color: #5a5c69; font-weight: 500;">Teacher:</span>
+                                    <strong>${teacherName}</strong>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #e3e6f0;">
+                                    <span style="color: #5a5c69; font-weight: 500;">Amount:</span>
+                                    <strong style="color: #1cc88a; font-size: 18px;">${utils.formatCurrency(amount)}</strong>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #e3e6f0;">
+                                    <span style="color: #5a5c69; font-weight: 500;">Payment For:</span>
+                                    <strong>${displayMonthYear}</strong>
+                                </div>
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span style="color: #5a5c69; font-weight: 500;">Transaction Date:</span>
+                                    <strong>${new Date().toLocaleDateString('en-GB', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric'
+                })}</strong>
+                                </div>
+                            </div>
 
-            document.body.appendChild(modal);
+                            <div style="display: flex; gap: 10px;">
+                                <button id="confirmBtn" style="
+                                    background: #1cc88a;
+                                    color: white;
+                                    border: none;
+                                    padding: 12px 20px;
+                                    border-radius: 8px;
+                                    cursor: pointer;
+                                    font-size: 14px;
+                                    font-weight: 600;
+                                    flex: 1;
+                                    transition: all 0.3s;
+                                " onmouseover="this.style.backgroundColor='#17a673'" onmouseout="this.style.backgroundColor='#1cc88a'">
+                                    <i class="fas fa-check-circle me-1"></i> Confirm Payment
+                                </button>
 
-            document.getElementById('confirmBtn').addEventListener('click', function () {
-                modal.remove();
-                callback(true);
-            });
+                                <button id="cancelBtn" style="
+                                    background: #e74a3b;
+                                    color: white;
+                                    border: none;
+                                    padding: 12px 20px;
+                                    border-radius: 8px;
+                                    cursor: pointer;
+                                    font-size: 14px;
+                                    font-weight: 600;
+                                    flex: 1;
+                                    transition: all 0.3s;
+                                " onmouseover="this.style.backgroundColor='#d62c1a'" onmouseout="this.style.backgroundColor='#e74a3b'">
+                                    <i class="fas fa-times-circle me-1"></i> Cancel
+                                </button>
+                            </div>
+                        </div>
+                    `;
 
-            document.getElementById('cancelBtn').addEventListener('click', function () {
-                modal.remove();
-                callback(false);
-            });
+                document.body.appendChild(modal);
 
-            modal.addEventListener('click', function (e) {
-                if (e.target === modal) {
+                document.getElementById('confirmBtn').addEventListener('click', function () {
+                    modal.remove();
+                    callback(true);
+                });
+
+                document.getElementById('cancelBtn').addEventListener('click', function () {
                     modal.remove();
                     callback(false);
-                }
-            });
-        }
+                });
 
-        // Process payment
-        function processPayment(teacherId, teacherName, amount, monthYear) {
-            payTeacherBtn.disabled = true;
-            payTeacherBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Processing...';
+                modal.addEventListener('click', function (e) {
+                    if (e.target === modal) {
+                        modal.remove();
+                        callback(false);
+                    }
+                });
+            }
 
-            showPaymentProcessing(teacherName, amount, monthYear);
+            function processPayment(teacherId, teacherName, amount, monthYear) {
+                if (state.isProcessingPayment) return;
 
-            fetch('/api/teacher-payments', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({
+                state.isProcessingPayment = true;
+                ui.setPayButtonLoading(true);
+
+                showPaymentProcessing(teacherName, amount, monthYear);
+
+                // Get the selected month and year from the dropdowns
+                const selectedMonth = elements.monthSelect.value;
+                const selectedYear = elements.yearSelect.value;
+
+                // Create the monthYear string in format "January 2024"
+                const formattedMonthYear = `${utils.getMonthName(selectedMonth)} ${selectedYear}`;
+
+                const paymentData = {
                     teacher_id: teacherId,
                     payment: amount,
-                    paymentFor: monthYear,
                     reason_code: 'salary',
+                    paymentFor: formattedMonthYear, // Send the selected month/year
+                    net_payable: amount
+                };
+
+                console.log('Sending payment data:', paymentData);
+
+                fetch('/api/teacher-payments', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': utils.csrfToken,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(paymentData)
                 })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.status === 'success') {
+                            hidePaymentProcessing();
+
+                            const isPrintingEnabled = utils.checkPrintingEnabled();
+                            const isEmailEnabled = utils.checkEmailEnabled();
+
+                            // PRINT SALARY SLIP if enabled
+                            if (isPrintingEnabled) {
+                                setTimeout(() => {
+                                    openSalarySlip(teacherId, selectedYear, selectedMonth);
+                                }, 500);
+                            }
+
+                            // SEND EMAIL if enabled
+                            if (isEmailEnabled) {
+                                sendPaymentReportToTeacher(teacherId, formattedMonthYear);
+                            }
+
+                            showPaymentSuccess(data, teacherId, teacherName, amount, formattedMonthYear, isPrintingEnabled, isEmailEnabled);
+
+                            // Refresh data
+                            setTimeout(() => {
+                                fetchTeacherData(selectedMonth, selectedYear);
+                            }, CONFIG.REFRESH_DELAY);
+
+                        } else {
+                            throw new Error(data.message || 'Payment failed');
+                        }
+                    })
+                    .catch(error => {
+                        hidePaymentProcessing();
+                        showPaymentError(error.message, teacherName, amount);
+                        state.isProcessingPayment = false;
+                        ui.setPayButtonLoading(false);
+                    });
+            }
+
+            // Helper functions for payment processing UI
+            function showPaymentProcessing(teacherName, amount, monthYear) {
+                const overlay = document.createElement('div');
+                overlay.id = 'paymentProcessing';
+                overlay.style.cssText = `
+                                        position: fixed;
+                                        top: 0;
+                                        left: 0;
+                                        width: 100%;
+                                        height: 100%;
+                                        background: rgba(0, 0, 0, 0.7);
+                                        display: flex;
+                                        justify-content: center;
+                                        align-items: center;
+                                        z-index: 9999;
+                                    `;
+
+                const isPrintingEnabled = utils.checkPrintingEnabled();
+                const isEmailEnabled = utils.checkEmailEnabled();
+
+                let printMessage = '';
+                let emailMessage = '';
+
+                if (isPrintingEnabled) {
+                    printMessage = '<br>• Salary slip will be printed';
                 }
-                return response.json();
-            })
-            .then(data => {
-                if (data.status === 'success') {
-                    // Payment successful
-                    hidePaymentProcessing();
 
-                    // Check if printing is enabled
-                    const isPrintingEnabled = checkPrintingEnabled();
+                if (isEmailEnabled) {
+                    emailMessage = '<br>• Payment report will be emailed';
+                }
 
-                    // Check if email is enabled
-                    const isEmailEnabled = checkEmailEnabled();
+                const featuresMessage = isPrintingEnabled || isEmailEnabled
+                    ? `After payment:${printMessage}${emailMessage}`
+                    : 'Payment will be processed (no additional actions)';
 
-                    // 1. Salary slip print කරන්න (only if enabled)
-                    if (isPrintingEnabled) {
-                        setTimeout(() => {
-                            openSalarySlip(teacherId, currentYear, currentMonth);
-                        }, 500);
-                    }
+                overlay.innerHTML = `
+                                        <div style="
+                                            background: white;
+                                            padding: 20px;
+                                            border-radius: 8px;
+                                            max-width: 300px;
+                                            width: 90%;
+                                            text-align: center;
+                                        ">
+                                            <div style="font-size: 30px; color: #4e73df; margin-bottom: 10px;">
+                                                <i class="fas fa-spinner fa-spin"></i>
+                                            </div>
+                                            <h5 style="margin-bottom: 15px; color: #333;">Processing Salary Payment</h5>
+                                            <div style="margin-bottom: 15px;">
+                                                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                                    <span style="color: #666;">Teacher:</span>
+                                                    <strong>${teacherName}</strong>
+                                                </div>
+                                                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                                    <span style="color: #666;">Amount:</span>
+                                                    <strong>${utils.formatCurrency(amount)}</strong>
+                                                </div>
+                                                <div style="display: flex; justify-content: space-between;">
+                                                    <span style="color: #666;">Period:</span>
+                                                    <strong>${monthYear}</strong>
+                                                </div>
+                                            </div>
+                                            <div style="
+                                                background: #e8f4fd;
+                                                padding: 8px;
+                                                border-radius: 4px;
+                                                margin-top: 15px;
+                                                border-left: 3px solid #4e73df;
+                                            ">
+                                                <p style="margin: 0; color: #2e59d9; font-size: 12px;">
+                                                    <i class="fas fa-info-circle me-1"></i>
+                                                    ${featuresMessage}
+                                                </p>
+                                            </div>
+                                            <p style="color: #666; font-size: 13px; margin: 10px 0 0 0;">
+                                                Please wait...
+                                            </p>
+                                        </div>
+                                    `;
 
-                    // 2. Report email එක send කරන්න (only if enabled)
-                    if (isEmailEnabled) {
+                document.body.appendChild(overlay);
+            }
+
+            function hidePaymentProcessing() {
+                const overlay = document.getElementById('paymentProcessing');
+                if (overlay) {
+                    overlay.remove();
+                }
+            }
+
+            function showPaymentSuccess(data, teacherId, teacherName, amount, monthYear, isPrintingEnabled, isEmailEnabled) {
+                const modal = document.createElement('div');
+                modal.id = 'paymentSuccess';
+                modal.style.cssText = `
+                                        position: fixed;
+                                        top: 0;
+                                        left: 0;
+                                        width: 100%;
+                                        height: 100%;
+                                        background: rgba(0, 0, 0, 0.7);
+                                        display: flex;
+                                        justify-content: center;
+                                        align-items: center;
+                                        z-index: 99999;
+                                    `;
+
+                const formattedAmount = utils.formatCurrency(amount);
+                const paymentDate = new Date().toLocaleTimeString('en-LK', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                let printStatusMessage = '';
+                let emailStatusMessage = '';
+                let actionsHTML = '';
+
+                if (isPrintingEnabled) {
+                    printStatusMessage = `
+                                            <div style="
+                                                background: #d4edda;
+                                                padding: 8px;
+                                                border-radius: 4px;
+                                                margin-bottom: 8px;
+                                                border-left: 3px solid #1cc88a;
+                                            ">
+                                                <p style="margin: 0; color: #155724; font-size: 12px;">
+                                                    <i class="fas fa-check-circle me-1"></i>
+                                                    Salary slip has been printed
+                                                </p>
+                                            </div>
+                                        `;
+                    actionsHTML += `
+                                            <button id="printAgainBtn" style="
+                                                background: #4e73df;
+                                                color: white;
+                                                border: none;
+                                                padding: 8px 15px;
+                                                border-radius: 4px;
+                                                cursor: pointer;
+                                                font-size: 14px;
+                                                flex: 1;
+                                            ">
+                                                <i class="fas fa-print me-1"></i> Print Slip Again
+                                            </button>
+                                        `;
+                }
+
+                if (isEmailEnabled) {
+                    emailStatusMessage = `
+                                            <div style="
+                                                background: #e8f4fd;
+                                                padding: 8px;
+                                                border-radius: 4px;
+                                                margin-bottom: 15px;
+                                                border-left: 3px solid #4e73df;
+                                            ">
+                                                <p style="margin: 0; color: #2e59d9; font-size: 12px;">
+                                                    <i class="fas fa-check-circle me-1"></i>
+                                                    Payment report has been emailed to teacher
+                                                </p>
+                                            </div>
+                                        `;
+                    actionsHTML += `
+                                            <button id="emailAgainBtn" style="
+                                                background: #36b9cc;
+                                                color: white;
+                                                border: none;
+                                                padding: 8px 15px;
+                                                border-radius: 4px;
+                                                cursor: pointer;
+                                                font-size: 14px;
+                                                flex: 1;
+                                            ">
+                                                <i class="fas fa-envelope me-1"></i> Resend Email
+                                            </button>
+                                        `;
+                }
+
+                actionsHTML += `
+                                        <button id="closeBtn" style="
+                                            background: #5a5c69;
+                                            color: white;
+                                            border: none;
+                                            padding: 8px 15px;
+                                            border-radius: 4px;
+                                            cursor: pointer;
+                                            font-size: 14px;
+                                            flex: 1;
+                                        ">
+                                            Close
+                                        </button>
+                                    `;
+
+                modal.innerHTML = `
+                                        <div style="
+                                            background: white;
+                                            padding: 20px;
+                                            border-radius: 8px;
+                                            max-width: 400px;
+                                            width: 90%;
+                                        ">
+                                            <div style="text-align: center; margin-bottom: 15px;">
+                                                <div style="
+                                                    width: 50px;
+                                                    height: 50px;
+                                                    background: #1cc88a;
+                                                    border-radius: 50%;
+                                                    display: flex;
+                                                    align-items: center;
+                                                    justify-content: center;
+                                                    margin: 0 auto 10px;
+                                                ">
+                                                    <i class="fas fa-check" style="font-size: 20px; color: white;"></i>
+                                                </div>
+                                                <h5 style="margin: 0 0 5px 0; color: #1cc88a;">Salary Payment Successful</h5>
+                                                <p style="color: #666; font-size: 13px; margin: 0;">${teacherName}</p>
+                                            </div>
+
+                                            <div style="margin-bottom: 15px;">
+                                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                                    <span style="color: #666;">Amount:</span>
+                                                    <strong style="color: #1cc88a;">${formattedAmount}</strong>
+                                                </div>
+                                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                                    <span style="color: #666;">Period:</span>
+                                                    <strong>${monthYear}</strong>
+                                                </div>
+                                                <div style="display: flex; justify-content: space-between;">
+                                                    <span style="color: #666;">Time:</span>
+                                                    <strong>${paymentDate}</strong>
+                                                </div>
+                                            </div>
+
+                                            <!--Status messages-->
+                                            ${printStatusMessage}
+                                            ${emailStatusMessage}
+
+                                            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                                                ${actionsHTML}
+                                            </div>
+                                        </div>
+                                    `;
+
+                document.body.appendChild(modal);
+
+                // Event listeners
+                if (isPrintingEnabled) {
+                    document.getElementById('printAgainBtn').addEventListener('click', function () {
+                        openSalarySlip(teacherId, elements.yearSelect.value, elements.monthSelect.value);
+                        utils.showToast('Printing salary slip again...', 'info');
+                    });
+                }
+
+                if (isEmailEnabled) {
+                    document.getElementById('emailAgainBtn').addEventListener('click', function () {
                         sendPaymentReportToTeacher(teacherId, monthYear);
-                    }
-
-                    // 3. Success message show කරන්න
-                    showPaymentSuccess(data, teacherId, teacherName, amount, monthYear, isPrintingEnabled, isEmailEnabled);
-
-                    // Refresh data after 2 seconds
-                    setTimeout(() => {
-                        fetchTeacherData(currentMonth, currentYear);
-                    }, 2000);
-
-                } else {
-                    throw new Error(data.message || 'Payment failed');
-                }
-            })
-            .catch(error => {
-                hidePaymentProcessing();
-                showPaymentError(error.message, teacherName, amount);
-                payTeacherBtn.disabled = false;
-                payTeacherBtn.innerHTML = '<i class="fas fa-money-check-alt me-1"></i> Pay Teacher';
-            });
-        }
-
-        // Helper function to check if printing is enabled
-        function checkPrintingEnabled() {
-            try {
-                // Check localStorage for teacher receipt settings
-                const teacherReceiptSettings = localStorage.getItem('teacher_receipt_settings');
-                if (teacherReceiptSettings) {
-                    const settings = JSON.parse(teacherReceiptSettings);
-                    return settings.teacher_receipt_enabled === true;
+                        utils.showToast('Payment report email sent again', 'success');
+                    });
                 }
 
-                // Fallback: check using global function if available
-                if (typeof window.getTeacherReceiptStatus === 'function') {
-                    return window.getTeacherReceiptStatus();
-                }
-
-                return false; // Default to disabled if no settings found
-            } catch (error) {
-                console.error('Error checking printing status:', error);
-                return false; // Default to disabled on error
-            }
-        }
-
-        // Helper function to check if email is enabled
-        function checkEmailEnabled() {
-            try {
-                // Check localStorage for email settings
-                const emailSettings = localStorage.getItem('email_settings');
-                if (emailSettings) {
-                    const settings = JSON.parse(emailSettings);
-                    return settings.email_enabled === true;
-                }
-                return false; // Default to disabled if no settings found
-            } catch (error) {
-                console.error('Error checking email status:', error);
-                return false; // Default to disabled on error
-            }
-        }
-
-        // Show payment processing
-        function showPaymentProcessing(teacherName, amount, monthYear) {
-            const overlay = document.createElement('div');
-            overlay.id = 'paymentProcessing';
-            overlay.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.7);
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                z-index: 9999;
-            `;
-
-            // Check current settings
-            const isPrintingEnabled = checkPrintingEnabled();
-            const isEmailEnabled = checkEmailEnabled();
-
-            let featuresMessage = '';
-            if (isPrintingEnabled && isEmailEnabled) {
-                featuresMessage = 'Payment slip will auto-print and report will be emailed';
-            } else if (isPrintingEnabled) {
-                featuresMessage = 'Payment slip will auto-print (email disabled)';
-            } else if (isEmailEnabled) {
-                featuresMessage = 'Report will be emailed (printing disabled)';
-            } else {
-                featuresMessage = 'Payment processing only (printing and email disabled)';
-            }
-
-            overlay.innerHTML = `
-                <div style="
-                    background: white;
-                    padding: 20px;
-                    border-radius: 8px;
-                    max-width: 300px;
-                    width: 90%;
-                    text-align: center;
-                ">
-                    <div style="font-size: 30px; color: #007bff; margin-bottom: 10px;">
-                        <i class="fas fa-spinner fa-spin"></i>
-                    </div>
-
-                    <h5 style="margin-bottom: 15px; color: #333;">Processing Payment</h5>
-
-                    <div style="margin-bottom: 15px;">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                            <span style="color: #666;">Teacher:</span>
-                            <strong>${teacherName}</strong>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                            <span style="color: #666;">Amount:</span>
-                            <strong>${formatCurrency(amount)}</strong>
-                        </div>
-                        <div style="display: flex; justify-content: space-between;">
-                            <span style="color: #666;">Period:</span>
-                            <strong>${monthYear}</strong>
-                        </div>
-                    </div>
-
-                    <div style="
-                        background: #e8f4fd;
-                        padding: 8px;
-                        border-radius: 4px;
-                        margin-top: 15px;
-                        border-left: 3px solid #007bff;
-                    ">
-                        <p style="margin: 0; color: #0056b3; font-size: 12px;">
-                            <i class="fas fa-info-circle me-1"></i>
-                            ${featuresMessage}
-                        </p>
-                    </div>
-
-                    <p style="color: #666; font-size: 13px; margin: 10px 0 0 0;">
-                        Please wait...
-                    </p>
-                </div>
-            `;
-
-            document.body.appendChild(overlay);
-        }
-
-        // Show payment success
-        function showPaymentSuccess(data, teacherId, teacherName, amount, monthYear, isPrintingEnabled, isEmailEnabled) {
-            const modal = document.createElement('div');
-            modal.id = 'paymentSuccess';
-            modal.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.7);
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                z-index: 99999;
-            `;
-
-            const formattedAmount = formatCurrency(amount);
-            const paymentDate = new Date().toLocaleTimeString('en-LK', {
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-
-            // Generate status messages based on settings
-            let printStatusMessage = '';
-            let emailStatusMessage = '';
-            let actionsHTML = '';
-
-            if (isPrintingEnabled) {
-                printStatusMessage = `
-                    <div style="
-                        background: #d4edda;
-                        padding: 8px;
-                        border-radius: 4px;
-                        margin-bottom: 8px;
-                        border-left: 3px solid #28a745;
-                    ">
-                        <p style="margin: 0; color: #155724; font-size: 12px;">
-                            <i class="fas fa-check-circle me-1"></i>
-                            Payment slip has been printed
-                        </p>
-                    </div>
-                `;
-                actionsHTML += `
-                    <button id="printAgainBtn" style="
-                        background: #007bff;
-                        color: white;
-                        border: none;
-                        padding: 8px 15px;
-                        border-radius: 4px;
-                        cursor: pointer;
-                        font-size: 14px;
-                        flex: 1;
-                    ">
-                        <i class="fas fa-print me-1"></i> Print Again
-                    </button>
-                `;
-            } else {
-                printStatusMessage = `
-                    <div style="
-                        background: #f8f9fa;
-                        padding: 8px;
-                        border-radius: 4px;
-                        margin-bottom: 8px;
-                        border-left: 3px solid #6c757d;
-                    ">
-                        <p style="margin: 0; color: #6c757d; font-size: 12px;">
-                            <i class="fas fa-times-circle me-1"></i>
-                            Printing disabled in settings
-                        </p>
-                    </div>
-                `;
-            }
-
-            if (isEmailEnabled) {
-                emailStatusMessage = `
-                    <div style="
-                        background: #e8f4fd;
-                        padding: 8px;
-                        border-radius: 4px;
-                        margin-bottom: 15px;
-                        border-left: 3px solid #007bff;
-                    ">
-                        <p style="margin: 0; color: #0056b3; font-size: 12px;">
-                            <i class="fas fa-check-circle me-1"></i>
-                            Report has been emailed to teacher
-                        </p>
-                    </div>
-                `;
-                actionsHTML += `
-                    <button id="emailAgainBtn" style="
-                        background: #17a2b8;
-                        color: white;
-                        border: none;
-                        padding: 8px 15px;
-                        border-radius: 4px;
-                        cursor: pointer;
-                        font-size: 14px;
-                        flex: 1;
-                    ">
-                        <i class="fas fa-envelope me-1"></i> Resend Email
-                    </button>
-                `;
-            } else {
-                emailStatusMessage = `
-                    <div style="
-                        background: #f8f9fa;
-                        padding: 8px;
-                        border-radius: 4px;
-                        margin-bottom: 15px;
-                        border-left: 3px solid #6c757d;
-                    ">
-                        <p style="margin: 0; color: #6c757d; font-size: 12px;">
-                            <i class="fas fa-times-circle me-1"></i>
-                            Email disabled in settings
-                        </p>
-                    </div>
-                `;
-            }
-
-            // Add close button
-            actionsHTML += `
-                <button id="closeBtn" style="
-                    background: #6c757d;
-                    color: white;
-                    border: none;
-                    padding: 8px 15px;
-                    border-radius: 4px;
-                    cursor: pointer;
-                    font-size: 14px;
-                    flex: 1;
-                ">
-                    Close
-                </button>
-            `;
-
-            modal.innerHTML = `
-                <div style="
-                    background: white;
-                    padding: 20px;
-                    border-radius: 8px;
-                    max-width: 400px;
-                    width: 90%;
-                ">
-                    <div style="text-align: center; margin-bottom: 15px;">
-                        <div style="
-                            width: 50px;
-                            height: 50px;
-                            background: #28a745;
-                            border-radius: 50%;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            margin: 0 auto 10px;
-                        ">
-                            <i class="fas fa-check" style="font-size: 20px; color: white;"></i>
-                        </div>
-                        <h5 style="margin: 0 0 5px 0; color: #28a745;">Payment Successful</h5>
-                        <p style="color: #666; font-size: 13px; margin: 0;">${teacherName}</p>
-                    </div>
-
-                    <div style="margin-bottom: 15px;">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                            <span style="color: #666;">Amount:</span>
-                            <strong style="color: #28a745;">${formattedAmount}</strong>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                            <span style="color: #666;">Period:</span>
-                            <strong>${monthYear}</strong>
-                        </div>
-                        <div style="display: flex; justify-content: space-between;">
-                            <span style="color: #666;">Time:</span>
-                            <strong>${paymentDate}</strong>
-                        </div>
-                    </div>
-
-                    <!-- Status messages -->
-                    ${printStatusMessage}
-                    ${emailStatusMessage}
-
-                    <div style="display: flex; gap: 10px; margin-top: 20px;">
-                        ${actionsHTML}
-                    </div>
-                </div>
-            `;
-
-            document.body.appendChild(modal);
-
-            // Event listeners
-            if (isPrintingEnabled) {
-                document.getElementById('printAgainBtn').addEventListener('click', function () {
-                    openSalarySlip(teacherId, currentYear, currentMonth);
-                });
-            }
-
-            if (isEmailEnabled) {
-                document.getElementById('emailAgainBtn').addEventListener('click', function () {
-                    sendPaymentReportToTeacher(teacherId, monthYear);
-                    showToast('Report email sent again', 'success');
-                });
-            }
-
-            document.getElementById('closeBtn').addEventListener('click', function () {
-                modal.remove();
-                payTeacherBtn.disabled = false;
-                payTeacherBtn.innerHTML = '<i class="fas fa-money-check-alt me-1"></i> Pay Teacher';
-            });
-
-            // Auto close after 15 seconds
-            setTimeout(() => {
-                if (document.getElementById('paymentSuccess')) {
+                document.getElementById('closeBtn').addEventListener('click', function () {
                     modal.remove();
-                    payTeacherBtn.disabled = false;
-                    payTeacherBtn.innerHTML = '<i class="fas fa-money-check-alt me-1"></i> Pay Teacher';
+                    state.isProcessingPayment = false;
+                    ui.setPayButtonLoading(false);
+                });
+
+                // Auto close after timeout
+                setTimeout(() => {
+                    if (document.getElementById('paymentSuccess')) {
+                        modal.remove();
+                        state.isProcessingPayment = false;
+                        ui.setPayButtonLoading(false);
+                    }
+                }, CONFIG.AUTO_CLOSE_TIMEOUT);
+            }
+
+            function showPaymentError(errorMessage, teacherName, amount) {
+                const modal = document.createElement('div');
+                modal.id = 'paymentError';
+                modal.style.cssText = `
+                                        position: fixed;
+                                        top: 0;
+                                        left: 0;
+                                        width: 100%;
+                                        height: 100%;
+                                        background: rgba(0, 0, 0, 0.7);
+                                        display: flex;
+                                        justify-content: center;
+                                        align-items: center;
+                                        z-index: 99999;
+                                    `;
+
+                modal.innerHTML = `
+                                        <div style="
+                                            background: white;
+                                            padding: 20px;
+                                            border-radius: 8px;
+                                            max-width: 350px;
+                                            width: 90%;
+                                        ">
+                                            <div style="text-align: center; margin-bottom: 15px;">
+                                                <div style="font-size: 30px; color: #e74a3b; margin-bottom: 10px;">
+                                                    <i class="fas fa-exclamation-triangle"></i>
+                                                </div>
+                                                <h5 style="margin: 0; color: #e74a3b;">Payment Failed</h5>
+                                            </div>
+
+                                            <div style="margin-bottom: 15px;">
+                                                <p style="color: #721c24; font-size: 14px; margin: 0 0 10px 0;">
+                                                    ${errorMessage}
+                                                </p>
+                                                <div style="display: flex; justify-content: space-between;">
+                                                    <span style="color: #666;">Teacher:</span>
+                                                    <strong>${teacherName}</strong>
+                                                </div>
+                                                <div style="display: flex; justify-content: space-between; margin-top: 5px;">
+                                                    <span style="color: #666;">Amount:</span>
+                                                    <strong>${utils.formatCurrency(amount)}</strong>
+                                                </div>
+                                            </div>
+
+                                            <button id="errorCloseBtn" style="
+                                                background: #e74a3b;
+                                                color: white;
+                                                border: none;
+                                                padding: 8px 20px;
+                                                border-radius: 4px;
+                                                cursor: pointer;
+                                                font-size: 14px;
+                                                width: 100%;
+                                            ">
+                                                Try Again
+                                            </button>
+                                        </div>
+                                    `;
+
+                document.body.appendChild(modal);
+
+                document.getElementById('errorCloseBtn').addEventListener('click', function () {
+                    modal.remove();
+                    state.isProcessingPayment = false;
+                    ui.setPayButtonLoading(false);
+                });
+
+                setTimeout(() => {
+                    if (document.getElementById('paymentError')) {
+                        modal.remove();
+                        state.isProcessingPayment = false;
+                        ui.setPayButtonLoading(false);
+                    }
+                }, 10000);
+            }
+
+            // Salary slip printing function
+            function openSalarySlip(teacherId, year, month) {
+                const formattedMonth = month.toString().padStart(2, '0');
+                const yearMonth = `${year}-${formattedMonth}`;
+
+                // IMPORTANT: Update this URL to match your route
+                const salarySlipUrl = `/teacher-payment/salary-slip/${teacherId}/${yearMonth}`;
+
+                const printWindow = window.open(salarySlipUrl, '_blank', 'width=900,height=700,scrollbars=yes');
+
+                if (printWindow) {
+                    printWindow.focus();
+
+                    printWindow.onload = function () {
+                        // Auto-print after loading
+                        setTimeout(() => {
+                            printWindow.print();
+
+                            // Optional: close window after printing
+                            try {
+                                printWindow.onafterprint = function () {
+                                    setTimeout(() => {
+                                        printWindow.close();
+                                    }, 500);
+                                };
+                            } catch (e) {
+                                console.log('Could not close print window automatically');
+                            }
+                        }, CONFIG.PRINT_WINDOW_DELAY);
+                    };
+                } else {
+                    utils.showToast('Failed to open print window. Please check popup blocker.', 'error');
                 }
-            }, 15000);
-        }
+            }
 
-        // Report email send function
-        // Report email send function - DIRECT PASSING
-            function sendPaymentReportToTeacher(teacherId, displayMonthYear) {
+            // Email sending function
+            function sendPaymentReportToTeacher(teacherId, monthYear) {
+                const formattedMonthYear = utils.formatMonthYearForURL(monthYear);
 
-                
-                // Get the selected values from dropdowns
-                const selectedMonth = monthSelect.value; // e.g., "04"
-                const selectedYear = yearSelect.value; // e.g., "2025"
-                
-                // Create the format backend expects: "2025-04"
-                const yearMonthForBackend = `${selectedYear}-${selectedMonth}`;
-                
-                // Send email API call - use the direct format
-                fetch(`/send-mail/${teacherId}/${yearMonthForBackend}`, {
+                fetch(`/send-mail/${teacherId}/${formattedMonthYear}`, {
                     method: 'GET',
                     headers: {
-                        'X-CSRF-TOKEN': csrfToken,
+                        'X-CSRF-TOKEN': utils.csrfToken,
                         'Accept': 'application/json'
                     }
                 })
-                .then(response => response.json())
-                .then(data => {
-                    console.log('Email API Response:', data);
-                    if (data.success) {
-                        console.log('✅ Report email sent successfully for:', yearMonthForBackend);
-                        showToast(`Report sent for ${displayMonthYear}`, 'success');
-                    } else {
-                        console.warn('❌ Report email failed:', data);
-                        showToast(`Failed to send report: ${data.message || 'Unknown error'}`, 'error');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error sending report email:', error);
-                    showToast('Network error sending report', 'error');
-                });
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            console.log('Report email sent successfully:', data);
+                        } else {
+                            console.warn('Report email may not have been sent:', data);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error sending report email:', error);
+                    });
             }
 
-        // Month format conversion
-        function formatMonthYearForURL(monthYear) {
-            // Remove spaces and convert month name to number
-            const parts = monthYear.split(' ');
-            if (parts.length === 2) {
-                const year = parts[0];
-                const monthName = parts[1];
-                const monthMap = {
-                    'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04',
-                    'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08',
-                    'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'
-                };
-                const monthNumber = monthMap[monthName] || '01';
-                return `${year}-${monthNumber}`;
-            }
-            return monthYear;
-        }
+            // Export functions
+            function setupExportTableExcel() {
+                if (!elements.exportTableExcelBtn) return;
 
-        // Open salary slip
-        function openSalarySlip(teacherId, year, month) {
-            const formattedMonth = month.toString().padStart(2, '0');
-            const yearMonth = `${year}-${formattedMonth}`;
-            const salarySlipUrl = `/teacher-payment/salary-slip/${teacherId}/${yearMonth}?autoPrint=true&timestamp=${Date.now()}`;
-
-            // Open in new window with print dialog
-            const printWindow = window.open(salarySlipUrl, '_blank', 'width=900,height=700,scrollbars=yes');
-
-            if (printWindow) {
-                printWindow.focus();
-
-                // Auto print after content loads
-                printWindow.onload = function () {
-                    setTimeout(() => {
-                        printWindow.print();
-                    }, 1000);
-                };
-            }
-        }
-
-        // Toast message
-        function showToast(message, type = 'info') {
-            const toast = document.createElement('div');
-            const bgColor = type === 'success' ? '#28a745' :
-                type === 'error' ? '#dc3545' :
-                    type === 'warning' ? '#ffc107' : '#17a2b8';
-
-            toast.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: ${bgColor};
-                color: white;
-                padding: 12px 20px;
-                border-radius: 4px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                z-index: 999999;
-                animation: slideIn 0.3s ease-out;
-            `;
-
-            toast.innerHTML = `
-                <div style="display: flex; align-items: center;">
-                    <i class="fas ${type === 'success' ? 'fa-check-circle' :
-                        type === 'error' ? 'fa-exclamation-circle' :
-                            'fa-info-circle'} me-2"></i>
-                    <span>${message}</span>
-                </div>
-            `;
-
-            document.body.appendChild(toast);
-
-            setTimeout(() => {
-                toast.style.animation = 'slideOut 0.3s ease-out';
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
-        }
-
-        function hidePaymentProcessing() {
-            const overlay = document.getElementById('paymentProcessing');
-            if (overlay) {
-                overlay.remove();
-            }
-        }
-
-        function showPaymentError(errorMessage, teacherName, amount) {
-            const modal = document.createElement('div');
-            modal.id = 'paymentError';
-            modal.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.7);
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                z-index: 99999;
-            `;
-
-            modal.innerHTML = `
-                <div style="
-                    background: white;
-                    padding: 20px;
-                    border-radius: 8px;
-                    max-width: 350px;
-                    width: 90%;
-                ">
-                    <div style="text-align: center; margin-bottom: 15px;">
-                        <div style="font-size: 30px; color: #dc3545; margin-bottom: 10px;">
-                            <i class="fas fa-exclamation-triangle"></i>
-                        </div>
-                        <h5 style="margin: 0; color: #dc3545;">Payment Failed</h5>
-                    </div>
-
-                    <div style="margin-bottom: 15px;">
-                        <p style="color: #721c24; font-size: 14px; margin: 0 0 10px 0;">
-                            ${errorMessage}
-                        </p>
-                        <div style="display: flex; justify-content: space-between;">
-                            <span style="color: #666;">Teacher:</span>
-                            <strong>${teacherName}</strong>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; margin-top: 5px;">
-                            <span style="color: #666;">Amount:</span>
-                            <strong>${formatCurrency(amount)}</strong>
-                        </div>
-                    </div>
-
-                    <button id="errorCloseBtn" style="
-                        background: #dc3545;
-                        color: white;
-                        border: none;
-                        padding: 8px 20px;
-                        border-radius: 4px;
-                        cursor: pointer;
-                        font-size: 14px;
-                        width: 100%;
-                    ">
-                        Try Again
-                    </button>
-                </div>
-            `;
-
-            document.body.appendChild(modal);
-
-            document.getElementById('errorCloseBtn').addEventListener('click', function () {
-                modal.remove();
-                payTeacherBtn.disabled = false;
-                payTeacherBtn.innerHTML = '<i class="fas fa-money-check-alt me-1"></i> Pay Teacher';
-            });
-
-            setTimeout(() => {
-                if (document.getElementById('paymentError')) {
-                    modal.remove();
-                    payTeacherBtn.disabled = false;
-                    payTeacherBtn.innerHTML = '<i class="fas fa-money-check-alt me-1"></i> Pay Teacher';
-                }
-            }, 10000);
-        }
-
-        // Export functions with numeric values
-        function setupExportButtons() {
-            // Excel Export
-            if (exportTableExcelBtn) {
-                exportTableExcelBtn.addEventListener('click', function() {
-                    if (!teacherData || allPayments.length === 0) {
-                        alert('No data to export');
+                elements.exportTableExcelBtn.addEventListener('click', utils.debounce(function () {
+                    if (!state.teacherData || state.allPayments.length === 0) {
+                        utils.showToast('No data to export', 'warning');
                         return;
                     }
 
                     try {
-                        const teacherPercentage = convertStringToNumber(teacherData.teacher_percentage) || 0;
-                        const institutionPercentage = convertStringToNumber(teacherData.institution_percentage) || 0;
+                        // Get average percentages for export
+                        let totalTeacherPercentage = 0;
+                        let validClassesCount = 0;
 
-                        const exportData = allPayments.map(payment => {
+                        if (state.teacherData.classes && state.teacherData.classes.length > 0) {
+                            state.teacherData.classes.forEach(cls => {
+                                const percentage = utils.toNumber(cls.teacher_percentage);
+                                if (percentage > 0) {
+                                    totalTeacherPercentage += percentage;
+                                    validClassesCount++;
+                                }
+                            });
+                        }
+
+                        const avgTeacherPercentage = validClassesCount > 0 ? totalTeacherPercentage / validClassesCount : 0;
+                        const avgInstitutionPercentage = 100 - avgTeacherPercentage;
+
+                        const exportData = state.allPayments.map(payment => {
                             const rowData = {
-                                'Date': formatDateTable(payment.date)
+                                'Date': utils.formatDateTable(payment.date)
                             };
-                            
-                            allGrades.forEach(grade => {
+
+                            state.allGrades.forEach(grade => {
                                 rowData[`Grade ${grade}`] = payment.gradePayments[grade] || 0;
                             });
-                            
+
                             rowData['Total Collection'] = payment.totalCollection || 0;
-                            rowData[`Institution Share (${institutionPercentage}%)`] = payment.institutionShare || 0;
-                            rowData[`Teacher Share (${teacherPercentage}%)`] = payment.teacherShare || 0;
-                            
+                            rowData[`Institution Share (${avgInstitutionPercentage.toFixed(1)}%)`] = payment.institutionShare || 0;
+                            rowData[`Teacher Share (${avgTeacherPercentage.toFixed(1)}%)`] = payment.teacherShare || 0;
+
                             return rowData;
                         });
 
-                        const totalsRow = {
-                            'Date': 'TOTALS'
-                        };
-                        
-                        allGrades.forEach(grade => {
-                            totalsRow[`Grade ${grade}`] = allPayments.reduce((sum, p) => sum + (p.gradePayments[grade] || 0), 0);
-                        });
-                        
-                        totalsRow['Total Collection'] = allPayments.reduce((sum, p) => sum + p.totalCollection, 0);
-                        totalsRow[`Institution Share (${institutionPercentage}%)`] = allPayments.reduce((sum, p) => sum + p.institutionShare, 0);
-                        totalsRow[`Teacher Share (${teacherPercentage}%)`] = allPayments.reduce((sum, p) => sum + p.teacherShare, 0);
-                        
-                        exportData.push(totalsRow);
-
                         const ws = XLSX.utils.json_to_sheet(exportData);
                         const wb = XLSX.utils.book_new();
-                        XLSX.utils.book_append_sheet(wb, ws, 'Teacher Payments');
+                        XLSX.utils.book_append_sheet(wb, ws, 'Salary Payments');
 
-                        const filename = `${teacherData.teacher_name}_${getMonthName(currentMonth)}_${currentYear}_Payments.xlsx`;
+                        const filename = `${state.teacherData.teacher_name}_${utils.getMonthName(elements.monthSelect.value)}_${elements.yearSelect.value}_Salary_Report.xlsx`;
                         XLSX.writeFile(wb, filename);
+
+                        utils.showToast('Excel file exported successfully', 'success');
                     } catch (error) {
                         console.error('Error exporting to Excel:', error);
-                        alert('Failed to export Excel file. Please try again.');
+                        utils.showToast('Failed to export Excel file', 'error');
                     }
-                });
+                }, 300));
             }
 
-            // PDF Export
-            if (exportTablePdfBtn) {
-                exportTablePdfBtn.addEventListener('click', function() {
-                    if (!teacherData || allPayments.length === 0) {
-                        alert('No data to export');
+            function setupExportTablePdf() {
+                if (!elements.exportTablePdfBtn) return;
+
+                elements.exportTablePdfBtn.addEventListener('click', utils.debounce(function () {
+                    if (!state.teacherData || state.allPayments.length === 0) {
+                        utils.showToast('No data to export', 'warning');
                         return;
                     }
 
@@ -2023,147 +2312,109 @@
                         const { jsPDF } = window.jspdf;
                         const doc = new jsPDF('landscape');
 
-                        const teacherPercentage = convertStringToNumber(teacherData.teacher_percentage) || 0;
-                        const institutionPercentage = convertStringToNumber(teacherData.institution_percentage) || 0;
-
-                        // Title
                         doc.setFontSize(14);
-                        doc.text(`${teacherData.teacher_name} - Payment Report`, 14, 10);
+                        doc.text(`${state.teacherData.teacher_name} - Salary Payment Report`, 14, 10);
                         doc.setFontSize(10);
-                        doc.text(`Period: ${getMonthName(currentMonth)} ${currentYear}`, 14, 16);
+                        doc.text(`Period: ${utils.getMonthName(elements.monthSelect.value)} ${elements.yearSelect.value}`, 14, 16);
                         doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 22);
 
-                        // Summary
-                        doc.setFontSize(11);
-                        doc.text('Summary', 14, 30);
-                        doc.setFontSize(9);
-                        doc.text(`Total Collections: ${formatCurrency(teacherData.total_payments_this_month || 0)}`, 14, 36);
-                        doc.text(`Teacher's Share (${teacherPercentage}%): ${formatCurrency(teacherData.teacher_share || 0)}`, 14, 41);
-                        doc.text(`Advance Payments: ${formatCurrency(teacherData.advance_payment_this_month || 0)}`, 14, 46);
-                        doc.text(`Net Payable: ${formatCurrency(teacherData.net_payable || 0)}`, 14, 51);
-
-                        // Table headers
                         const headers = ['Date'];
-                        allGrades.forEach(grade => {
+                        state.allGrades.forEach(grade => {
                             headers.push(`Grade ${grade}`);
                         });
-                        headers.push('Total', `Inst (${institutionPercentage}%)`, `Teach (${teacherPercentage}%)`);
 
-                        // Table data
-                        const tableData = allPayments.map(payment => {
-                            const row = [formatDateTable(payment.date)];
-                            
-                            allGrades.forEach(grade => {
-                                row.push(formatCurrency(payment.gradePayments[grade] || 0));
+                        // Get average percentages
+                        let totalTeacherPercentage = 0;
+                        let validClassesCount = 0;
+
+                        if (state.teacherData.classes && state.teacherData.classes.length > 0) {
+                            state.teacherData.classes.forEach(cls => {
+                                const percentage = utils.toNumber(cls.teacher_percentage);
+                                if (percentage > 0) {
+                                    totalTeacherPercentage += percentage;
+                                    validClassesCount++;
+                                }
                             });
-                            
+                        }
+
+                        const avgTeacherPercentage = validClassesCount > 0 ? totalTeacherPercentage / validClassesCount : 0;
+                        const avgInstitutionPercentage = 100 - avgTeacherPercentage;
+
+                        headers.push('Total', `Institution (${avgInstitutionPercentage.toFixed(1)}%)`, `Teacher (${avgTeacherPercentage.toFixed(1)}%)`);
+
+                        const tableData = state.allPayments.map(payment => {
+                            const row = [utils.formatDateTable(payment.date)];
+
+                            state.allGrades.forEach(grade => {
+                                row.push(utils.formatCurrency(payment.gradePayments[grade] || 0));
+                            });
+
                             row.push(
-                                formatCurrency(payment.totalCollection),
-                                formatCurrency(payment.institutionShare),
-                                formatCurrency(payment.teacherShare)
+                                utils.formatCurrency(payment.totalCollection),
+                                utils.formatCurrency(payment.institutionShare),
+                                utils.formatCurrency(payment.teacherShare)
                             );
-                            
+
                             return row;
                         });
 
-                        // Add table
                         doc.autoTable({
                             head: [headers],
                             body: tableData,
-                            startY: 55,
-                            styles: { fontSize: 7 },
-                            headStyles: { fillColor: [41, 128, 185] },
-                            columnStyles: {
-                                0: { fontStyle: 'bold', cellWidth: 25 },
-                                [allGrades.length + 1]: { fontStyle: 'bold', textColor: [13, 110, 253] },
-                                [allGrades.length + 2]: { textColor: [108, 117, 125] },
-                                [allGrades.length + 3]: { fontStyle: 'bold', fillColor: [39, 174, 96], textColor: [255, 255, 255] }
-                            }
+                            startY: 30,
+                            styles: { fontSize: 8 },
+                            headStyles: { fillColor: [78, 115, 223] }
                         });
 
-                        const filename = `${teacherData.teacher_name}_${getMonthName(currentMonth)}_${currentYear}_Payments.pdf`;
+                        const filename = `${state.teacherData.teacher_name}_${utils.getMonthName(elements.monthSelect.value)}_${elements.yearSelect.value}_Salary_Report.pdf`;
                         doc.save(filename);
+
+                        utils.showToast('PDF file exported successfully', 'success');
                     } catch (error) {
                         console.error('Error exporting to PDF:', error);
-                        alert('Failed to export PDF file. Please try again.');
+                        utils.showToast('Failed to export PDF file', 'error');
                     }
-                });
-            }
-        }
-
-        // Initialize
-        function init() {
-            console.log('Initializing Teacher Income History...');
-
-            // Set initial month/year to previous month
-            const prev = getPreviousMonthYear();
-            currentMonth = prev.month;
-            currentYear = prev.year;
-            
-            // Ensure select elements have correct values
-            if (monthSelect && monthSelect.value !== prev.month) {
-                monthSelect.value = prev.month;
-            }
-            if (yearSelect && yearSelect.value !== prev.year) {
-                yearSelect.value = prev.year;
-            }
-            
-            updateSelectedMonthYear(prev.month, prev.year);
-
-            // Setup event listeners
-            setupMonthYearSelectors();
-            setupPayTeacherButton();
-            setupExportButtons();
-
-            // Load initial data
-            fetchTeacherData(prev.month, prev.year);
-
-            console.log('Teacher Income History initialized successfully');
-        }
-
-        // Start when DOM is ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', init);
-        } else {
-            init();
-        }
-
-        // Error handling
-        window.addEventListener('error', function(event) {
-            console.error('Global error:', event.error);
-        });
-
-        window.addEventListener('unhandledrejection', function(event) {
-            console.error('Unhandled promise rejection:', event.reason);
-        });
-
-        // Add CSS animations for toast
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes slideIn {
-                from {
-                    transform: translateX(100%);
-                    opacity: 0;
-                }
-                to {
-                    transform: translateX(0);
-                    opacity: 1;
-                }
+                }, 300));
             }
 
-            @keyframes slideOut {
-                from {
-                    transform: translateX(0);
-                    opacity: 1;
-                }
-                to {
-                    transform: translateX(100%);
-                    opacity: 0;
-                }
-            }
-        `;
-        document.head.appendChild(style);
+            // Initialize application
+            function init() {
+                console.log('Initializing Teacher Salary History...');
 
-    })();
-</script>
+                setupMonthYearSelectors();
+                setupPayTeacherButton();
+                setupExportTableExcel();
+                setupExportTablePdf();
+
+                // Set initial month/year to previous month
+                const prev = utils.getPreviousMonthYear();
+                if (elements.monthSelect) elements.monthSelect.value = prev.month;
+                if (elements.yearSelect) elements.yearSelect.value = prev.year;
+
+                ui.updateSelectedMonthYear(prev.month, prev.year);
+                fetchTeacherData(prev.month, prev.year);
+
+                console.log('Teacher Salary History initialized successfully');
+            }
+
+            // Start application
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+            } else {
+                init();
+            }
+
+            // Global error handling
+            window.addEventListener('error', function (event) {
+                console.error('Global error:', event.error);
+                utils.showToast('An unexpected error occurred', 'error');
+            });
+
+            window.addEventListener('unhandledrejection', function (event) {
+                console.error('Unhandled promise rejection:', event.reason);
+                utils.showToast('A network error occurred', 'error');
+            });
+
+        })();
+    </script>
 @endpush

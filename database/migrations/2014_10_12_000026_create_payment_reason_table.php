@@ -1,5 +1,4 @@
 <?php
-// database/migrations/xxxx_xx_xx_000022_create_payment_reason_table.php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -18,8 +17,6 @@ class CreatePaymentReasonTable extends Migration
             $table->timestamps();
         });
 
-        
-        // පෙරනිමි දත්ත ඇතුළත් කිරීම
         DB::table('payment_reason')->insert([
             [
                 'reason_code' => 'salary',

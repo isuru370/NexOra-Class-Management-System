@@ -25,7 +25,6 @@ class CreateTeachersTable extends Migration
             $table->boolean('is_active');
             $table->longText('graduation_details')->nullable();
             $table->longText('experience')->nullable();
-            $table->double('precentage');
             $table->string('account_number')->nullable();
             $table->bigInteger('bank_branch_id')->nullable();
             $table->timestamps();

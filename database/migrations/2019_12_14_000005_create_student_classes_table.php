@@ -4,6 +4,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use App\Enums\ClassType;
 
 class CreateStudentClassesTable extends Migration
 {
@@ -12,6 +13,9 @@ class CreateStudentClassesTable extends Migration
         Schema::create('student_classes', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->string('class_name');
+            $table->string('class_type')
+                ->default(ClassType::OFFLINE);
+            $table->decimal('teacher_percentage', 5, 2);
             $table->boolean('is_active');
             $table->boolean('is_ongoing');
             $table->foreignId('teacher_id')

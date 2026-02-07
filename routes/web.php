@@ -29,7 +29,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     if (auth()->check()) {
         return view('welcome');
-       // return redirect('/dashboard');
+        // return redirect('/dashboard');
     }
     return view('welcome');
 })->name('welcome');
@@ -269,5 +269,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::prefix('teacher-ledger-summary')->name('teacher_ledger_summary.')->group(function () {
         Route::get('/', [TeacherLedgerSummaryController::class, 'index'])->name('index');
+        Route::get('/export-excel', [TeacherLedgerSummaryController::class, 'exportExcel'])->name('export.excel');
+        Route::get('/export-pdf', [TeacherLedgerSummaryController::class, 'exportPDF'])->name('export.pdf');
     });
 });

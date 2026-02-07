@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Salary Slip - {{ $teacherName ?? 'Teacher' }}</title>
+    <title>Salary Slip - {{ $data['teacher_name'] ?? 'Teacher' }}</title>
 
     <style>
         body {
@@ -89,10 +89,6 @@
             font-size: 14px;
         }
 
-        .deduction-bold {
-            font-weight: bold;
-        }
-
         .error-message {
             color: red;
             text-align: center;
@@ -102,16 +98,29 @@
 
         .teacher-info-table {
             margin-top: 15px;
+            border: none;
         }
 
         .teacher-info-table th {
             text-align: left;
             background-color: #f2f2f2;
             padding: 8px 10px;
+            border: 1px solid #ddd;
         }
 
         .teacher-info-table td {
             padding: 8px 10px;
+            border: 1px solid #ddd;
+        }
+
+        .status-paid {
+            color: green;
+            font-weight: bold;
+        }
+
+        .status-unpaid {
+            color: #666;
+            font-style: italic;
         }
     </style>
 
@@ -119,158 +128,153 @@
 
 <body>
 
-    @if(isset($error))
-        <div class="error-message">
-            <h3>Error Loading Salary Slip</h3>
-            <p>{{ $error }}</p>
-            <p>Teacher ID: {{ $teacherId }}, Month: {{ $yearMonth ?? 'N/A' }}</p>
-        </div>
-    @elseif(isset($success) && $success)
+@php
+    // Extract data safely
+    $data = $data ?? [];
+    $isSuccess = ($data['status'] ?? '') === 'success';
 
-        <!-- HEADER - Logo on left, title center, date right -->
-        <div class="top-section">
-            <!-- Logo on left -->
-            <div class="logo-section">
-                <img src="{{ asset('uploads/logo/logo.png') }}" class="logo" alt="Logo">
-            </div>
+    $teacherId = $data['teacher_id'] ?? '';
+    $teacherName = $data['teacher_name'] ?? '';
+    $monthYear = $data['month_year'] ?? '';
+    $monthYearDisplay = $data['month_year_display'] ?? '';
+    $dateGenerated = $data['date_generated'] ?? '';
+    $isSalaryPaid = $data['is_salary_paid'] ?? false;
+    $earnings = $data['earnings'] ?? [];
+    $totalAddition = $data['total_addition'] ?? 0;
+    $deductions = $data['deductions'] ?? [];
+    $totalDeductions = $data['total_deductions'] ?? 0;
+    $netSalary = $data['net_salary'] ?? 0;
+    $paymentMethod = $data['payment_method'] ?? 'Cash / Bank Deposit';
+@endphp
 
-            <!-- Title in center -->
-            <div class="header">
-                <h2>Savidya Education</h2>
-                <h3>Mirigama</h3>
-                <h3>Salary Slip</h3>
-            </div>
+@if(!$isSuccess)
+    <div class="error-message">
+        <h3>Error Loading Salary Slip</h3>
+        <p>{{ $data['message'] ?? 'Unknown error occurred' }}</p>
+        <p>Teacher ID: {{ $teacherId ?? 'N/A' }}, Month: {{ $monthYear ?? 'N/A' }}</p>
+    </div>
+@elseif(empty($earnings) && empty($deductions))
+    <div class="error-message">
+        <h3>No Data Available</h3>
+        <p>No classes or payments found for this period.</p>
+    </div>
+@else
 
-            <!-- Date on right -->
-            <div class="date">
-                <strong>Date:</strong> {{ $dateGenerated ?? now()->format('Y-m-d H:i:s') }}
-            </div>
-        </div>
-
-        <!-- TEACHER INFO TABLE - LEFT ALIGNED -->
-        <table class="teacher-info-table">
-            <tr>
-                <th>Teacher ID</th>
-                <td>{{ $teacherId ?? 'N/A' }}</td>
-                <th>Teacher Name</th>
-                <td>{{ $teacherName ?? 'N/A' }}</td>
-            </tr>
-
-            <!-- Month/Year on right side -->
-            <tr>
-                <th>Month/Year</th>
-                <td colspan="3">{{ $monthYear ?? 'N/A' }}</td>
-            </tr>
-        </table>
-
-        <!-- EARNINGS & DEDUCTIONS TABLE -->
-        <table>
-            <tr class="bold">
-                <th>Earnings</th>
-                <th class="right-align">Amount (Rs.)</th>
-                <th>Deductions</th>
-                <th class="right-align">Amount (Rs.)</th>
-            </tr>
-
-            <!-- Earnings Rows -->
-            @foreach($earnings as $index => $earning)
-                <tr>
-                    <!-- Earnings Column -->
-                    <td>{{ $earning['description'] }}</td>
-                    <td class="right-align">{{ number_format($earning['amount'], 2) }}</td>
-
-                    <!-- Deductions Column -->
-                    @if(isset($deductions[$index]))
-                        @if($deductions[$index]['description'] == 'Teacher Advance Payment' || $deductions[$index]['description'] == 'Corporated Fees')
-                            <td class="deduction-bold">{{ $deductions[$index]['description'] }}</td>
-                        @else
-                            <td>{{ $deductions[$index]['description'] }}</td>
-                        @endif
-                        <td class="right-align">{{ number_format($deductions[$index]['amount'], 2) }}</td>
-                    @else
-                        <td></td>
-                        <td></td>
-                    @endif
-                </tr>
-            @endforeach
-
-            <!-- If there are more deductions than earnings -->
-            @if(count($deductions) > count($earnings))
-                @for($i = count($earnings); $i < count($deductions); $i++)
-                    <tr>
-                        <td></td>
-                        <td></td>
-                        @if($deductions[$i]['description'] == 'Teacher Advance Payment' || $deductions[$i]['description'] == 'Corporated Fees')
-                            <td class="deduction-bold">{{ $deductions[$i]['description'] }}</td>
-                        @else
-                            <td>{{ $deductions[$i]['description'] }}</td>
-                        @endif
-                        <td class="right-align">{{ number_format($deductions[$i]['amount'], 2) }}</td>
-                    </tr>
-                @endfor
-            @endif
-
-            <!-- EMPTY ROW -->
-            <tr>
-                <td colspan="4" style="height: 20px;"></td>
-            </tr>
-
-            <!-- Total rows -->
-            <tr class="bold">
-                <td>Total Addition</td>
-                <td class="right-align">{{ number_format($totalAddition ?? 0, 2) }}</td>
-                <td>Total Deductions</td>
-                <td class="right-align">{{ number_format($totalDeductions ?? 0, 2) }}</td>
-            </tr>
-
-            <!-- EMPTY ROW -->
-            <tr>
-                <td colspan="4" style="height: 20px;"></td>
-            </tr>
-
-            <!-- Net Salary -->
-            <tr class="bold">
-                <td colspan="3">Net Salary</td>
-                <td class="right-align">{{ number_format($netSalary ?? 0, 2) }}</td>
-            </tr>
-        </table>
-
-
-        <!-- PAYMENT METHOD -->
-        <table class="teacher-info-table" style="margin-top: 20px;">
-            <tr>
-                <th>Salary Paid By</th>
-                <td>{{ $paymentMethod ?? 'Cash / Bank Deposit' }}</td>
-            </tr>
-        </table>
-
-        <!-- SIGNATURES -->
-        <div class="signature-area">
-            <div><strong>Teacher's Signature:</strong> _____________</div>
-            <div><strong>SA Owner:</strong> _____________</div>
+    <!-- HEADER -->
+    <div class="top-section">
+        <div class="logo-section">
+            <img src="{{ asset('uploads/logo/black_logo.png') }}" class="logo" alt="Logo">
         </div>
 
-    @else
-        <div class="error-message">
-            <h3>No Data Available</h3>
-            <p>Unable to load salary slip data.</p>
+        <div class="header">
+            <h2>NexOra Education</h2>
+            <h3>Mirigama</h3>
+            <h3>Salary Slip</h3>
         </div>
-    @endif
 
-    <script>
-        // Auto-print functionality
-        window.addEventListener('load', function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const autoPrint = urlParams.get('autoPrint');
-            
-            if (autoPrint === 'true') {
-                setTimeout(function() {
-                    window.print();
-                }, 1000);
-            }
-        });
-    </script>
+        <div class="date">
+            <strong>Date:</strong> {{ $dateGenerated }}
+        </div>
+    </div>
+
+    <!-- TEACHER INFO -->
+    <table class="teacher-info-table">
+        <tr>
+            <th>Teacher ID</th>
+            <td>{{ $teacherId }}</td>
+            <th>Teacher Name</th>
+            <td>{{ $teacherName }}</td>
+        </tr>
+        <tr>
+            <th>Month/Year</th>
+            <td>{{ $monthYearDisplay }}</td>
+            <th>Payment Status</th>
+            <td class="{{ $isSalaryPaid ? 'status-paid' : 'status-unpaid' }}">
+                {{ $isSalaryPaid ? 'Paid' : 'Unpaid' }}
+            </td>
+        </tr>
+    </table>
+
+    <!-- EARNINGS & DEDUCTIONS -->
+    <table>
+        <tr class="bold">
+            <th>Earnings</th>
+            <th class="right-align">Amount (Rs.)</th>
+            <th>Deductions</th>
+            <th class="right-align">Amount (Rs.)</th>
+        </tr>
+
+        @php
+            $maxRows = max(count($earnings), count($deductions));
+        @endphp
+
+        @for($i = 0; $i < $maxRows; $i++)
+            <tr>
+                <!-- Earnings -->
+                @if(isset($earnings[$i]))
+                    <td>
+                        {{ $earnings[$i]['description'] }}<br>
+                        <small style="color: #666;">
+                            {{ isset($earnings[$i]['class_total']) ? 'Total: Rs. ' . number_format($earnings[$i]['class_total'], 2) . ' | ' : '' }}
+                            Teacher: {{ $earnings[$i]['teacher_percentage'] }}% = Rs.
+                            {{ number_format($earnings[$i]['teacher_share'], 2) }}
+                        </small>
+                    </td>
+                    <td class="right-align">{{ number_format($earnings[$i]['teacher_share'], 2) }}</td>
+                @else
+                    <td></td><td></td>
+                @endif
+
+                <!-- Deductions -->
+                @if(isset($deductions[$i]))
+                    <td>{{ $deductions[$i]['description'] }}</td>
+                    <td class="right-align">{{ number_format($deductions[$i]['amount'], 2) }}</td>
+                @else
+                    <td></td><td></td>
+                @endif
+            </tr>
+        @endfor
+
+        <!-- Total Addition / Deductions -->
+        <tr class="bold">
+            <td>Total Addition</td>
+            <td class="right-align">{{ number_format($totalAddition, 2) }}</td>
+            <td>Total Deductions</td>
+            <td class="right-align">{{ number_format($totalDeductions, 2) }}</td>
+        </tr>
+
+        <tr class="bold">
+            <td colspan="3">Net Salary</td>
+            <td class="right-align">{{ number_format($netSalary, 2) }}</td>
+        </tr>
+    </table>
+
+    <!-- PAYMENT METHOD -->
+    <table class="teacher-info-table" style="margin-top: 20px;">
+        <tr>
+            <th>Payment Method</th>
+            <td>{{ $paymentMethod }}</td>
+            <th>Salary Period</th>
+            <td>{{ $monthYearDisplay }}</td>
+        </tr>
+    </table>
+
+    <!-- SIGNATURES -->
+    <div class="signature-area">
+        <div><strong>Teacher's Signature:</strong> _____________</div>
+        <div><strong>SA Owner:</strong> _____________</div>
+    </div>
+
+@endif
+
+<script>
+    window.addEventListener('load', function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('autoPrint') === 'true') {
+            setTimeout(() => window.print(), 1000);
+        }
+    });
+</script>
 
 </body>
-
 </html>

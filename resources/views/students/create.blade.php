@@ -235,6 +235,19 @@
                                             <option value="">Select Grade</option>
                                             <!-- Grades will be populated via JavaScript -->
                                         </select>
+                                        
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label for="class_type" class="form-label">
+                                            Class Type <span class="text-danger">*</span>
+                                        </label>
+                                        <select class="form-select" id="class_type" name="class_type" required>
+                                            <option value="">Select Class Type</option>
+                                            <option value="offline">Offline</option>
+                                            <option value="online">Online</option>
+                                        </select>
+                                        <div class="invalid-feedback" id="class_type_error"></div>
                                     </div>
 
                                     <div class="col-md-6 mb-3">
@@ -602,7 +615,7 @@
             }
 
             // Validate required fields
-            const requiredFields = ['fname', 'lname', 'mobile', 'bday', 'gender', 'address1', 'guardian_fname', 'guardian_mobile', 'grade_id'];
+            const requiredFields = ['fname', 'lname', 'mobile', 'bday', 'gender', 'address1', 'guardian_fname', 'guardian_mobile', 'grade_id','class_type'];
             const missingFields = [];
 
             requiredFields.forEach(field => {
@@ -748,15 +761,15 @@
                     type === 'info' ? 'fa-info-circle' : 'fa-times-circle';
 
             alertDiv.innerHTML = `
-                    <div class="d-flex align-items-start">
-                        <i class="fas ${icon} fa-lg me-3 mt-1"></i>
-                        <div class="flex-grow-1">
-                            <strong>${type === 'success' ? 'Success!' : type === 'warning' ? 'Warning!' : type === 'info' ? 'Info:' : 'Error!'}</strong> 
-                            <span>${message}</span>
+                        <div class="d-flex align-items-start">
+                            <i class="fas ${icon} fa-lg me-3 mt-1"></i>
+                            <div class="flex-grow-1">
+                                <strong>${type === 'success' ? 'Success!' : type === 'warning' ? 'Warning!' : type === 'info' ? 'Info:' : 'Error!'}</strong> 
+                                <span>${message}</span>
+                            </div>
+                            <button type="button" class="btn-close ms-2" data-bs-dismiss="alert"></button>
                         </div>
-                        <button type="button" class="btn-close ms-2" data-bs-dismiss="alert"></button>
-                    </div>
-                `;
+                    `;
 
             document.body.appendChild(alertDiv);
             currentAlert = alertDiv;
@@ -787,18 +800,18 @@
                 }
 
                 return `
-                        <div class="quick-image-item card mb-2 p-2" onclick="selectQuickImage(${img.id}, '${imageUrl}', '${img.custom_id || 'No ID'}')">
-                            <div class="row g-2 align-items-center">
-                                <div class="col-3">
-                                    <img src="${imageUrl}" class="img-fluid rounded" style="height: 60px; object-fit: cover; width: 100%;">
-                                </div>
-                                <div class="col-9">
-                                    <small class="fw-bold">ID: ${img.custom_id || 'No ID'}</small><br>
-                                    <small class="text-muted">Grade: ${img.grade?.grade_name || 'N/A'}</small>
+                            <div class="quick-image-item card mb-2 p-2" onclick="selectQuickImage(${img.id}, '${imageUrl}', '${img.custom_id || 'No ID'}')">
+                                <div class="row g-2 align-items-center">
+                                    <div class="col-3">
+                                        <img src="${imageUrl}" class="img-fluid rounded" style="height: 60px; object-fit: cover; width: 100%;">
+                                    </div>
+                                    <div class="col-9">
+                                        <small class="fw-bold">ID: ${img.custom_id || 'No ID'}</small><br>
+                                        <small class="text-muted">Grade: ${img.grade?.grade_name || 'N/A'}</small>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    `;
+                        `;
             }).join('');
         }
     </script>

@@ -30,6 +30,16 @@
                                     <input type="text" class="form-control" id="class_name" name="class_name" required>
                                     <div class="invalid-feedback" id="class_name_error"></div>
                                 </div>
+                                <!-- Teacher Percentage -->
+                                <div class="mb-3">
+                                    <label for="teacher_percentage" class="form-label">
+                                        Teacher Percentage (%) <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="number" class="form-control" id="teacher_percentage"
+                                        name="teacher_percentage" min="0" max="100" step="0.01"
+                                        placeholder="Enter percentage (eg: 30)" required>
+                                    <div class="invalid-feedback" id="teacher_percentage_error"></div>
+                                </div>
 
                                 <!-- Teacher Dropdown -->
                                 <div class="mb-3">
@@ -44,6 +54,18 @@
 
                             <!-- Right Column -->
                             <div class="col-md-6">
+                                <!-- Class Type -->
+                                <div class="mb-3">
+                                    <label for="class_type" class="form-label">
+                                        Class Type <span class="text-danger">*</span>
+                                    </label>
+                                    <select class="form-select" id="class_type" name="class_type" required>
+                                        <option value="">Select Class Type</option>
+                                        <option value="offline">Offline</option>
+                                        <option value="online">Online</option>
+                                    </select>
+                                    <div class="invalid-feedback" id="class_type_error"></div>
+                                </div>
                                 <!-- Grade Dropdown with Add Button -->
                                 <div class="mb-3">
                                     <label for="grade_id" class="form-label">Grade <span
@@ -469,6 +491,21 @@
                 submitForm();
             });
 
+
+            const classTypeSelect = document.getElementById('class_type');
+            const percentageInput = document.getElementById('teacher_percentage');
+
+            classTypeSelect.addEventListener('change', function () {
+                if (this.value === 'online') {
+                    percentageInput.value = 80; // default online
+                } else if (this.value === 'offline') {
+                    percentageInput.value = 75; // default offline
+                } else {
+                    percentageInput.value = '';
+                }
+            });
+
+
             // Grade modal events
             const saveGradeBtn = document.getElementById('saveGradeBtn');
             saveGradeBtn.addEventListener('click', saveGrade);
@@ -642,20 +679,20 @@
 
             grades.forEach((grade, index) => {
                 const row = `
-                            <tr>
-                                <td class="fw-bold text-muted">${index + 1}</td>
-                                <td>Grade ${grade.grade_name}</td>
-                                <td>${new Date(grade.created_at).toLocaleDateString()}</td>
-                                <td class="text-center">
-                                    <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-warning" title="Edit" 
-                                                onclick="showEditGradeModal(${grade.id}, '${escapeHtml(grade.grade_name)}')">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        `;
+                                                        <tr>
+                                                            <td class="fw-bold text-muted">${index + 1}</td>
+                                                            <td>Grade ${grade.grade_name}</td>
+                                                            <td>${new Date(grade.created_at).toLocaleDateString()}</td>
+                                                            <td class="text-center">
+                                                                <div class="btn-group btn-group-sm">
+                                                                    <button class="btn btn-outline-warning" title="Edit" 
+                                                                            onclick="showEditGradeModal(${grade.id}, '${escapeHtml(grade.grade_name)}')">
+                                                                        <i class="fas fa-edit"></i>
+                                                                    </button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    `;
                 tbody.innerHTML += row;
             });
         }
@@ -735,20 +772,20 @@
 
             subjects.forEach((subject, index) => {
                 const row = `
-                            <tr>
-                                <td class="fw-bold text-muted">${index + 1}</td>
-                                <td>${subject.subject_name}</td>
-                                <td>${new Date(subject.created_at).toLocaleDateString()}</td>
-                                <td class="text-center">
-                                    <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-warning" title="Edit" 
-                                                onclick="showEditSubjectModal(${subject.id}, '${escapeHtml(subject.subject_name)}')">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        `;
+                                                        <tr>
+                                                            <td class="fw-bold text-muted">${index + 1}</td>
+                                                            <td>${subject.subject_name}</td>
+                                                            <td>${new Date(subject.created_at).toLocaleDateString()}</td>
+                                                            <td class="text-center">
+                                                                <div class="btn-group btn-group-sm">
+                                                                    <button class="btn btn-outline-warning" title="Edit" 
+                                                                            onclick="showEditSubjectModal(${subject.id}, '${escapeHtml(subject.subject_name)}')">
+                                                                        <i class="fas fa-edit"></i>
+                                                                    </button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    `;
                 tbody.innerHTML += row;
             });
         }
@@ -1041,12 +1078,14 @@
             // Get form data
             const formData = new FormData(document.getElementById('createClassRoomForm'));
 
-            // Add is_active and is_ongoing values automatically
+            // Add all form values including teacher_percentage
             const data = {
                 class_name: formData.get('class_name'),
+                class_type: formData.get('class_type'),
                 teacher_id: formData.get('teacher_id'),
                 subject_id: formData.get('subject_id'),
                 grade_id: formData.get('grade_id'),
+                teacher_percentage: formData.get('teacher_percentage'), // Add this line
                 is_active: 1,  // Automatically set to 1
                 is_ongoing: 0  // Automatically set to 0
             };
@@ -1104,13 +1143,18 @@
 
             // Display new errors
             for (const field in errors) {
-                const errorElement = document.getElementById(field + '_error');
-                const inputElement = document.getElementById(field);
+                // Handle nested field names
+                const fieldName = field.replace(/\[/g, '_').replace(/\]/g, '');
+                const errorElement = document.getElementById(fieldName + '_error');
+                const inputElement = document.getElementById(fieldName);
 
                 if (errorElement && inputElement) {
                     errorElement.textContent = errors[field][0];
                     errorElement.style.display = 'block';
                     inputElement.classList.add('is-invalid');
+                } else {
+                    // Fallback for field names that might not match exactly
+                    console.warn(`Error element not found for field: ${field}`);
                 }
             }
         }
@@ -1142,9 +1186,9 @@
             const alertDiv = document.createElement('div');
             alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
             alertDiv.innerHTML = `
-                        ${message}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    `;
+                                                    ${message}
+                                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                                `;
 
             const container = document.querySelector('.container') || document.querySelector('.card-body');
             if (container) {

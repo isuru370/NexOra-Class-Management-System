@@ -162,10 +162,6 @@
                                             <div class="col-sm-4 fw-bold text-muted">Experience:</div>
                                             <div class="col-sm-8" id="displayExperience">-</div>
                                         </div>
-                                        <div class="row">
-                                            <div class="col-sm-4 fw-bold text-muted">Percentage:</div>
-                                            <div class="col-sm-8" id="displayPercentage">-</div>
-                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -351,18 +347,6 @@
                 }
             }
             document.getElementById('displayExperience').textContent = experienceText;
-
-            // Fix for percentage field
-            let percentageText = '-';
-            if (teacher.precentage !== null && teacher.precentage !== undefined) {
-                const percentage = parseFloat(teacher.precentage);
-                if (!isNaN(percentage)) {
-                    percentageText = `${percentage}%`;
-                } else {
-                    percentageText = teacher.precentage;
-                }
-            }
-            document.getElementById('displayPercentage').textContent = percentageText;
 
             // Bank Information
             let bankText = '-';

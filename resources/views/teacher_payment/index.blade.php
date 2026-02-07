@@ -12,38 +12,47 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <div class="container-fluid">
-        <!-- Static Section at the Top -->
+        <!-- Summary Section -->
         <div class="row mb-4">
             <div class="col-md-12">
                 <div class="card">
-                    <div class="card-header bg-info text-white">
-                        <h5 class="card-title mb-0">
-                            <i class="fas fa-info-circle"></i> Summary for {{ date('F Y') }}
-                        </h5>
+                    <div class="card-header bg-info text-white py-2">
+                        <h6 class="card-title mb-0">
+                            <i class="fas fa-chart-bar"></i> Summary for <span
+                                id="currentMonthYear">{{ date('F Y') }}</span>
+                        </h6>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body py-2">
                         <div class="row">
-                            <div class="col-md-4">
-                                <div class="card bg-primary text-white">
-                                    <div class="card-body">
-                                        <h6 class="card-title">Total Payments This Month</h6>
-                                        <h3 class="mb-0" id="summaryTotalPayments">LKR 0.00</h3>
+                            <div class="col-md-3">
+                                <div class="card bg-primary text-white mb-2">
+                                    <div class="card-body py-2">
+                                        <small class="card-title">Total Payments</small>
+                                        <h5 class="mb-0" id="summaryTotalPayments">LKR 0.00</h5>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-4">
-                                <div class="card bg-success text-white">
-                                    <div class="card-body">
-                                        <h6 class="card-title">Total Teacher Earnings</h6>
-                                        <h3 class="mb-0" id="summaryTotalEarnings">LKR 0.00</h3>
+                            <div class="col-md-3">
+                                <div class="card bg-success text-white mb-2">
+                                    <div class="card-body py-2">
+                                        <small class="card-title">Gross Earnings</small>
+                                        <h5 class="mb-0" id="summaryGrossEarnings">LKR 0.00</h5>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-4">
-                                <div class="card bg-warning text-white">
-                                    <div class="card-body">
-                                        <h6 class="card-title">Total Teachers</h6>
-                                        <h3 class="mb-0" id="summaryTotalTeachers">0</h3>
+                            <div class="col-md-3">
+                                <div class="card bg-warning text-white mb-2">
+                                    <div class="card-body py-2">
+                                        <small class="card-title">Net Payable</small>
+                                        <h5 class="mb-0" id="summaryNetPayable">LKR 0.00</h5>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-secondary text-white mb-2">
+                                    <div class="card-body py-2">
+                                        <small class="card-title">Institution Income</small>
+                                        <h5 class="mb-0" id="summaryInstitutionIncome">LKR 0.00</h5>
                                     </div>
                                 </div>
                             </div>
@@ -52,41 +61,42 @@
                 </div>
             </div>
         </div>
-        <!-- End Static Section -->
 
+        <!-- Main Table -->
         <div class="row">
             <div class="col-12">
                 <div class="card">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="card-title mb-0">Teacher Monthly Income - {{ date('F Y') }}</h5>
-                        <div class="card-tools">
-                            <button id="refreshBtn" class="btn btn-light btn-sm">
-                                <i class="fas fa-sync-alt"></i> Refresh
-                            </button>
+                    <div class="card-header bg-primary text-white py-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title mb-0">Teacher Monthly Income - {{ date('F Y') }}</h6>
+                                <small id="recordCount" class="text-white">0 records found</small>
+                            </div>
+                            <div class="btn-group">
+                                <button class="btn btn-success btn-sm" id="exportExcelBtn">
+                                    <i class="fas fa-file-excel"></i> Excel
+                                </button>
+                                <button class="btn btn-danger btn-sm" id="exportPdfBtn">
+                                    <i class="fas fa-file-pdf"></i> PDF
+                                </button>
+                                <button id="refreshBtn" class="btn btn-light btn-sm">
+                                    <i class="fas fa-sync-alt"></i> Refresh
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <div class="card-body">
-                        <!-- Filters -->
+                        <!-- Search Filter -->
                         <div class="row mb-3">
-                            <div class="col-md-6">
-                                <div class="input-group">
+                            <div class="col-md-12">
+                                <div class="input-group input-group-sm">
                                     <span class="input-group-text bg-primary text-white">
                                         <i class="fas fa-search"></i>
                                     </span>
-                                    <input type="text" id="searchInput" class="form-control"
+                                    <input type="text" id="teacherSearch" class="form-control form-control-sm"
                                         placeholder="Search by teacher name or ID...">
                                     <button class="btn btn-outline-secondary" type="button" id="clearSearch">
                                         Clear
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="col-md-6 text-end">
-                                <div class="btn-group">
-                                    <button class="btn btn-success" id="exportExcelBtn">
-                                        <i class="fas fa-file-excel"></i> Export Excel
-                                    </button>
-                                    <button class="btn btn-danger" id="exportPdfBtn">
-                                        <i class="fas fa-file-pdf"></i> Export PDF
                                     </button>
                                 </div>
                             </div>
@@ -94,33 +104,41 @@
 
                         <!-- Loading Spinner -->
                         <div id="loadingSpinner" class="text-center d-none">
-                            <div class="spinner-border text-primary" role="status">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status">
                                 <span class="visually-hidden">Loading...</span>
                             </div>
-                            <p class="mt-2">Loading teacher data...</p>
+                            <small class="mt-2 d-block">Loading teacher data...</small>
                         </div>
 
                         <!-- Table -->
                         <div class="table-responsive">
-                            <table class="table table-hover table-striped" id="teacherTable">
+                            <table class="table table-sm table-hover table-striped" id="teacherTable">
                                 <thead class="table-dark">
                                     <tr>
-                                        <th data-sort="teacher_id">
-                                            ID <i class="fas fa-sort"></i>
+                                        <th class="py-1" data-sort="teacher_id">
+                                            <small>ID <i class="fas fa-sort"></i></small>
                                         </th>
-                                        <th data-sort="teacher_name">
-                                            Teacher Name <i class="fas fa-sort"></i>
+                                        <th class="py-1" data-sort="teacher_name">
+                                            <small>Teacher Name <i class="fas fa-sort"></i></small>
                                         </th>
-                                        <th data-sort="percentage">
-                                            Percentage <i class="fas fa-sort"></i>
+                                        <th class="py-1 text-end" data-sort="total_payments_this_month">
+                                            <small>Total Payments <i class="fas fa-sort"></i></small>
                                         </th>
-                                        <th data-sort="total_payments_this_month">
-                                            Total Payments <i class="fas fa-sort"></i>
+                                        <th class="py-1 text-end" data-sort="gross_teacher_earning">
+                                            <small>Gross Earnings <i class="fas fa-sort"></i></small>
                                         </th>
-                                        <th data-sort="teacher_earning">
-                                            Payment Due <i class="fas fa-sort"></i>
+                                        <th class="py-1 text-end" data-sort="advance_deducted_this_month">
+                                            <small>Advance Deducted <i class="fas fa-sort"></i></small>
                                         </th>
-                                        <th>Actions</th>
+                                        <th class="py-1 text-end" data-sort="net_teacher_payable">
+                                            <small>Net Payable <i class="fas fa-sort"></i></small>
+                                        </th>
+                                        <th class="py-1 text-end">
+                                            <small>Institution Income</small>
+                                        </th>
+                                        <th class="py-1 text-center">
+                                            <small>Actions</small>
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody id="teacherTableBody">
@@ -131,12 +149,65 @@
 
                         <!-- Empty State -->
                         <div id="emptyState" class="text-center d-none">
-                            <div class="alert alert-info">
-                                <h4><i class="fas fa-info-circle"></i> No Data Available</h4>
-                                <p>No teacher payment data found for the current month.</p>
+                            <div class="alert alert-info py-2">
+                                <small><i class="fas fa-info-circle"></i> No teacher payment data found for this
+                                    month.</small>
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Class Wise Breakdown Modal -->
+    <div class="modal fade" id="breakdownModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white py-2">
+                    <h6 class="modal-title mb-0">Class Wise Breakdown</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <small class="text-muted" id="breakdownTeacherInfo"></small>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="py-1"><small>Class ID</small></th>
+                                    <th class="py-1"><small>Class Name</small></th>
+                                    <th class="py-1 text-end"><small>Teacher %</small></th>
+                                    <th class="py-1 text-end"><small>Total Amount</small></th>
+                                    <th class="py-1 text-end"><small>Teacher Cut</small></th>
+                                    <th class="py-1 text-end"><small>Institution Cut</small></th>
+                                </tr>
+                            </thead>
+                            <tbody id="breakdownTableBody">
+                                <!-- Breakdown data will be populated here -->
+                            </tbody>
+                            <tfoot id="breakdownTableFooter" class="d-none">
+                                <tr class="table-secondary">
+                                    <td colspan="3" class="py-1"><small><strong>Totals:</strong></small></td>
+                                    <td class="py-1 text-end"><small id="breakdownTotalAmount">LKR 0.00</small></td>
+                                    <td class="py-1 text-end"><small id="breakdownTotalTeacherCut">LKR 0.00</small></td>
+                                    <td class="py-1 text-end"><small id="breakdownTotalInstitutionCut">LKR 0.00</small></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <div id="noBreakdownData" class="text-center d-none">
+                        <div class="alert alert-warning py-2 mb-0">
+                            <small><i class="fas fa-exclamation-circle"></i> No class breakdown data available.</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
@@ -146,59 +217,59 @@
     <div class="modal fade" id="advanceModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header bg-warning text-dark">
-                    <h5 class="modal-title">Make Advance Payment</h5>
+                <div class="modal-header bg-warning text-dark py-2">
+                    <h6 class="modal-title mb-0">Make Advance Payment</h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form id="advancePaymentForm">
                     <div class="modal-body">
                         <input type="hidden" id="advanceTeacherId" name="teacher_id">
 
-                        <div class="mb-3">
-                            <label for="teacherName" class="form-label">Teacher</label>
-                            <input type="text" class="form-control" id="teacherName" readonly>
+                        <div class="mb-2">
+                            <label for="teacherName" class="form-label"><small>Teacher</small></label>
+                            <input type="text" class="form-control form-control-sm" id="teacherName" readonly>
                         </div>
 
-                        <div class="mb-3">
-                            <label for="availableEarning" class="form-label">Available Earning</label>
-                            <div class="input-group">
+                        <div class="mb-2">
+                            <label for="availableEarning" class="form-label"><small>Available Net Payable</small></label>
+                            <div class="input-group input-group-sm">
                                 <span class="input-group-text">LKR</span>
                                 <input type="text" class="form-control" id="availableEarning" readonly>
                             </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label for="amount" class="form-label">Advance Amount *</label>
-                            <div class="input-group">
+                        <div class="mb-2">
+                            <label for="amount" class="form-label"><small>Advance Amount *</small></label>
+                            <div class="input-group input-group-sm">
                                 <span class="input-group-text">LKR</span>
                                 <input type="number" class="form-control" id="amount" name="payment" min="1" step="0.01"
                                     required>
                             </div>
-                            <div class="form-text">Enter amount up to available earning</div>
+                            <div class="form-text"><small>Enter amount up to available net payable</small></div>
                             <div class="invalid-feedback" id="amountError"></div>
                         </div>
 
-                        <div class="mb-3">
-                            <label for="reasonCode" class="form-label">Reason Code *</label>
-                            <select class="form-control" id="reasonCode" name="reason_code" required>
+                        <div class="mb-2">
+                            <label for="reasonCode" class="form-label"><small>Reason Code *</small></label>
+                            <select class="form-control form-control-sm" id="reasonCode" name="reason_code" required>
                                 <option value="">Select a reason...</option>
                                 <!-- Options will be loaded dynamically -->
                             </select>
                             <div class="invalid-feedback" id="reasonCodeError"></div>
                         </div>
 
-                        <div class="alert alert-info">
+                        <div class="alert alert-info py-2 mt-2">
                             <small>
                                 <i class="fas fa-info-circle"></i>
-                                This advance payment will be recorded against the teacher's earnings.
+                                This advance payment will be deducted from the teacher's next payment.
                             </small>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-warning" id="submitAdvanceBtn">
+                    <div class="modal-footer py-2">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-warning btn-sm" id="submitAdvanceBtn">
                             <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                            Submit Advance Payment
+                            <small>Submit Advance</small>
                         </button>
                     </div>
                 </form>
@@ -209,56 +280,65 @@
 
 @push('styles')
     <style>
-        .table-success {
-            background-color: rgba(40, 167, 69, 0.1) !important;
-        }
-
-        .table-success:hover {
-            background-color: rgba(40, 167, 69, 0.2) !important;
-        }
-
-        .btn-group-sm>.btn {
-            padding: 0.25rem 0.5rem;
+        body {
             font-size: 0.875rem;
-            border-radius: 0.2rem;
         }
 
-        .card-header {
-            padding: 0.75rem 1.25rem;
+        .card-title {
+            font-size: 1rem;
         }
 
-        .modal-header {
-            padding: 1rem 1.5rem;
+        .table th,
+        .table td {
+            padding: 0.5rem;
+            font-size: 0.875rem;
         }
 
-        .modal-footer {
-            padding: 1rem 1.5rem;
+        .btn-sm {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
         }
 
-        .invalid-feedback {
-            display: block;
+        .form-control-sm {
+            font-size: 0.875rem;
         }
 
-        .spinner-border {
-            vertical-align: middle;
+        .modal-header .btn-close {
+            padding: 0.5rem;
+            margin: -0.5rem -0.5rem -0.5rem auto;
+        }
+
+        .badge {
+            font-size: 0.75rem;
+            padding: 0.25em 0.6em;
+        }
+
+        .cursor-pointer {
+            cursor: pointer;
+        }
+
+        .text-end {
+            text-align: right;
         }
 
         @media (max-width: 768px) {
+            .table-responsive {
+                font-size: 0.8rem;
+            }
+
             .btn-group {
-                display: flex;
-                flex-direction: column;
+                flex-wrap: wrap;
                 gap: 0.25rem;
             }
 
-            .btn-group>.btn {
-                border-radius: 0.25rem !important;
-                margin-right: 0 !important;
+            .card-header .d-flex {
+                flex-direction: column;
+                align-items: start !important;
+                gap: 0.5rem;
             }
 
-            .card-header .card-tools {
-                margin-top: 0.5rem;
-                width: 100%;
-                text-align: right;
+            .card-header .btn-group {
+                align-self: flex-end;
             }
         }
     </style>
@@ -287,19 +367,25 @@
             let paymentReasons = [];
             let currentSort = { column: null, direction: 'asc' };
             let advanceModalInstance = null;
+            let breakdownModalInstance = null;
 
             // DOM Elements
             const teacherTableBody = document.getElementById('teacherTableBody');
             const loadingSpinner = document.getElementById('loadingSpinner');
             const emptyState = document.getElementById('emptyState');
-            const searchInput = document.getElementById('searchInput');
+            const teacherSearch = document.getElementById('teacherSearch');
             const clearSearch = document.getElementById('clearSearch');
             const refreshBtn = document.getElementById('refreshBtn');
             const exportExcelBtn = document.getElementById('exportExcelBtn');
             const exportPdfBtn = document.getElementById('exportPdfBtn');
+            const recordCount = document.getElementById('recordCount');
+            const currentMonthYear = document.getElementById('currentMonthYear');
+
+            // Summary elements
             const summaryTotalPayments = document.getElementById('summaryTotalPayments');
-            const summaryTotalEarnings = document.getElementById('summaryTotalEarnings');
-            const summaryTotalTeachers = document.getElementById('summaryTotalTeachers');
+            const summaryGrossEarnings = document.getElementById('summaryGrossEarnings');
+            const summaryNetPayable = document.getElementById('summaryNetPayable');
+            const summaryInstitutionIncome = document.getElementById('summaryInstitutionIncome');
 
             // API Endpoints
             const API_ENDPOINTS = {
@@ -309,7 +395,6 @@
                 viewTeacher: (id) => `/teacher-payment/view/${id}`,
                 payTeacher: (id) => `/teacher-payment/pay/${id}`,
                 payhistory: (id) => `/teacher-payment/history/${id}`
-
             };
 
             // Configuration
@@ -342,20 +427,20 @@
                 }).format(amount);
             }
 
+            // Format percentage
+            function formatPercentage(percentage) {
+                if (isNaN(percentage) || percentage === null || percentage === undefined) {
+                    return '0%';
+                }
+                return parseFloat(percentage).toFixed(2).replace(/\.00$/, '') + '%';
+            }
+
             // Format number with commas
             function formatNumber(number) {
                 if (isNaN(number) || number === null || number === undefined) {
                     number = 0;
                 }
                 return new Intl.NumberFormat(CONFIG.currency.locale).format(number);
-            }
-
-            // Format percentage
-            function formatPercentage(percentage) {
-                if (isNaN(percentage) || percentage === null || percentage === undefined) {
-                    return '0%';
-                }
-                return `${percentage}%`;
             }
 
             // Parse currency string to number
@@ -417,6 +502,7 @@
                         teachersData = data.data || [];
                         renderTable(teachersData);
                         updateSummary(teachersData);
+                        updateRecordCount(teachersData.length);
                     } else {
                         throw new Error(data.message || 'Failed to load teacher payments');
                     }
@@ -425,6 +511,7 @@
                     showAlert('Failed to load teacher payments. Please try again.', 'danger');
                     teacherTableBody.innerHTML = '';
                     showEmptyState(true);
+                    updateRecordCount(0);
                 } finally {
                     showLoading(false);
                 }
@@ -448,64 +535,180 @@
                 data.forEach(teacher => {
                     const row = document.createElement('tr');
 
-                    // Highlight rows with earnings > 0
-                    const teacherEarning = parseFloat(teacher.teacher_earning) || 0;
-                    if (teacherEarning > 0) {
-                        row.classList.add('table-success');
+                    // Convert string percentages to numbers if needed
+                    const totalPayments = parseFloat(teacher.total_payments_this_month) || 0;
+                    const grossEarning = parseFloat(teacher.gross_teacher_earning) || 0;
+                    const advanceDeducted = parseFloat(teacher.advance_deducted_this_month) || 0;
+                    const netPayable = parseFloat(teacher.net_teacher_payable) || 0;
+                    const institutionIncome = parseFloat(teacher.institution_income) || 0;
+
+                    // Determine if advance button should be enabled
+                    const hasBreakdown = teacher.class_wise_breakdown && teacher.class_wise_breakdown.length > 0;
+                    const canAdvance = netPayable > 0 && hasBreakdown;
+
+                    // Store breakdown data in row dataset
+                    if (hasBreakdown) {
+                        row.dataset.breakdown = JSON.stringify({
+                            teacherName: teacher.teacher_name,
+                            teacherId: teacher.teacher_id,
+                            breakdown: teacher.class_wise_breakdown
+                        });
                     }
 
                     row.innerHTML = `
-                <td>${teacher.teacher_id || ''}</td>
-                <td>${teacher.teacher_name || ''}</td>
-                <td>${formatPercentage(teacher.percentage)}</td>
-                <td>${formatCurrency(teacher.total_payments_this_month)}</td>
-                <td>${formatCurrency(teacher.teacher_earning)}</td>
-                <td>
-                    <div class="btn-group btn-group-sm" role="group">
-                        <a href="${API_ENDPOINTS.viewTeacher(teacher.teacher_id)}" 
-                           class="btn btn-info" target="_blank">
-                            <i class="fas fa-eye"></i> View
-                        </a>
-                        ${showPayButton ? `
-                        <a href="${API_ENDPOINTS.payTeacher(teacher.teacher_id)}" 
-                           class="btn btn-success ${teacherEarning === 0 ? 'disabled' : ''}"
-                           ${teacherEarning === 0 ? 'aria-disabled="true"' : ''}>
-                            <i class="fas fa-money-bill-wave"></i> Pay
-                        </a>
-                        ` : ''}
-                        <button type="button" class="btn btn-warning advance-btn" 
-                                data-teacher-id="${teacher.teacher_id || ''}"
-                                data-teacher-name="${teacher.teacher_name || ''}"
-                                data-teacher-earning="${teacherEarning}"
-                                ${teacherEarning === 0 ? 'disabled' : ''}>
-                            <i class="fas fa-hand-holding-usd"></i> Advance
-                        </button>
-                        <a href="${API_ENDPOINTS.payhistory(teacher.teacher_id)}" 
-                           class="btn btn-primary"
-                           ${teacherEarning === 0 ? 'aria-disabled="true"' : ''}>
-                            <i class="fas fa-history"></i> History
-                        </a>
-                    </div>
-                </td>
-            `;
+                            <td class="py-1"><small>${teacher.teacher_id || ''}</small></td>
+                            <td class="py-1 ${hasBreakdown ? 'cursor-pointer' : ''}" ${hasBreakdown ? 'onclick="showTeacherBreakdown(this)"' : ''}>
+                                <small>${teacher.teacher_name || ''}</small>
+                                ${hasBreakdown ? '<br><small class="text-primary" style="font-size: 0.75rem;"><i class="fas fa-info-circle"></i> View breakdown</small>' : ''}
+                            </td>
+                            <td class="py-1 text-end"><small>${formatCurrency(totalPayments)}</small></td>
+                            <td class="py-1 text-end"><small>${formatCurrency(grossEarning)}</small></td>
+                            <td class="py-1 text-end"><small>${formatCurrency(advanceDeducted)}</small></td>
+                            <td class="py-1 text-end">
+                                <small class="${netPayable > 0 ? 'text-success fw-bold' : ''}">${formatCurrency(netPayable)}</small>
+                            </td>
+                            <td class="py-1 text-end"><small>${formatCurrency(institutionIncome)}</small></td>
+                            <td class="py-1 text-center">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="${API_ENDPOINTS.viewTeacher(teacher.teacher_id)}" 
+                                       class="btn btn-info btn-sm" target="_blank" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    ${showPayButton ? `
+                                    <a href="${API_ENDPOINTS.payTeacher(teacher.teacher_id)}" 
+                                       class="btn btn-success btn-sm ${netPayable === 0 ? 'disabled' : ''}"
+                                       ${netPayable === 0 ? 'aria-disabled="true" title="No payment due"' : 'title="Make Payment"'}
+                                       onclick="return ${netPayable > 0 ? 'true' : 'false'}">
+                                        <i class="fas fa-money-bill-wave"></i>
+                                    </a>
+                                    ` : ''}
+                                    <button type="button" class="btn btn-warning btn-sm advance-btn" 
+                                            data-teacher-id="${teacher.teacher_id || ''}"
+                                            data-teacher-name="${teacher.teacher_name || ''}"
+                                            data-teacher-earning="${netPayable}"
+                                            ${!canAdvance ? 'disabled title="No net payable available"' : 'title="Make Advance Payment"'}>
+                                        <i class="fas fa-hand-holding-usd"></i>
+                                    </button>
+                                    <a href="${API_ENDPOINTS.payhistory(teacher.teacher_id)}" 
+                                       class="btn btn-primary btn-sm" title="Payment History">
+                                        <i class="fas fa-history"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        `;
 
                     teacherTableBody.appendChild(row);
                 });
 
-                // Attach event listeners to advance buttons
+                // Attach event listeners
                 attachAdvanceButtonListeners();
+            }
+
+            // Show teacher breakdown (global function for onclick)
+            window.showTeacherBreakdown = function (element) {
+                const row = element.closest('tr');
+                const breakdownData = row.dataset.breakdown;
+
+                if (breakdownData) {
+                    const data = JSON.parse(breakdownData);
+                    showBreakdownModal(data);
+                }
+            };
+
+            // Show Breakdown Modal
+            function showBreakdownModal(data) {
+                const breakdownModalElement = document.getElementById('breakdownModal');
+                if (!breakdownModalElement) return;
+
+                const breakdownTeacherInfo = document.getElementById('breakdownTeacherInfo');
+                const breakdownTableBody = document.getElementById('breakdownTableBody');
+                const breakdownTableFooter = document.getElementById('breakdownTableFooter');
+                const noBreakdownData = document.getElementById('noBreakdownData');
+                const breakdownTotalAmount = document.getElementById('breakdownTotalAmount');
+                const breakdownTotalTeacherCut = document.getElementById('breakdownTotalTeacherCut');
+                const breakdownTotalInstitutionCut = document.getElementById('breakdownTotalInstitutionCut');
+
+                // Set teacher info
+                breakdownTeacherInfo.textContent = `Teacher: ${data.teacherName} (ID: ${data.teacherId})`;
+
+                // Clear previous data
+                breakdownTableBody.innerHTML = '';
+
+                if (data.breakdown && data.breakdown.length > 0) {
+                    // Show table, hide "no data" message
+                    breakdownTableFooter.classList.remove('d-none');
+                    noBreakdownData.classList.add('d-none');
+
+                    let totalAmount = 0;
+                    let totalTeacherCut = 0;
+                    let totalInstitutionCut = 0;
+
+                    // Populate table rows
+                    data.breakdown.forEach(item => {
+                        const classAmount = parseFloat(item.total_amount) || 0;
+                        const teacherCut = parseFloat(item.teacher_cut) || 0;
+                        const institutionCut = parseFloat(item.institution_cut) || 0;
+
+                        totalAmount += classAmount;
+                        totalTeacherCut += teacherCut;
+                        totalInstitutionCut += institutionCut;
+
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                                <td class="py-1"><small>${item.class_id || ''}</small></td>
+                                <td class="py-1"><small>${item.class_name || ''}</small></td>
+                                <td class="py-1 text-end"><small>${formatPercentage(item.teacher_percentage)}</small></td>
+                                <td class="py-1 text-end"><small>${formatCurrency(classAmount)}</small></td>
+                                <td class="py-1 text-end"><small>${formatCurrency(teacherCut)}</small></td>
+                                <td class="py-1 text-end"><small>${formatCurrency(institutionCut)}</small></td>
+                            `;
+                        breakdownTableBody.appendChild(row);
+                    });
+
+                    // Update totals
+                    breakdownTotalAmount.textContent = formatCurrency(totalAmount);
+                    breakdownTotalTeacherCut.textContent = formatCurrency(totalTeacherCut);
+                    breakdownTotalInstitutionCut.textContent = formatCurrency(totalInstitutionCut);
+                } else {
+                    // Show "no data" message, hide table footer
+                    breakdownTableFooter.classList.add('d-none');
+                    noBreakdownData.classList.remove('d-none');
+                }
+
+                // Show modal
+                try {
+                    if (breakdownModalInstance) {
+                        breakdownModalInstance.dispose();
+                    }
+
+                    breakdownModalInstance = new bootstrap.Modal(breakdownModalElement);
+                    breakdownModalInstance.show();
+                } catch (error) {
+                    console.error('Error showing breakdown modal:', error);
+                    breakdownModalElement.classList.add('show');
+                    breakdownModalElement.style.display = 'block';
+                }
             }
 
             // Update summary cards
             function updateSummary(data) {
-                if (!summaryTotalPayments || !summaryTotalEarnings || !summaryTotalTeachers) return;
+                if (!summaryTotalPayments || !summaryGrossEarnings || !summaryNetPayable || !summaryInstitutionIncome) return;
 
                 const totalPaymentsSum = data.reduce((sum, teacher) => sum + (parseFloat(teacher.total_payments_this_month) || 0), 0);
-                const totalEarningsSum = data.reduce((sum, teacher) => sum + (parseFloat(teacher.teacher_earning) || 0), 0);
+                const grossEarningsSum = data.reduce((sum, teacher) => sum + (parseFloat(teacher.gross_teacher_earning) || 0), 0);
+                const netPayableSum = data.reduce((sum, teacher) => sum + (parseFloat(teacher.net_teacher_payable) || 0), 0);
+                const institutionIncomeSum = data.reduce((sum, teacher) => sum + (parseFloat(teacher.institution_income) || 0), 0);
 
                 summaryTotalPayments.textContent = formatCurrency(totalPaymentsSum);
-                summaryTotalEarnings.textContent = formatCurrency(totalEarningsSum);
-                summaryTotalTeachers.textContent = formatNumber(data.length);
+                summaryGrossEarnings.textContent = formatCurrency(grossEarningsSum);
+                summaryNetPayable.textContent = formatCurrency(netPayableSum);
+                summaryInstitutionIncome.textContent = formatCurrency(institutionIncomeSum);
+            }
+
+            // Update record count
+            function updateRecordCount(count) {
+                if (!recordCount) return;
+                recordCount.textContent = `${count} record${count !== 1 ? 's' : ''} found`;
             }
 
             // Show/hide loading spinner
@@ -545,14 +748,14 @@
                 const alertConfig = alertTypes[type] || alertTypes.info;
 
                 const alertDiv = document.createElement('div');
-                alertDiv.className = `alert ${alertConfig.class} alert-dismissible fade show`;
+                alertDiv.className = `alert ${alertConfig.class} alert-dismissible fade show py-2`;
                 alertDiv.innerHTML = `
-                                    <div class="d-flex align-items-center">
-                                        <i class="fas ${alertConfig.icon} me-2"></i>
-                                        <div>${message}</div>
-                                    </div>
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                                `;
+                        <div class="d-flex align-items-center">
+                            <i class="fas ${alertConfig.icon} me-2"></i>
+                            <div><small>${message}</small></div>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    `;
 
                 const cardBody = document.querySelector('.card-body');
                 if (cardBody) {
@@ -585,8 +788,11 @@
                     if (column === 'teacher_name') {
                         aValue = (aValue || '').toLowerCase();
                         bValue = (bValue || '').toLowerCase();
-                    } else if (column === 'teacher_id' || column === 'percentage' ||
-                        column === 'total_payments_this_month' || column === 'teacher_earning') {
+                    } else if (column === 'teacher_id') {
+                        aValue = parseInt(aValue) || 0;
+                        bValue = parseInt(bValue) || 0;
+                    } else {
+                        // For numeric columns
                         aValue = parseFloat(aValue) || 0;
                         bValue = parseFloat(bValue) || 0;
                     }
@@ -688,17 +894,8 @@
                     });
                 } catch (error) {
                     console.error('Error showing modal:', error);
-                    // Fallback for Bootstrap issues
                     advanceModalElement.classList.add('show');
                     advanceModalElement.style.display = 'block';
-                    advanceModalElement.setAttribute('aria-modal', 'true');
-                    advanceModalElement.setAttribute('role', 'dialog');
-
-                    // Add backdrop
-                    const backdrop = document.createElement('div');
-                    backdrop.className = 'modal-backdrop fade show';
-                    document.body.appendChild(backdrop);
-                    document.body.classList.add('modal-open');
                 }
             }
 
@@ -765,9 +962,7 @@
                         // Show loading
                         if (submitBtn) {
                             submitBtn.disabled = true;
-                            const spinner = submitBtn.querySelector('.spinner-border');
-                            if (spinner) spinner.classList.remove('d-none');
-                            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+                            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> <small>Processing...</small>';
                         }
 
                         // Make API request
@@ -800,7 +995,6 @@
                             // Refresh data after a delay
                             setTimeout(() => {
                                 fetchTeacherPayments();
-                                loadPaymentReasons();
                             }, 1500);
                         } else {
                             throw new Error(data.message || 'Failed to submit advance payment');
@@ -812,7 +1006,7 @@
                         // Reset button
                         if (submitBtn) {
                             submitBtn.disabled = false;
-                            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span> Submit Advance Payment';
+                            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span> <small>Submit Advance</small>';
                         }
                     }
                 });
@@ -833,9 +1027,12 @@
                         const exportData = teachersData.map(teacher => ({
                             'Teacher ID': teacher.teacher_id || '',
                             'Teacher Name': teacher.teacher_name || '',
-                            'Percentage': formatPercentage(teacher.percentage),
                             'Total Payments': parseFloat(teacher.total_payments_this_month) || 0,
-                            'Teacher Earning': parseFloat(teacher.teacher_earning) || 0
+                            'Gross Earnings': parseFloat(teacher.gross_teacher_earning) || 0,
+                            'Advance Deducted': parseFloat(teacher.advance_deducted_this_month) || 0,
+                            'Net Payable': parseFloat(teacher.net_teacher_payable) || 0,
+                            'Institution Income': parseFloat(teacher.institution_income) || 0,
+                            'Classes Count': teacher.class_wise_breakdown?.length || 0
                         }));
 
                         // Create worksheet
@@ -872,38 +1069,33 @@
 
                     try {
                         const { jsPDF } = window.jspdf;
-                        const doc = new jsPDF();
+                        const doc = new jsPDF('landscape');
 
                         // Title
-                        doc.setFontSize(16);
+                        doc.setFontSize(12);
                         doc.text('Teacher Payments Report', 14, 15);
-                        doc.setFontSize(10);
-                        doc.text(`Date: ${new Date().toLocaleDateString()}`, 14, 22);
-
-                        // Summary section
-                        const totalPaymentsSum = teachersData.reduce((sum, teacher) => sum + (parseFloat(teacher.total_payments_this_month) || 0), 0);
-                        const totalEarningsSum = teachersData.reduce((sum, teacher) => sum + (parseFloat(teacher.teacher_earning) || 0), 0);
-
-                        doc.text(`Total Teachers: ${teachersData.length}`, 14, 30);
-                        doc.text(`Total Payments: ${formatCurrency(totalPaymentsSum)}`, 14, 36);
-                        doc.text(`Total Earnings: ${formatCurrency(totalEarningsSum)}`, 14, 42);
+                        doc.setFontSize(8);
+                        doc.text(`Month: ${currentMonthYear.textContent}`, 14, 22);
+                        doc.text(`Date: ${new Date().toLocaleDateString()}`, 14, 27);
 
                         // Prepare data for table
                         const tableData = teachersData.map(teacher => [
                             teacher.teacher_id || '',
                             teacher.teacher_name || '',
-                            formatPercentage(teacher.percentage),
-                            formatCurrency(teacher.total_payments_this_month),
-                            formatCurrency(teacher.teacher_earning)
+                            formatCurrency(parseFloat(teacher.total_payments_this_month) || 0),
+                            formatCurrency(parseFloat(teacher.gross_teacher_earning) || 0),
+                            formatCurrency(parseFloat(teacher.advance_deducted_this_month) || 0),
+                            formatCurrency(parseFloat(teacher.net_teacher_payable) || 0),
+                            formatCurrency(parseFloat(teacher.institution_income) || 0)
                         ]);
 
                         // Add table
                         doc.autoTable({
-                            head: [['ID', 'Name', 'Percentage', 'Total Payments', 'Payment Due']],
+                            head: [['ID', 'Name', 'Total Payments', 'Gross Earnings', 'Advance Deducted', 'Net Payable', 'Institution Income']],
                             body: tableData,
-                            startY: 50,
-                            styles: { fontSize: 8 },
-                            headStyles: { fillColor: [0, 123, 255] },
+                            startY: 35,
+                            styles: { fontSize: 7 },
+                            headStyles: { fillColor: [13, 110, 253], textColor: [255, 255, 255] },
                             margin: { top: 30 }
                         });
 
@@ -924,10 +1116,10 @@
 
             // Setup search functionality
             function setupSearch() {
-                if (!searchInput) return;
+                if (!teacherSearch) return;
 
                 let searchTimeout;
-                searchInput.addEventListener('input', function () {
+                teacherSearch.addEventListener('input', function () {
                     clearTimeout(searchTimeout);
                     searchTimeout = setTimeout(() => {
                         const searchTerm = this.value.trim();
@@ -939,6 +1131,7 @@
 
                         renderTable(filteredData);
                         updateSummary(filteredData);
+                        updateRecordCount(filteredData.length);
                     }, CONFIG.debounceDelay);
                 });
             }
@@ -948,10 +1141,11 @@
                 if (!clearSearch) return;
 
                 clearSearch.addEventListener('click', function () {
-                    if (searchInput) {
-                        searchInput.value = '';
+                    if (teacherSearch) {
+                        teacherSearch.value = '';
                         renderTable(teachersData);
                         updateSummary(teachersData);
+                        updateRecordCount(teachersData.length);
                     }
                 });
             }
@@ -962,12 +1156,9 @@
 
                 refreshBtn.addEventListener('click', function () {
                     this.disabled = true;
-                    this.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Refreshing...';
+                    this.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i>';
 
-                    Promise.all([
-                        fetchTeacherPayments(),
-                        loadPaymentReasons()
-                    ]).finally(() => {
+                    fetchTeacherPayments().finally(() => {
                         setTimeout(() => {
                             this.disabled = false;
                             this.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
@@ -1013,7 +1204,7 @@
                 });
             }
 
-            // Add this function in your script section
+            // Check if last 5 days of month
             function isLastFiveDaysOfMonth() {
                 const today = new Date();
                 const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
@@ -1036,7 +1227,7 @@
                 // Check for required elements
                 const requiredElements = [
                     'teacherTableBody', 'loadingSpinner', 'emptyState',
-                    'summaryTotalPayments', 'summaryTotalEarnings', 'summaryTotalTeachers'
+                    'summaryTotalPayments', 'summaryGrossEarnings', 'summaryNetPayable'
                 ];
 
                 const missingElements = requiredElements.filter(id => !document.getElementById(id));

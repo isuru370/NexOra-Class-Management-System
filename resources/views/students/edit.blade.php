@@ -274,6 +274,22 @@
                                             <!-- Grades will be populated via JavaScript -->
                                         </select>
                                     </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="class_type" class="form-label">
+                                            <i class="fas fa-chalkboard-teacher me-2"></i>
+                                            Class Type <span class="text-danger">*</span>
+                                        </label>
+
+                                        <select name="class_type" id="class_type" class="form-select" required>
+                                            <option value="">Select Class Type</option>
+                                            <option value="online">Online</option>
+                                            <option value="offline">Offline</option>
+                                        </select>
+
+                                        <div class="invalid-feedback">
+                                            Please select a class type
+                                        </div>
+                                    </div>
 
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">School</label>
@@ -376,7 +392,28 @@
             initializeEventListeners();
         });
 
-        // ================= LOAD STUDENT DATA =================
+        // Add this function for debugging
+        function debugStudentData(student) {
+            console.log('🔧 DEBUG - Student Data Structure:');
+            console.log('====================================');
+
+            // Log all properties
+            Object.keys(student).forEach(key => {
+                const value = student[key];
+                const type = typeof value;
+                console.log(`${key}:`, value, `[${type}]`);
+            });
+
+            // Specifically check for class_type
+            console.log('====================================');
+            console.log('Class Type Analysis:');
+            console.log('  - class_type exists?', 'class_type' in student);
+            console.log('  - class_type value:', student.class_type);
+            console.log('  - class_type type:', typeof student.class_type);
+            console.log('====================================');
+        }
+
+        // Then modify loadStudentData to call the debug function:
         async function loadStudentData(customId) {
             try {
                 showLoadingState();
@@ -395,6 +432,10 @@
 
                 if (result.status === 'success' && result.data) {
                     console.log('✅ Student data received:', result.data);
+
+                    // Debug the data structure
+                    debugStudentData(result.data);
+
                     populateForm(result.data);
                     showContentState();
                     showAlert('Student data loaded successfully', 'success');
@@ -412,6 +453,7 @@
         function populateForm(student) {
             try {
                 console.log('🎯 Populating form with student data:', student);
+                console.log('📊 Full student object structure:', Object.keys(student));
 
                 if (!student) {
                     console.error('❌ Student data is null or undefined');
@@ -530,17 +572,87 @@
                     }
                 }
 
+                // DEBUG: Log all possible class type related fields
+                console.log('🔍 Searching for class_type field in student data:');
+                Object.keys(student).forEach(key => {
+                    if (key.toLowerCase().includes('class')) {
+                        console.log(`   Found: ${key} = ${student[key]}`);
+                    }
+                });
+
+                // Enhanced class type handling
+                const classTypeSelect = document.querySelector('select[name="class_type"]');
+                if (classTypeSelect) {
+                    // Try different possible field names
+                    let classTypeValue = '';
+
+                    // Direct field
+                    if (student.class_type) {
+                        classTypeValue = student.class_type;
+                    }
+                    // Alternative field names
+                    else if (student.classType) {
+                        classTypeValue = student.classType;
+                    }
+                    else if (student.class_type_id) {
+                        classTypeValue = student.class_type_id;
+                    }
+                    else if (student.class_type_name) {
+                        classTypeValue = student.class_type_name;
+                    }
+
+                    // Clean and set the value
+                    if (classTypeValue) {
+                        // Convert to lowercase and trim
+                        const cleanValue = classTypeValue.toString().toLowerCase().trim();
+
+                        // Map possible values to our options
+                        if (cleanValue === 'online' || cleanValue === 'offline') {
+                            classTypeSelect.value = cleanValue;
+                        } else if (cleanValue === '1' || cleanValue === 'online') {
+                            classTypeSelect.value = 'online';
+                        } else if (cleanValue === '0' || cleanValue === 'offline') {
+                            classTypeSelect.value = 'offline';
+                        } else {
+                            console.warn(`⚠️ Unknown class type value: "${classTypeValue}"`);
+                            classTypeSelect.value = ''; // Default to empty
+                        }
+
+                        console.log('🏫 Class Type:', classTypeValue, '-> Cleaned to:', cleanValue, '-> Selected:', classTypeSelect.value);
+                    } else {
+                        console.log('🏫 No class type data found in student object');
+                        classTypeSelect.value = ''; // Default to empty
+                    }
+                }
+
+                // Handle boolean selects
                 const admissionSelect = document.querySelector('select[name="admission"]');
                 if (admissionSelect) {
-                    admissionSelect.value = student.admission ? '1' : '0';
+                    // Convert various boolean representations
+                    if (student.admission === true || student.admission === 1 || student.admission === '1') {
+                        admissionSelect.value = '1';
+                    } else {
+                        admissionSelect.value = '0';
+                    }
                     console.log('🎫 Admission:', student.admission, '-> Selected value:', admissionSelect.value);
                 }
 
                 const freecardSelect = document.querySelector('select[name="is_freecard"]');
                 if (freecardSelect) {
-                    freecardSelect.value = student.is_freecard ? '1' : '0';
+                    // Convert various boolean representations
+                    if (student.is_freecard === true || student.is_freecard === 1 || student.is_freecard === '1') {
+                        freecardSelect.value = '1';
+                    } else {
+                        freecardSelect.value = '0';
+                    }
                     console.log('🎫 Free Card:', student.is_freecard, '-> Selected value:', freecardSelect.value);
                 }
+
+                // DEBUG: Log the final form state
+                console.log('📋 Final form state:');
+                console.log('  - Class Type select value:', classTypeSelect ? classTypeSelect.value : 'N/A');
+                console.log('  - Grade select value:', gradeSelect ? gradeSelect.value : 'N/A');
+                console.log('  - Gender select value:', genderSelect ? genderSelect.value : 'N/A');
 
                 console.log('✅ Form population completed successfully');
 
@@ -870,9 +982,9 @@
             const alertDiv = document.createElement('div');
             alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
             alertDiv.innerHTML = `
-                                    <strong>${type === 'success' ? 'Success!' : type === 'warning' ? 'Warning!' : 'Error!'}</strong> ${message}
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                                `;
+                                                        <strong>${type === 'success' ? 'Success!' : type === 'warning' ? 'Warning!' : 'Error!'}</strong> ${message}
+                                                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                                    `;
 
             document.querySelector('.card-body').insertBefore(alertDiv, document.querySelector('.card-body').firstChild);
 
@@ -897,18 +1009,18 @@
                     "{{ url('/uploads/images') }}/" + img.quick_img;
 
                 return `
-                                        <div class="quick-image-item card mb-2 p-2" onclick="selectQuickImage(${img.id}, '${imageUrl}', '${img.custom_id || 'No ID'}')">
-                                            <div class="row g-2 align-items-center">
-                                                <div class="col-3">
-                                                    <img src="${imageUrl}" class="img-fluid rounded" style="height: 60px; object-fit: cover;">
-                                                </div>
-                                                <div class="col-9">
-                                                    <small class="fw-bold">ID: ${img.custom_id || 'No ID'}</small><br>
-                                                    <small class="text-muted">Grade: ${img.grade?.grade_name || 'N/A'}</small>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    `;
+                                                            <div class="quick-image-item card mb-2 p-2" onclick="selectQuickImage(${img.id}, '${imageUrl}', '${img.custom_id || 'No ID'}')">
+                                                                <div class="row g-2 align-items-center">
+                                                                    <div class="col-3">
+                                                                        <img src="${imageUrl}" class="img-fluid rounded" style="height: 60px; object-fit: cover;">
+                                                                    </div>
+                                                                    <div class="col-9">
+                                                                        <small class="fw-bold">ID: ${img.custom_id || 'No ID'}</small><br>
+                                                                        <small class="text-muted">Grade: ${img.grade?.grade_name || 'N/A'}</small>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        `;
             }).join('');
         }
     </script>

@@ -10,8 +10,10 @@ use App\Models\StudentStudentStudentClass;
 use Carbon\Carbon;
 use Exception;
 use App\Models\Grade;
+use App\Models\StudentPortalLogin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -23,8 +25,10 @@ class StudentService
     public function fetchStudents()
     {
         try {
-            $perPage = request()->get('per_page', 15); // Default to 15 items per page
+            $perPage = request()->get('per_page', 15);
             $search = request()->get('search', '');
+            $isActive = request()->get('is_active'); // Active/Inactive filter
+            $gradeId = request()->get('grade_id'); // Grade filter
 
             $studentsQuery = Student::with([
                 'grade' => function ($query) {
@@ -46,6 +50,16 @@ class StudentService
                 });
             }
 
+            // Add Active/Inactive filter
+            if ($isActive !== null && $isActive !== '') {
+                $studentsQuery->where('is_active', $isActive);
+            }
+
+            // Add Grade filter
+            if ($gradeId && $gradeId !== '') {
+                $studentsQuery->where('grade_id', $gradeId);
+            }
+
             $students = $studentsQuery->orderBy('id', 'desc')->paginate($perPage);
 
             return response()->json([
@@ -59,7 +73,6 @@ class StudentService
                         'total' => $students->total(),
                         'from' => $students->firstItem(),
                         'to' => $students->lastItem(),
-                        'links' => $students->links()->toHtml() ?? [], // For Blade templates
                     ]
                 ]
             ]);
@@ -286,9 +299,10 @@ class StudentService
     {
         try {
             $student = Student::with([
-                'grade:id,grade_name'
+                'grade:id,grade_name',
+                'portalLogin:id,student_id,username,is_verify,is_active'
             ])
-                ->where('custom_id', $customId)   // <-- FIXED
+                ->where('custom_id', $customId)
                 ->first();
 
             if (!$student) {
@@ -298,9 +312,32 @@ class StudentService
                 ], 404);
             }
 
+            $studentData = $student->toArray();
+
+            // Check if portal login exists AND is both verified and active
+            $hasPortalAccess = false;
+            $portalUsername = null;
+
+            if ($student->portalLogin) {
+                $portalLogin = $student->portalLogin;
+
+                // Portal access is only considered valid if BOTH conditions are true
+                $hasPortalAccess = $portalLogin->is_verify && $portalLogin->is_active;
+                $portalUsername = $portalLogin->username;
+            }
+
+            $studentData['has_portal_access'] = $hasPortalAccess;
+            $studentData['portal_username'] = $portalUsername;
+
+            // Also include the verification and active status for debugging
+            if ($student->portalLogin) {
+                $studentData['portal_is_verify'] = (bool) $student->portalLogin->is_verify;
+                $studentData['portal_is_active'] = (bool) $student->portalLogin->is_active;
+            }
+
             return response()->json([
                 'status' => 'success',
-                'data' => $student
+                'data' => $studentData
             ]);
         } catch (Exception $e) {
             return response()->json([
@@ -336,6 +373,7 @@ class StudentService
                 'is_active' => 'nullable|boolean',
                 'img_url' => 'required|string|max:255',
                 'grade_id' => ['required', 'exists:grades,id'],
+                'class_type' => 'required|in:online,offline',
                 'admission' => 'nullable|boolean',
                 'is_freecard' => 'nullable|boolean',
                 'student_school' => 'nullable|string|max:255'
@@ -359,9 +397,13 @@ class StudentService
             $data['admission'] = filter_var($data['admission'] ?? 0, FILTER_VALIDATE_BOOLEAN);
             $data['is_freecard'] = filter_var($data['is_freecard'] ?? 0, FILTER_VALIDATE_BOOLEAN);
 
-            Log::info('Creating student with data:', $data);
+            // Ensure class_type is set (already validated as required)
+            // $data['class_type'] is already set from $request->all()
+
 
             $student = Student::create($data);
+
+            $this->createStudentPortalLogin($student);
 
             DB::commit();
 
@@ -411,6 +453,7 @@ class StudentService
                 'is_active' => 'nullable|boolean',
                 'img_url' => 'required|string|max:255',
                 'grade_id' => ['required', 'exists:grades,id'],
+                'class_type' => 'required|in:online,offline',
                 'admission' => 'nullable|boolean',
                 'is_freecard' => 'nullable|boolean',
                 'student_school' => 'nullable|string|max:255'
@@ -507,6 +550,7 @@ class StudentService
                 'is_active'         => 'required|boolean',
                 'img_url'           => 'required|string|max:255',
                 'grade_id' => ['required', 'exists:grades,id'],
+                'class_type' => 'required|in:online,offline',
                 'admission'         => 'required|boolean',
                 'is_freecard'       => 'required|boolean',
                 'student_school'    => 'nullable|string|max:255'
@@ -704,73 +748,66 @@ class StudentService
     private function generateCustomId($gradeId)
     {
         try {
-            // Find grade
             $grade = Grade::find($gradeId);
-
             if (!$grade) {
                 throw new Exception("Invalid Grade ID.");
             }
 
-            // Grade code එක grade ID අනුව හෝ grade name අනුව තීරණය කරන්න
             $gradeCode = '';
+            $gradeName = trim($grade->grade_name);
 
-            // Grade name වලින් අංකය ගන්න (Grade 9, Grade 10, 2025 A/L)
-            if (preg_match('/\d+/', $grade->grade_name, $matches)) {
-                // Grade 9 -> 09, Grade 10 -> 10
-                $gradeCode = str_pad($matches[0], 2, '0', STR_PAD_LEFT);
-            } elseif (preg_match('/(\d{4})/', $grade->grade_name, $matches)) {
-                // 2025 A/L -> 25
-                $year = substr($matches[0], 2); // පසුව ඉරියව් 2
-                $gradeCode = $year;
-            } else {
-                // අනෙක් අවස්ථාවලට grade ID එක භාවිතා කරන්න
+            // Pattern 1: Grade X (e.g., Grade 9, Grade 10)
+            if (preg_match('/^Grade\s+(\d+)$/i', $gradeName, $matches)) {
+                $gradeCode = str_pad($matches[1], 2, '0', STR_PAD_LEFT);
+            }
+            // Pattern 2: XXXX A/L (e.g., 2027 A/L, 2025 A/L)
+            elseif (preg_match('/^(\d{4})\s+A\/L$/i', $gradeName, $matches)) {
+                $gradeCode = substr($matches[1], -2);
+            }
+            // Pattern 3: XXXX O/L (e.g., 2027 O/L, 2025 O/L)
+            elseif (preg_match('/^(\d{4})\s+O\/L$/i', $gradeName, $matches)) {
+                $gradeCode = substr($matches[1], -2);
+            }
+            // Pattern 4: Any 4-digit number (assume year)
+            elseif (preg_match('/^\d{4}$/', $gradeName, $matches)) {
+                $gradeCode = substr($gradeName, -2);
+            }
+            // Pattern 5: Any other number in the name
+            elseif (preg_match('/(\d+)/', $gradeName, $matches)) {
+                $num = $matches[1];
+                // If number is 4 digits, take last 2 (assuming year)
+                if (strlen($num) == 4) {
+                    $gradeCode = substr($num, -2);
+                } else {
+                    $gradeCode = str_pad($num, 2, '0', STR_PAD_LEFT);
+                }
+            }
+            // Pattern 6: Fallback to grade ID
+            else {
                 $gradeCode = str_pad($gradeId, 2, '0', STR_PAD_LEFT);
             }
 
-            // මෙම grade එකේ ඇති ළමයින්ගේ ගණන (active හෝ සියල්ල)
+            // Rest of the function remains the same...
             $studentCount = Student::where('grade_id', $gradeId)->count();
-
-            // ඊළඟ අංකය = දැනට ඇති count + 1
             $nextNumber = $studentCount + 1;
-
-            // 3 digits format කරන්න (023, 112, 123 වගේ)
             $sequenceNumber = str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
-
-            // Custom ID generate කරන්න
             $customId = "SA" . $gradeCode . $sequenceNumber;
 
-            // ප්‍රථම වරට උත්සාහ කරනකොට අංකය භාවිතා වී ඇත්දැයි පරීක්ෂා කරන්න
+            // Check for uniqueness
             $counter = 1;
-            $originalCustomId = $customId;
-
             while (Student::where('custom_id', $customId)->exists()) {
-                // අංකය දැනටමත් තිබේ නම්, ඊළඟ අංකයට යන්න
                 $nextNumber = $studentCount + $counter + 1;
                 $sequenceNumber = str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
                 $customId = "SA" . $gradeCode . $sequenceNumber;
                 $counter++;
 
-                // ආරක්ෂිත ලූපයක් සඳහා
                 if ($counter > 100) {
                     throw new Exception('Unable to generate unique custom ID after 100 attempts');
                 }
             }
 
-            Log::info('Generated Custom ID', [
-                'grade_id' => $gradeId,
-                'grade_name' => $grade->grade_name,
-                'grade_code' => $gradeCode,
-                'student_count' => $studentCount,
-                'next_number' => $nextNumber,
-                'custom_id' => $customId
-            ]);
-
             return $customId;
         } catch (Exception $e) {
-            Log::error('Failed to generate custom ID', [
-                'grade_id' => $gradeId,
-                'error' => $e->getMessage()
-            ]);
             throw new Exception('Failed to generate custom ID: ' . $e->getMessage());
         }
     }
@@ -992,5 +1029,68 @@ class StudentService
             'present_count' => $present,
             'absent_count'  => $absent
         ];
+    }
+
+    private function createStudentPortalLogin(Student $student): void
+    {
+        // Generate a random password
+        $password = Str::random(8);
+
+        if (auth()->check()) {
+            // Admin is creating the student
+            StudentPortalLogin::create([
+                'student_id' => $student->id,
+                'username'   => $student->mobile,  // or email if you prefer
+                'password'   => Hash::make($password),
+                'is_active'  => true,
+                'is_verify'  => true,
+                'otp'        => null,
+                'otp_expires_at' => null,
+            ]);
+
+            Log::info("Admin created portal login for student ID {$student->id}");
+        } else {
+            // Self-registration → OTP required
+            $otp = rand(100000, 999999); // 6-digit OTP
+
+            StudentPortalLogin::create([
+                'student_id'      => $student->id,
+                'username'        => $student->mobile,
+                'password'        => Hash::make($password),
+                'is_active'       => false, // account inactive until OTP verify
+                'is_verify'       => false,
+                'otp'             => $otp,
+                'otp_expires_at'  => now()->addMinutes(5),
+            ]);
+
+            // TODO: send OTP via SMS gateway
+            Log::info("OTP {$otp} generated for student ID {$student->id} (self-registration)");
+        }
+    }
+
+    public function verifyOtp(Request $request)
+    {
+        $request->validate([
+            'username' => 'required',
+            'otp' => 'required|digits:6',
+        ]);
+
+        $login = StudentPortalLogin::where('username', $request->username)
+            ->where('otp', $request->otp)
+            ->where('otp_expires_at', '>=', now())
+            ->first();
+
+        if (!$login) {
+            return response()->json(['message' => 'Invalid or expired OTP'], 422);
+        }
+
+        $login->update([
+            'is_verify' => true,
+            'is_active' => true,
+            'otp' => null,
+            'otp_expires_at' => null,
+        ]);
+
+        return response()->json(['message' => 'OTP verified, account active']);
     }
 }

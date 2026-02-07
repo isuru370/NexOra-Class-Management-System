@@ -177,13 +177,6 @@
                                                     </select>
                                                 </div>
                                             </div>
-                                            <div class="col-md-6">
-                                                <div class="mb-3">
-                                                    <label for="precentage" class="form-label">Percentage (%)</label>
-                                                    <input type="number" class="form-control" id="precentage"
-                                                        name="precentage" min="0" max="100" placeholder="0">
-                                                </div>
-                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -344,9 +337,6 @@
             // Set default experience to "Less than a year"
             document.getElementById('experience').value = 'Less than a year';
 
-            // Set default percentage to 0
-            document.getElementById('precentage').value = 0;
-
             // Set default for address fields (required by DB schema)
             document.getElementById('address1').value = '';
             document.getElementById('address2').value = '';
@@ -477,14 +467,6 @@
                 form.classList.add('was-validated');
                 showError('Please fill in all required fields correctly.');
                 scrollToFirstError();
-                return;
-            }
-
-            // Validate percentage
-            const percentage = document.getElementById('precentage').value;
-            if (percentage < 0 || percentage > 100) {
-                showError('Percentage must be between 0 and 100.');
-                document.getElementById('precentage').focus();
                 return;
             }
 

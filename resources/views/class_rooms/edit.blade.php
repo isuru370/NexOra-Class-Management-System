@@ -11,9 +11,9 @@
 @endsection
 
 @section('content')
-    <div class="container-fluid"> {{-- Changed from row to container-fluid --}}
+    <div class="container-fluid">
         <div class="row justify-content-center">
-            <div class="col-12"> {{-- Changed to col-12 for full width --}}
+            <div class="col-12">
                 <!-- Edit Class Room Card -->
                 <div class="card">
                     <div class="card-header bg-warning text-white">
@@ -40,6 +40,31 @@
                                         <div class="invalid-feedback" id="class_name_error"></div>
                                     </div>
 
+                                    <!-- Teacher Percentage -->
+                                    <div class="mb-3">
+                                        <label for="teacher_percentage" class="form-label">
+                                            Teacher Percentage (%) <span class="text-danger">*</span>
+                                        </label>
+                                        <input type="number" class="form-control" id="teacher_percentage"
+                                            name="teacher_percentage" min="0" max="100" step="0.01"
+                                            placeholder="Enter percentage (eg: 30)" required>
+                                        <div class="invalid-feedback" id="teacher_percentage_error"></div>
+                                        <small class="text-muted">Percentage of fees allocated to the teacher (0-100%)</small>
+                                    </div>
+
+                                    <!-- Class Type -->
+                                    <div class="mb-3">
+                                        <label for="class_type" class="form-label">
+                                            Class Type <span class="text-danger">*</span>
+                                        </label>
+                                        <select class="form-select" id="class_type" name="class_type" required>
+                                            <option value="">Select Class Type</option>
+                                            <option value="offline">Offline</option>
+                                            <option value="online">Online</option>
+                                        </select>
+                                        <div class="invalid-feedback" id="class_type_error"></div>
+                                    </div>
+
                                     <!-- Teacher Dropdown -->
                                     <div class="mb-3">
                                         <label for="teacher_id" class="form-label">Teacher <span
@@ -48,17 +73,6 @@
                                             <option value="">Select Teacher</option>
                                         </select>
                                         <div class="invalid-feedback" id="teacher_id_error"></div>
-                                    </div>
-
-                                    <!-- Status Toggle -->
-                                    <div class="mb-3">
-                                        <label class="form-label">Status</label>
-                                        <div class="form-check form-switch">
-                                            <input class="form-check-input" type="checkbox" id="is_active" name="is_active"
-                                                value="1">
-                                            <label class="form-check-label" for="is_active">Active Class</label>
-                                        </div>
-                                        <small class="text-muted">Toggle to activate or deactivate this class</small>
                                     </div>
                                 </div>
 
@@ -82,6 +96,17 @@
                                             <option value="">Select Subject</option>
                                         </select>
                                         <div class="invalid-feedback" id="subject_id_error"></div>
+                                    </div>
+
+                                    <!-- Status Toggle -->
+                                    <div class="mb-3">
+                                        <label class="form-label">Status</label>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="is_active" name="is_active"
+                                                value="1">
+                                            <label class="form-check-label" for="is_active">Active Class</label>
+                                        </div>
+                                        <small class="text-muted">Toggle to activate or deactivate this class</small>
                                     </div>
 
                                     <!-- Ongoing Status Toggle -->
@@ -120,7 +145,6 @@
 
 @push('styles')
     <style>
-        /* Remove all the width styles and let Bootstrap handle the layout */
         .card {
             transition: transform 0.2s ease, box-shadow 0.2s ease;
             border: 1px solid #e9ecef;
@@ -193,13 +217,49 @@
             font-size: 0.875rem;
         }
 
-        /* Ensure the container takes full width */
+        /* Percentage input specific styles */
+        #teacher_percentage {
+            background-color: #fffbf0;
+            border-color: #ffc107;
+        }
+
+        #teacher_percentage:focus {
+            background-color: #fff;
+            border-color: #e0a800;
+        }
+
+        /* Percentage indicator */
+        .percentage-indicator {
+            display: flex;
+            align-items: center;
+            margin-top: 0.25rem;
+        }
+
+        .percentage-value {
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-right: 0.5rem;
+        }
+
+        .percentage-bar {
+            flex-grow: 1;
+            height: 4px;
+            background-color: #e9ecef;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .percentage-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ffc107, #e0a800);
+            transition: width 0.3s ease;
+        }
+
         .container-fluid {
             padding-left: 0;
             padding-right: 0;
         }
 
-        /* Make the row full width */
         .row.justify-content-center {
             margin-left: 0;
             margin-right: 0;
@@ -222,7 +282,61 @@
                 e.preventDefault();
                 updateClassRoom();
             });
+
+            // Add percentage change listener for class type
+            const classTypeSelect = document.getElementById('class_type');
+            const percentageInput = document.getElementById('teacher_percentage');
+
+            classTypeSelect.addEventListener('change', function () {
+                updatePercentageBasedOnType(this.value, percentageInput);
+            });
+
+            // Validate percentage on input
+            percentageInput.addEventListener('input', function () {
+                validatePercentage(this);
+            });
+
+            // Validate percentage on blur
+            percentageInput.addEventListener('blur', function () {
+                validatePercentage(this);
+            });
         });
+
+        // Update percentage based on class type
+        function updatePercentageBasedOnType(classType, percentageInput) {
+            if (!percentageInput.value) {
+                if (classType === 'online') {
+                    percentageInput.value = 80;
+                } else if (classType === 'offline') {
+                    percentageInput.value = 75;
+                }
+                validatePercentage(percentageInput);
+            }
+        }
+
+        // Validate percentage input
+        function validatePercentage(input) {
+            const value = parseFloat(input.value);
+            const errorElement = document.getElementById('teacher_percentage_error');
+
+            if (isNaN(value)) {
+                input.classList.add('is-invalid');
+                errorElement.textContent = 'Please enter a valid percentage';
+                errorElement.style.display = 'block';
+                return false;
+            }
+
+            if (value < 0 || value > 100) {
+                input.classList.add('is-invalid');
+                errorElement.textContent = 'Percentage must be between 0 and 100';
+                errorElement.style.display = 'block';
+                return false;
+            }
+
+            input.classList.remove('is-invalid');
+            errorElement.style.display = 'none';
+            return true;
+        }
 
         // Load all data in correct sequence
         function loadAllData() {
@@ -274,9 +388,21 @@
 
             // Set basic fields
             document.getElementById('class_name').value = classData.class_name || '';
+            
+            // Set teacher percentage
+            if (classData.teacher_percentage !== undefined && classData.teacher_percentage !== null) {
+                document.getElementById('teacher_percentage').value = classData.teacher_percentage;
+                console.log('Setting teacher_percentage:', classData.teacher_percentage);
+            }
 
             // Set dropdown values - wait a bit to ensure dropdowns are populated
             setTimeout(() => {
+                if (classData.class_type) {
+                    const typeSelect = document.getElementById('class_type');
+                    typeSelect.value = classData.class_type;
+                    console.log('Setting class_type:', classData.class_type);
+                }
+
                 if (classData.teacher_id) {
                     const teacherSelect = document.getElementById('teacher_id');
                     teacherSelect.value = classData.teacher_id;
@@ -298,6 +424,9 @@
                 // Set toggle switches
                 document.getElementById('is_active').checked = classData.is_active == 1;
                 document.getElementById('is_ongoing').checked = classData.is_ongoing == 1;
+
+                // Validate percentage after setting
+                validatePercentage(document.getElementById('teacher_percentage'));
 
                 // Show success message
                 showAlert('Form data loaded successfully!', 'success');
@@ -394,11 +523,19 @@
             const updateBtn = document.getElementById('updateBtn');
             const originalText = updateBtn.innerHTML;
 
+            // Validate percentage first
+            if (!validatePercentage(document.getElementById('teacher_percentage'))) {
+                showAlert('Please fix the percentage field before submitting', 'warning');
+                return;
+            }
+
             updateBtn.disabled = true;
             updateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Updating...';
 
             const formData = {
                 class_name: document.getElementById('class_name').value,
+                teacher_percentage: document.getElementById('teacher_percentage').value,
+                class_type: document.getElementById('class_type').value,
                 teacher_id: document.getElementById('teacher_id').value,
                 subject_id: document.getElementById('subject_id').value,
                 grade_id: document.getElementById('grade_id').value,
@@ -407,8 +544,11 @@
             };
 
             // Validation
-            if (!formData.class_name || !formData.teacher_id || !formData.subject_id || !formData.grade_id) {
-                showAlert('Please fill all required fields', 'warning');
+            const requiredFields = ['class_name', 'teacher_percentage', 'class_type', 'teacher_id', 'subject_id', 'grade_id'];
+            const missingFields = requiredFields.filter(field => !formData[field]);
+
+            if (missingFields.length > 0) {
+                showAlert(`Please fill all required fields: ${missingFields.join(', ')}`, 'warning');
                 updateBtn.disabled = false;
                 updateBtn.innerHTML = originalText;
                 return;
@@ -464,8 +604,14 @@
 
             // Display new errors
             for (const field in errors) {
-                const errorElement = document.getElementById(field + '_error');
-                const inputElement = document.getElementById(field);
+                // Handle field name mapping
+                let fieldName = field;
+                if (field.includes('.')) {
+                    fieldName = field.split('.')[1]; // Handle nested field names like teacher_percentage
+                }
+                
+                const errorElement = document.getElementById(fieldName + '_error');
+                const inputElement = document.getElementById(fieldName);
 
                 if (errorElement && inputElement) {
                     errorElement.textContent = errors[field][0];
@@ -483,10 +629,12 @@
             const alertDiv = document.createElement('div');
             alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
             alertDiv.innerHTML = `
-                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
-                    ${message}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                `;
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 
+                    type === 'danger' ? 'exclamation-triangle' : 
+                    type === 'warning' ? 'exclamation-circle' : 'info-circle'} me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
 
             const container = document.querySelector('.card-body');
             if (container) {

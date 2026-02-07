@@ -22,10 +22,18 @@ class InstitutePaymentService
             $endOfMonth   = Carbon::createFromFormat('Y-m', $yearMonth)->endOfMonth();
             $monthYear    = now()->format('m Y');
 
-            // --- ආදායම් ---
+            // ---------- INSTITUTE INCOME ----------
             $admissionPayment = AdmissionPayments::whereBetween('created_at', [$startOfMonth, $endOfMonth])
                 ->sum('amount');
 
+            $extraIncome = ExtraIncomes::whereBetween('created_at', [$startOfMonth, $endOfMonth])
+                ->sum('amount');
+
+            $totalExpenese = InstitutePayment::where('status', 1)
+                ->whereBetween('date', [$startOfMonth, $endOfMonth])
+                ->sum('payment');
+
+            // ---------- TEACHER PAYMENTS ----------
             $teacherAdvance = TeacherPayment::where('status', 1)
                 ->where('reason_code', '!=', 'salary')
                 ->whereBetween('date', [$startOfMonth, $endOfMonth])
@@ -36,23 +44,17 @@ class InstitutePaymentService
                 ->where('payment_for', $monthYear)
                 ->sum('payment');
 
-            $extraIncome = ExtraIncomes::whereBetween('created_at', [$startOfMonth, $endOfMonth])
-                ->sum('amount');
-
-            $totalExpenese = InstitutePayment::where('status', 1)
-                ->whereBetween('date', [$startOfMonth, $endOfMonth])
-                ->sum('payment');
-
-            // --- ගුරුවරුන් ---
-            $teachers = Teacher::select('id', 'fname', 'lname', 'precentage')
+            // ---------- TEACHERS ----------
+            $teachers = Teacher::select('id', 'fname', 'lname')
                 ->where('is_active', 1)
                 ->get();
 
             $result = [];
-            $totalInstituteIncome = 0;
+
             $totalTeacherPayments = 0;
             $totalTeacherEarnings = 0;
             $totalTeacherNetEarnings = 0;
+            $totalInstituteIncome = 0;
 
             foreach ($teachers as $teacher) {
 
@@ -65,43 +67,50 @@ class InstitutePaymentService
                     ->with('studentStudentClass.studentClass')
                     ->get();
 
+                // ---------- CLASS WISE ----------
                 $classWiseTotals = $payments
                     ->groupBy(fn($p) => optional($p->studentStudentClass->studentClass)->id)
-                    ->map(function ($group) use ($teacher) {
+                    ->map(function ($group) {
+
                         $class = $group->first()->studentStudentClass->studentClass;
                         $classTotal = $group->sum('amount');
+                        $percentage = $class->teacher_percentage ?? 0;
 
-                        $teacherPremium = round(($classTotal * $teacher->precentage) / 100, 2);
-                        $instituteIncome = round($classTotal - $teacherPremium, 2);
+                        $teacherEarning = round(($classTotal * $percentage) / 100, 2);
+                        $instituteIncome = round($classTotal - $teacherEarning, 2);
 
                         return [
                             'class_id' => $class->id,
                             'class_name' => $class->class_name,
+                            'percentage' => $percentage,
                             'total_amount' => round($classTotal, 2),
-                            'teacher_earning' => $teacherPremium,
+                            'teacher_earning' => $teacherEarning,
                             'institute_income' => $instituteIncome
                         ];
                     })
                     ->values();
 
                 if ($classWiseTotals->isEmpty()) {
-                    $classWiseTotals = [[
+                    $classWiseTotals = collect([[
                         'class_id' => null,
                         'class_name' => null,
+                        'percentage' => 0,
                         'total_amount' => 0,
                         'teacher_earning' => 0,
                         'institute_income' => 0,
-                    ]];
+                    ]]);
                 }
 
+                // ---------- TOTALS ----------
                 $totalForMonth = $payments->sum('amount');
-                $teacherTotalEarning = round(($totalForMonth * $teacher->precentage) / 100, 2);
-                $institutionTotalIncome = round($totalForMonth - $teacherTotalEarning, 2);
+                $teacherTotalEarning = $classWiseTotals->sum('teacher_earning');
+                $institutionTotalIncome = $classWiseTotals->sum('institute_income');
 
-                $totalInstituteIncome += $institutionTotalIncome;
                 $totalTeacherPayments += $totalForMonth;
                 $totalTeacherEarnings += $teacherTotalEarning;
+                $totalInstituteIncome += $institutionTotalIncome;
 
+                // ---------- ADVANCE & SALARY ----------
                 $teacherMonthlyAdvance = TeacherPayment::where('teacher_id', $teacher->id)
                     ->where('reason_code', '!=', 'salary')
                     ->whereBetween('date', [$startOfMonth, $endOfMonth])
@@ -112,31 +121,28 @@ class InstitutePaymentService
                     ->where('payment_for', $monthYear)
                     ->sum('payment');
 
-                // ✅ Correct net earning (advance + salary + welfare deducted)
                 $teacherNetEarning = round(
-                    $teacherTotalEarning
-                        - ($teacherMonthlyAdvance + $teacherMonthlySalary),
+                    $teacherTotalEarning - ($teacherMonthlyAdvance + $teacherMonthlySalary),
                     2
                 );
 
-
                 $totalTeacherNetEarnings += $teacherNetEarning;
 
+                // ---------- RESULT ----------
                 $result[] = [
                     'teacher_id' => $teacher->id,
                     'teacher_name' => $teacher->fname . ' ' . $teacher->lname,
-                    'percentage' => $teacher->precentage,
                     'total_payments_this_month' => round($totalForMonth, 2),
-                    'teacher_total_earning' => $teacherTotalEarning,
+                    'teacher_total_earning' => round($teacherTotalEarning, 2),
                     'teacher_advance' => round($teacherMonthlyAdvance, 2),
                     'teacher_salary' => round($teacherMonthlySalary, 2),
                     'teacher_net_earning' => $teacherNetEarning,
-                    'institution_total_income' => $institutionTotalIncome,
+                    'institution_total_income' => round($institutionTotalIncome, 2),
                     'class_wise_totals' => $classWiseTotals
                 ];
             }
 
-            $calculatedInstituteIncome = round($totalTeacherPayments - $totalTeacherEarnings, 2);
+            // ---------- FINAL CALCULATIONS ----------
             $instituteIncomeWithAdmission = round($totalInstituteIncome + $admissionPayment, 2);
             $totalWithExtraIncome = round($instituteIncomeWithAdmission + $extraIncome, 2);
             $netIncome = round($totalWithExtraIncome - $totalExpenese, 2);
@@ -155,10 +161,7 @@ class InstitutePaymentService
                     'extra_income_for_month' => round($extraIncome, 2),
                     'total_institute_expenese' => round($totalExpenese, 2),
                     'institute_gross_income' => $totalWithExtraIncome,
-                    'institute_net_income' => $netIncome,
-                    'verification' => [
-                        'calculated_institute_income' => $calculatedInstituteIncome,
-                    ]
+                    'institute_net_income' => $netIncome
                 ],
                 'data' => $result
             ]);
@@ -169,6 +172,7 @@ class InstitutePaymentService
             ], 500);
         }
     }
+
 
 
 
@@ -203,46 +207,57 @@ class InstitutePaymentService
             $startOfMonth = Carbon::createFromFormat('Y-m', $yearMonth)->startOfMonth();
             $endOfMonth   = Carbon::createFromFormat('Y-m', $yearMonth)->endOfMonth();
 
+            // ---------- ADMISSION PAYMENTS ----------
             $admissionPayment = AdmissionPayments::whereBetween('created_at', [$startOfMonth, $endOfMonth])
                 ->sum('amount');
-            // Get total income from classes (without class details)
-            $teachers = Teacher::select('id', 'fname', 'lname', 'precentage')
-                ->where('is_active', 1)
-                ->get();
 
+            // ---------- TEACHER PAYMENTS & CLASS-WISE INCOME ----------
+            $teachers = Teacher::where('is_active', 1)->select('id', 'fname', 'lname')->get();
             $totalIncomeFromClasses = 0;
+
             foreach ($teachers as $teacher) {
                 $payments = Payments::where('status', 1)
                     ->whereBetween('payment_date', [$startOfMonth, $endOfMonth])
                     ->whereHas('studentStudentClass.studentClass', function ($q) use ($teacher) {
-                        $q->where('teacher_id', $teacher->id);
+                        $q->where('teacher_id', $teacher->id)
+                            ->where('is_active', 1);
                     })
-                    ->sum('amount');
+                    ->with('studentStudentClass.studentClass')
+                    ->get();
 
-                $totalForMonth = $payments;
-                $teacherTotalEarning = round(($totalForMonth * $teacher->precentage) / 100, 2);
-                $institutionTotalIncome = round($totalForMonth - $teacherTotalEarning, 2);
-                $totalIncomeFromClasses += $institutionTotalIncome;
+                $classWiseTotals = $payments
+                    ->groupBy(fn($p) => optional($p->studentStudentClass->studentClass)->id)
+                    ->map(function ($group) {
+                        $class = $group->first()->studentStudentClass->studentClass;
+                        $classTotal = $group->sum('amount');
+                        $percentage = $class->teacher_percentage ?? 0;
+
+                        $teacherEarning = round(($classTotal * $percentage) / 100, 2);
+                        $institutionIncome = round($classTotal - $teacherEarning, 2);
+
+                        return $institutionIncome;
+                    });
+
+                $totalIncomeFromClasses += $classWiseTotals->sum();
             }
 
-            // Get extra income
-            $extraIncome = (float) ExtraIncomes::whereBetween('created_at', [$startOfMonth, $endOfMonth])
+            // ---------- EXTRA INCOME ----------
+            $extraIncome = ExtraIncomes::whereBetween('created_at', [$startOfMonth, $endOfMonth])
                 ->sum('amount');
 
-            // Get expenses with details
+            // ---------- EXPENSES ----------
             $expenses = InstitutePayment::where('status', 1)
                 ->whereBetween('date', [$startOfMonth, $endOfMonth])
                 ->orderBy('date', 'desc')
                 ->get();
 
-            // Calculate total expenses
             $totalExpenses = $expenses->sum('payment');
 
-            // Calculate net total
+            // ---------- NET CALCULATION ----------
             $grossIncome = round($totalIncomeFromClasses + $extraIncome + $admissionPayment, 2);
             $netTotal = round($grossIncome - $totalExpenses, 2);
 
-            // Format expense details - FIXED: Use Carbon::parse() to convert string to Carbon
+            // ---------- EXPENSE DETAILS ----------
             $expenseDetails = $expenses->map(function ($expense) {
                 return [
                     'id' => $expense->id,
@@ -252,7 +267,7 @@ class InstitutePaymentService
                     'amount' => round($expense->payment, 2),
                     'status' => $expense->status,
                     'created_at' => $expense->created_at ? Carbon::parse($expense->created_at)->format('Y-m-d H:i:s') : null,
-                    'updated_at' => $expense->updated_at ? Carbon::parse($expense->updated_at)->format('Y-m-d H:i:s') : null
+                    'updated_at' => $expense->updated_at ? Carbon::parse($expense->updated_at)->format('Y-m-d H:i:s') : null,
                 ];
             });
 
@@ -262,6 +277,7 @@ class InstitutePaymentService
                 'summary' => [
                     'income_from_classes' => round($totalIncomeFromClasses, 2),
                     'extra_income' => round($extraIncome, 2),
+                    'admission_payment' => round($admissionPayment, 2),
                     'gross_income' => $grossIncome,
                     'total_expenses' => round($totalExpenses, 2),
                     'net_total' => $netTotal
@@ -277,6 +293,7 @@ class InstitutePaymentService
     }
 
 
+
     public function fetchYearlyIncomeChart($year)
     {
         try {
@@ -284,55 +301,65 @@ class InstitutePaymentService
             $monthLabels = [];
             $monthlyGrossIncomes = [];
 
+            // Total admission payments for the year
             $admission = AdmissionPayments::whereYear('created_at', $year)
                 ->sum('amount');
 
-            // Get all active teachers with their percentages
-            $teachers = Teacher::where('is_active', 1)
-                ->select('id', 'precentage')
-                ->get();
+            // Get all active teachers
+            $teachers = Teacher::where('is_active', 1)->select('id', 'fname', 'lname')->get();
 
-            // Loop through each month of the year
             for ($month = 1; $month <= 12; $month++) {
                 $startOfMonth = Carbon::create($year, $month, 1)->startOfMonth();
-                $endOfMonth = Carbon::create($year, $month, 1)->endOfMonth();
+                $endOfMonth   = Carbon::create($year, $month, 1)->endOfMonth();
 
                 $monthLabel = Carbon::create($year, $month, 1)->format('M');
                 $monthLabels[] = $monthLabel;
 
-                // Initialize total income from classes for this month
                 $totalIncomeFromClasses = 0;
 
-                if ($teachers->isNotEmpty()) {
-                    // Calculate income for each teacher individually
-                    foreach ($teachers as $teacher) {
-                        $payments = Payments::where('status', 1)
-                            ->whereBetween('payment_date', [$startOfMonth, $endOfMonth])
-                            ->whereHas('studentStudentClass.studentClass', function ($q) use ($teacher) {
-                                $q->where('teacher_id', $teacher->id);
-                            })
-                            ->sum('amount');
+                foreach ($teachers as $teacher) {
+                    // Get all payments for this teacher's classes in this month
+                    $payments = Payments::where('status', 1)
+                        ->whereBetween('payment_date', [$startOfMonth, $endOfMonth])
+                        ->whereHas('studentStudentClass.studentClass', function ($q) use ($teacher) {
+                            $q->where('teacher_id', $teacher->id);
+                        })
+                        ->with('studentStudentClass.studentClass')
+                        ->get();
 
-                        if ($payments > 0) {
-                            // Calculate teacher's earnings using their actual percentage
-                            $teacherEarnings = round(($payments * $teacher->precentage) / 100, 2);
-                            // Institute's income from this teacher's classes
-                            $institutionIncome = round($payments - $teacherEarnings, 2);
-                            $totalIncomeFromClasses += $institutionIncome;
-                        }
-                    }
+                    // Class-wise calculation
+                    $teacherClassIncome = $payments
+                        ->groupBy(fn($p) => optional($p->studentStudentClass->studentClass)->id)
+                        ->map(function ($group) {
+                            $class = $group->first()->studentStudentClass->studentClass;
+                            $classTotal = $group->sum('amount');
+                            $percentage = $class->teacher_percentage ?? 0;
+
+                            $teacherEarning = round(($classTotal * $percentage) / 100, 2);
+                            $institutionIncome = round($classTotal - $teacherEarning, 2);
+
+                            return [
+                                'class_id' => $class->id,
+                                'class_name' => $class->class_name,
+                                'teacher_percentage' => $percentage,
+                                'class_total' => round($classTotal, 2),
+                                'teacher_earning' => $teacherEarning,
+                                'institution_income' => $institutionIncome
+                            ];
+                        })
+                        ->values();
+
+                    // Sum up institute income from all classes for this teacher
+                    $totalIncomeFromClasses += $teacherClassIncome->sum('institution_income');
                 }
 
-                // Get extra income for this month
-                $extraIncome = (float) ExtraIncomes::whereBetween('created_at', [$startOfMonth, $endOfMonth])
+                // Extra income
+                $extraIncome = ExtraIncomes::whereBetween('created_at', [$startOfMonth, $endOfMonth])
                     ->sum('amount');
 
-                // Calculate gross income for this month (income from classes + extra income)
                 $grossIncome = round($totalIncomeFromClasses + $extraIncome, 2);
-
                 $monthlyGrossIncomes[] = $grossIncome;
 
-                // Store detailed data if needed
                 $monthlyData[] = [
                     'month' => $monthLabel,
                     'month_number' => $month,
@@ -342,7 +369,7 @@ class InstitutePaymentService
                 ];
             }
 
-            // Calculate yearly totals
+            // Yearly totals
             $yearlyIncomeFromClasses = array_sum(array_column($monthlyData, 'income_from_classes'));
             $yearlyExtraIncome = array_sum(array_column($monthlyData, 'extra_income'));
             $yearlyGrossIncome = array_sum($monthlyGrossIncomes);
@@ -368,6 +395,7 @@ class InstitutePaymentService
             ], 500);
         }
     }
+
 
 
 
