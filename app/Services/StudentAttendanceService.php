@@ -6,10 +6,13 @@ use App\Models\ClassAttendance;
 use App\Models\Student;
 use App\Models\StudentStudentStudentClass;
 use App\Models\ClassCategoryHasStudentClass;
+use App\Models\Payments;
 use App\Models\StudentAttendances;
+use App\Models\Titute;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Exception;
+use Illuminate\Support\Facades\Log;
 
 class StudentAttendanceService
 {
@@ -20,7 +23,9 @@ class StudentAttendanceService
         ]);
 
         try {
-            $student = Student::where('custom_id', $request->custom_id)->first();
+            $student = Student::where('custom_id', $request->custom_id)
+            ->where('student_disable',false)
+            ->first();
 
             if (!$student) {
                 return response()->json([
@@ -86,6 +91,22 @@ class StudentAttendanceService
             ->whereDate('date', $today)
             ->get();
 
+        // 4) Get student payment and attendance information
+        $lastPaymentRecord = Payments::where('student_id', $student_id)->latest()->first();
+
+        // Check if tute exists for this month (format: Y-m)
+        $thisMonthAlreadyTute = Titute::where('student_id', $student_id)
+            ->where('titute_for', $now->format('M Y'))
+            ->exists();
+
+        // Get all attendance IDs from today's classes for counting
+        $todaysClassIds = $todaysClasses->pluck('id')->toArray();
+
+        // Count attendance for this month for ALL classes (or specific if needed)
+        $attendanceCountThisMonth = StudentAttendances::where('student_id', $student_id)
+            ->whereBetween('at_date', [$now->copy()->startOfMonth(), $now->copy()->endOfMonth()])
+            ->count();
+
         $result = [];
 
         foreach ($enrollments as $enrollment) {
@@ -114,6 +135,12 @@ class StudentAttendanceService
                 // Check if current time is inside attendance window (1 hour before → end)
                 if (!$now->between($oneHourBefore, $end)) continue;
 
+                // Count attendance for THIS SPECIFIC class for this month
+                $attendanceCountForThisClass = StudentAttendances::where('student_id', $student_id)
+                    ->where('attendance_id', $todaysClass->id)  // For this specific class
+                    ->whereBetween('at_date', [$now->copy()->startOfMonth(), $now->copy()->endOfMonth()])
+                    ->count();
+
                 // Add to result
                 $result[] = [
                     'category_name' => $cat->classCategory->category_name ?? 'N/A',
@@ -124,6 +151,7 @@ class StudentAttendanceService
                     ],
                     'student' => [
                         'id' => $student_id,
+                        'img_url' => $enrollment->student->img_url ?? null,
                         'custom_id' => $enrollment->student->custom_id,
                         'first_name' => $enrollment->student->fname,
                         'last_name' => $enrollment->student->lname,
@@ -140,6 +168,21 @@ class StudentAttendanceService
                         'date' => Carbon::parse($todaysClass->date)->format('Y-m-d'),
                         'is_ongoing' => $todaysClass->is_ongoing,
                         'current_time' => $now->format('h:i A'),
+                    ],
+                    // Add payment and attendance information
+                    'payment_info' => $lastPaymentRecord ? [
+                        'last_payment_date' => $lastPaymentRecord->created_at->format('Y-m-d'),
+                        'last_payment_amount' => $lastPaymentRecord->amount,
+                        'payment_status' => $lastPaymentRecord->status,
+                    ] : null,
+                    'tute_info' => [
+                        'has_tute_for_this_month' => $thisMonthAlreadyTute,
+                        'current_month' => $now->format('F Y'),
+                    ],
+                    'attendance_info' => [
+                        'attendance_count_this_month_total' => $attendanceCountThisMonth,
+                        'attendance_count_for_this_class' => $attendanceCountForThisClass,
+                        'current_month' => $now->format('F Y'),
                     ]
                 ];
             }
@@ -172,58 +215,89 @@ class StudentAttendanceService
     public function storeAttendance(Request $request)
     {
         try {
-
-            // Validate input
             $request->validate([
                 'student_id' => 'required|integer',
-                'student_student_student_classes' => 'required|integer',
-                'status' => 'required|integer'
+                'student_student_student_classes_id' => 'required|integer',
+                'attendance_id' => 'required|integer',
+                'tute' => 'required|boolean',
+                'class_category_has_student_class_id' => 'nullable|integer',
             ]);
 
+            $date = now()->toDateString();
+            $studentId = $request->student_id;
+            $studentClassId = $request->student_student_student_classes_id;
+            $attendanceId = $request->attendance_id;
 
-            $date = date('Y-m-d');
-            $student_id = $request->student_id;
-            $student_student_student_classes_id = $request->student_student_student_classes;
-            $class_attendance_id = $request->status;
-
-            // Check duplicate
+            // Check duplicate attendance
             $exists = StudentAttendances::whereDate('at_date', $date)
-                ->where('student_id', $student_id)
-                ->where('student_student_student_classes', $student_student_student_classes_id)
-                ->where('status', $class_attendance_id)
+                ->where('student_id', $studentId)
+                ->where('student_student_student_classes_id', $studentClassId)
+                ->where('attendance_id', $attendanceId)
                 ->exists();
 
             if ($exists) {
                 return response()->json([
                     'status' => 'duplicate',
-                    'message' => 'Attendance for this student in this class with this status has already been added for today.'
+                    'message' => 'Attendance already marked for today',
+                    'attendance_marked' => false,
+                    'tute_marked' => false,
                 ], 409);
             }
 
-            // Create attendance
+            // Mark attendance
             $attendance = StudentAttendances::create([
                 'at_date' => $date,
-                'student_student_student_classes' => $student_student_student_classes_id,
-                'student_id' => $student_id,
-                'status' => $class_attendance_id
+                'student_student_student_classes_id' => $studentClassId,
+                'student_id' => $studentId,
+                'attendance_id' => $attendanceId,
             ]);
 
-            // Update class attendance status
-            $this->classAttendanceStatusUpdate($class_attendance_id);
+            $attendanceMarked = true;
+            $tuteMarked = false;
+
+            if ($attendanceMarked) {
+                $this->classAttendanceStatusUpdate($attendanceId);
+            }
+
+            // Mark tute if true
+            if ($request->tute === true && $request->class_category_has_student_class_id) {
+                $month = now()->startOfMonth();
+
+                $tuteExists = Titute::where('student_id', $studentId)
+                    ->where('class_category_has_student_class_id', $request->class_category_has_student_class_id)
+                    ->whereMonth('created_at', $month->month)
+                    ->whereYear('created_at', $month->year)
+                    ->exists();
+
+                if (!$tuteExists) {
+                    Titute::create([
+                        'student_id' => $studentId,
+                        'class_category_has_student_class_id' => $request->class_category_has_student_class_id,
+                        'titute_for' => $month->format('M Y'),
+                        'status' => 1,
+                        'created_at' => $month,
+                    ]);
+
+                    $tuteMarked = true;
+                }
+            }
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Attendance added successfully!',
-                'data' => $attendance
+                'message' => 'Attendance marked successfully',
+                'attendance_marked' => $attendanceMarked,
+                'tute_marked' => $tuteMarked,
             ]);
         } catch (Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Something went wrong while saving attendance. Please try again.',
-                'error' => $e->getMessage()
+                'message' => 'Something went wrong while saving attendance',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
+
+
 
     /**
      * Update the class attendance status after student attendance is added
@@ -247,11 +321,11 @@ class StudentAttendanceService
     {
         $request->validate([
             'student_id' => 'required|integer',
-            'student_student_student_classes' => 'required|integer'
+            'student_student_student_classes_id' => 'required|integer'
         ]);
 
         $student_id = $request->student_id;
-        $student_student_student_classes_id = $request->student_student_student_classes;
+        $student_student_student_classes_id = $request->student_student_student_classes_id;
 
         try {
             $records = StudentAttendances::with([
@@ -259,7 +333,7 @@ class StudentAttendanceService
                 'studentStudentClass.studentClass' // use camelCase function name
             ])
                 ->where('student_id', $student_id)
-                ->where('student_student_student_classes', $student_student_student_classes_id)
+                ->where('student_student_student_classes_id', $student_student_student_classes_id)
                 ->orderBy('at_date', 'asc')
                 ->get();
 
@@ -279,6 +353,63 @@ class StudentAttendanceService
         }
     }
 
+    public function getStudentAttendances($studentId, $classCategoryHasStudentClassId)
+    {
+        try {
+            // Step 1: Get the class record
+            $studentClass = StudentStudentStudentClass::where('student_id', $studentId)
+                ->where('class_category_has_student_class_id', $classCategoryHasStudentClassId)
+                ->firstOrFail();
+
+            // Step 2: Get all active ongoing attendance records for this class
+            $classAttendances = ClassAttendance::where('class_category_has_student_class_id', $classCategoryHasStudentClassId)
+                ->where('status', 1)
+                ->where('is_ongoing', 1)
+                ->orderBy('date', 'asc')
+                ->get();
+
+            $attendanceData = [];
+            $presentCount = 0;
+
+            foreach ($classAttendances as $attendance) {
+                $studentAttendance = StudentAttendances::where('student_id', $studentId)
+                    ->where('student_student_student_classes_id', $studentClass->id)
+                    ->where('attendance_id', $attendance->id)
+                    ->first();
+
+                $status = $studentAttendance ? 'Present' : 'Absent';
+
+                if ($status === 'Present') {
+                    $presentCount++;
+                }
+
+                $attendanceData[] = [
+                    'date' => $attendance->date,
+                    'status' => $status,
+                ];
+            }
+
+            $totalClasses = count($classAttendances);
+            $percentage = $totalClasses > 0 ? round(($presentCount / $totalClasses) * 100, 2) : 0;
+
+            return response()->json([
+                'status' => 'success',
+                'total_records' => $totalClasses,
+                'present_count' => $presentCount,
+                'attendance_percentage' => $percentage,
+                'data' => $attendanceData
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to fetch attendance records.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+
     // ================================
     // UPDATE ATTENDANCE
     // ================================
@@ -289,7 +420,7 @@ class StudentAttendanceService
             // Validate input
             $request->validate([
                 'student_id' => 'required|integer',
-                'student_student_student_classes' => 'required|integer',
+                'student_student_student_classes_id' => 'required|integer',
                 'status' => 'required|integer' // status = class_attendance id
             ]);
 
@@ -307,7 +438,7 @@ class StudentAttendanceService
             // Check duplicate except current record
             $duplicate = StudentAttendances::whereDate('at_date', $date)
                 ->where('student_id', $request->student_id)
-                ->where('student_student_student_classes', $request->student_student_student_classes)
+                ->where('student_student_student_classes_id', $request->student_student_student_classes_id)
                 ->where('status', $request->status)
                 ->where('id', '!=', $id)
                 ->exists();
@@ -322,7 +453,7 @@ class StudentAttendanceService
             // Update record
             $attendance->update([
                 'student_id' => $request->student_id,
-                'student_student_student_classes' => $request->student_student_student_classes,
+                'student_student_student_classes_id' => $request->student_student_student_classes_id,
                 'status' => $request->status
             ]);
 
@@ -350,7 +481,7 @@ class StudentAttendanceService
 
             // Attendance Count
             $count = StudentAttendances::where('student_id', $student_id)
-                ->where('student_student_student_classes', $student_class_id)
+                ->where('student_student_student_classes_id', $student_class_id)
                 ->whereBetween('at_date', [$start, $end])
                 ->count();
 
@@ -422,7 +553,7 @@ class StudentAttendanceService
             $attendanceRecords = StudentAttendances::with('student')
                 ->whereIn('student_id', $studentIds)
                 ->whereDate('at_date', $today)
-                ->where('status', $attendance_id)
+                ->where('attendance_id', $attendance_id)
                 ->get()
                 ->keyBy('student_id');
 

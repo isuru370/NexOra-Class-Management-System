@@ -817,7 +817,6 @@
             <a href="{{ route('mobile-app') }}" class="nav-link">Mobile App</a>
             <a href="{{ route('web-platform') }}" class="nav-link active">Web Platform</a>
             <a href="{{ route('pricing') }}" class="nav-link">Pricing</a>
-            <a href="{{ route('interactive-learning') }}" class="nav-link">Features</a>
         </div>
     </nav>
 
@@ -826,9 +825,8 @@
         <div class="mobile-nav-links">
             <a href="{{ url('/') }}" class="mobile-nav-link">Home</a>
             <a href="{{ route('mobile-app') }}" class="mobile-nav-link">Mobile App</a>
-            <a href="{{ route('web-platform') }}" class="mobile-nav-link active">Web Platform</a>
+            <a href="{{ route('web-platform') }}" class="mobile-nav-link">Web Platform</a>
             <a href="{{ route('pricing') }}" class="mobile-nav-link">Pricing</a>
-            <a href="{{ route('interactive-learning') }}" class="mobile-nav-link">Features</a>
             <a href="{{ route('login') }}" class="mobile-nav-link"
                 style="background: var(--accent-green); color: white;">
                 <i class="fas fa-sign-in-alt"></i> ACCESS LOGIN
@@ -1148,6 +1146,7 @@
                 <a href="{{ route('login') }}" class="btn btn-primary">
                     <i class="fas fa-sign-in-alt"></i> Access Web Platform
                 </a>
+                <a href="{{ route('web-platform') }}" class="mobile-nav-link">Web Platform</a>
                 <a href="{{ route('pricing') }}" class="btn btn-secondary">
                     <i class="fas fa-tags"></i> View Pricing
                 </a>
@@ -1184,9 +1183,7 @@
             <div class="footer-links">
                 <a href="{{ url('/') }}" class="footer-link">Home</a>
                 <a href="{{ route('mobile-app') }}" class="footer-link">Mobile App</a>
-                <a href="{{ route('web-platform') }}" class="footer-link">Web Platform</a>
                 <a href="{{ route('pricing') }}" class="footer-link">Pricing</a>
-                <a href="{{ route('interactive-learning') }}" class="footer-link">Features</a>
                 <a href="{{ route('login') }}" class="footer-link">Login</a>
             </div>
             <p>&copy; 2024 NEXORA Education System. All rights reserved.</p>

@@ -12,7 +12,7 @@ class SmsService
     public function __construct()
     {
         $this->authToken = env('SEND_LK_TOKEN');
-        $this->defaultSender = env('SEND_LK_DEFAULT_SENDER', 'Success_Edu');
+        $this->defaultSender = env('SEND_LK_DEFAULT_SENDER', 'NexOraCMS');
     }
 
     public function sendSMS($mobile, $message, $senderId = null)

@@ -8,9 +8,12 @@ use App\Http\Controllers\ClassAttendanceController;
 use App\Http\Controllers\ClassHallsController;
 use App\Http\Controllers\ClassRoomController;
 use App\Http\Controllers\EmailsController;
+use App\Http\Controllers\ExamController;
 use App\Http\Controllers\InstitutePaymentController;
+use App\Http\Controllers\PageController;
 use App\Http\Controllers\PaymentReasonController;
 use App\Http\Controllers\PaymentsController;
+use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\ReceiptController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingsCodeController;
@@ -64,7 +67,7 @@ Route::middleware(['guest'])->group(function () {
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // Protected routes (login වී ඇති users සඳහා පමණි)
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'check.permission'])->group(function () {
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/home', [DashboardController::class, 'index'])->name('home');
@@ -97,6 +100,8 @@ Route::middleware(['auth'])->group(function () {
 
     Route::prefix('students')->group(function () {
         Route::get('/', [StudentController::class, 'index'])->name('students.index');
+        Route::get('/import', [StudentController::class, 'showImportForm'])->name('students.import.form');
+        Route::post('/import', [StudentController::class, 'import'])->name('students.import');
         Route::get('/create', [StudentController::class, 'create'])->name('students.create');
 
         // PUT THIS ABOVE THE {id} ROUTE
@@ -110,6 +115,7 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('/{id}/edit', [StudentController::class, 'editPage'])->name('students.edit');
         Route::get('/{custom_id}', [StudentController::class, 'show'])->name('students.show');
+        Route::get('/{classCategoryHasStudentClassId}/{student_id}/exam-results', [StudentController::class, 'examResults'])->name('students.exam_results');
     });
 
     // ====================================================
@@ -138,6 +144,8 @@ Route::middleware(['auth'])->group(function () {
     });
 
 
+
+
     Route::prefix('class-rooms')->group(function () {
         Route::get('/', [ClassRoomController::class, 'index'])->name('class_rooms.index');
         Route::get('/create', [ClassRoomController::class, 'create'])->name('class_rooms.create');
@@ -145,6 +153,14 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/add_class_category/{id}', [ClassRoomController::class, 'classCategoryAdd'])->name('class_rooms.add_class_category');
         Route::get('/{id}/edit', [ClassRoomController::class, 'edit'])->name('class_rooms.edit');
         Route::get('/{id}', [ClassRoomController::class, 'show'])->name('class_rooms.show');
+    });
+
+    Route::prefix('student-exam')->group(function () {
+        Route::get('/', [ExamController::class, 'indexPage'])->name('student_exam.index');
+        Route::get('/create', [ExamController::class, 'createPage'])->name('student_exam.create');
+
+        // Dynamic route must come after static ones
+        Route::get('/{exam_id}/marks/create', [ExamController::class, 'enterMarks'])->name('student_exam.marks');
     });
 
     Route::prefix('halls')->group(function () {
@@ -271,5 +287,14 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/', [TeacherLedgerSummaryController::class, 'index'])->name('index');
         Route::get('/export-excel', [TeacherLedgerSummaryController::class, 'exportExcel'])->name('export.excel');
         Route::get('/export-pdf', [TeacherLedgerSummaryController::class, 'exportPDF'])->name('export.pdf');
+    });
+
+
+    /*=================================================
+    Permission  Sections
+    /*================================================= */
+
+    Route::prefix('permission')->name('permission.')->group(function () {
+        Route::get('/{userId}', [PageController::class, 'index'])->name('index');
     });
 });

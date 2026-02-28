@@ -142,4 +142,39 @@ class ClassCategoryHasStudentService
             ]);
         }
     }
+
+    public function classCategoryHasStudentDropdown()
+    {
+        $records = ClassCategoryHasStudentClass::with([
+            'studentClass:id,class_name,grade_id,subject_id',
+            'studentClass.grade:id,grade_name',
+            'studentClass.subject:id,subject_name',
+            'classCategory:id,category_name'
+        ])
+            ->whereHas('studentClass', function ($query) {
+                $query->where('is_ongoing', 1);
+            })
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'class_name' => $item->studentClass->class_name ?? null,
+                    'grade_name' => $item->studentClass->grade->grade_name ?? null,
+                    'subject_name' => $item->studentClass->subject->subject_name ?? null,
+                    'category_name' => $item->classCategory->category_name ?? null,
+                ];
+            });
+
+        if ($records->isEmpty()) {
+            return response()->json([
+                'status' => 'empty',
+                'message' => 'No categories assigned to this class'
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $records
+        ]);
+    }
 }

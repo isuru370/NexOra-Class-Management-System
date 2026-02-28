@@ -23,7 +23,6 @@ class ImageUploadService
             $extension = $image->getClientOriginalExtension();
             $imageName = time() . '.' . strtolower($extension);
 
-            // ✅ නිවැරදි මාර්ගය: public_path භාවිතා කරන්න
             $uploadPath = public_path('uploads');
 
             if (!file_exists($uploadPath)) {
@@ -34,13 +33,7 @@ class ImageUploadService
             $image->move($uploadPath, $imageName);
             chmod($finalPath, 0644);
 
-            // ✅ නිවැරදි URL: asset() භාවිතා කරන්න
             $imageURL = asset('uploads/' . $imageName);
-
-            Log::info('Image uploaded', [
-                'filename' => $imageName,
-                'url' => $imageURL,
-            ]);
 
             return response()->json([
                 'status' => 'success',
@@ -48,7 +41,10 @@ class ImageUploadService
                 'message' => 'Image uploaded successfully'
             ]);
         } catch (\Exception $e) {
-            // දෝෂ කළමනාකරණය
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Image upload failed: ' . $e->getMessage()
+            ], 500);
         }
     }
 

@@ -235,7 +235,7 @@
                                             <option value="">Select Grade</option>
                                             <!-- Grades will be populated via JavaScript -->
                                         </select>
-                                        
+
                                     </div>
 
                                     <div class="col-md-6 mb-3">
@@ -258,14 +258,6 @@
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">Admission</label>
                                         <select name="admission" class="form-select">
-                                            <option value="0">No</option>
-                                            <option value="1">Yes</option>
-                                        </select>
-                                    </div>
-
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Free Card</label>
-                                        <select name="is_freecard" class="form-select">
                                             <option value="0">No</option>
                                             <option value="1">Yes</option>
                                         </select>
@@ -615,7 +607,7 @@
             }
 
             // Validate required fields
-            const requiredFields = ['fname', 'lname', 'mobile', 'bday', 'gender', 'address1', 'guardian_fname', 'guardian_mobile', 'grade_id','class_type'];
+            const requiredFields = ['fname', 'lname', 'mobile', 'bday', 'gender', 'address1', 'guardian_fname', 'guardian_mobile', 'grade_id', 'class_type'];
             const missingFields = [];
 
             requiredFields.forEach(field => {
@@ -640,7 +632,7 @@
             for (let [key, value] of formData.entries()) {
                 if (value) {
                     // Convert string '0'/'1' to boolean for specific fields
-                    if (['admission', 'is_freecard'].includes(key)) {
+                    if (['admission'].includes(key)) {
                         studentData[key] = value === '1';
                     } else if (key === 'grade_id') {
                         studentData[key] = parseInt(value) || value;
@@ -677,15 +669,20 @@
                         await deactivateQuickImage(selectedQuickImageId);
                     }
 
-                    const studentId = studentResult.data?.custom_id || studentResult.custom_id || 'N/A';
+                    // Safely get the custom_id
+                    const studentId = studentResult.data?.custom_id
+                        || studentResult.data?.student?.custom_id
+                        || studentResult.custom_id
+                        || 'N/A';
+
                     showAlert(`Student registered successfully! Student ID: ${studentId}`, 'success');
 
                     // Reset form after delay
                     setTimeout(() => {
                         resetForm();
                     }, 2000);
-
-                } else if (studentResult.status === 'error' && studentResult.errors) {
+                }
+                else if (studentResult.status === 'error' && studentResult.errors) {
                     // Handle validation errors
                     const errorMessages = Object.values(studentResult.errors).flat().join(', ');
                     throw new Error('Validation failed: ' + errorMessages);
@@ -761,15 +758,15 @@
                     type === 'info' ? 'fa-info-circle' : 'fa-times-circle';
 
             alertDiv.innerHTML = `
-                        <div class="d-flex align-items-start">
-                            <i class="fas ${icon} fa-lg me-3 mt-1"></i>
-                            <div class="flex-grow-1">
-                                <strong>${type === 'success' ? 'Success!' : type === 'warning' ? 'Warning!' : type === 'info' ? 'Info:' : 'Error!'}</strong> 
-                                <span>${message}</span>
+                            <div class="d-flex align-items-start">
+                                <i class="fas ${icon} fa-lg me-3 mt-1"></i>
+                                <div class="flex-grow-1">
+                                    <strong>${type === 'success' ? 'Success!' : type === 'warning' ? 'Warning!' : type === 'info' ? 'Info:' : 'Error!'}</strong> 
+                                    <span>${message}</span>
+                                </div>
+                                <button type="button" class="btn-close ms-2" data-bs-dismiss="alert"></button>
                             </div>
-                            <button type="button" class="btn-close ms-2" data-bs-dismiss="alert"></button>
-                        </div>
-                    `;
+                        `;
 
             document.body.appendChild(alertDiv);
             currentAlert = alertDiv;
@@ -800,18 +797,18 @@
                 }
 
                 return `
-                            <div class="quick-image-item card mb-2 p-2" onclick="selectQuickImage(${img.id}, '${imageUrl}', '${img.custom_id || 'No ID'}')">
-                                <div class="row g-2 align-items-center">
-                                    <div class="col-3">
-                                        <img src="${imageUrl}" class="img-fluid rounded" style="height: 60px; object-fit: cover; width: 100%;">
-                                    </div>
-                                    <div class="col-9">
-                                        <small class="fw-bold">ID: ${img.custom_id || 'No ID'}</small><br>
-                                        <small class="text-muted">Grade: ${img.grade?.grade_name || 'N/A'}</small>
+                                <div class="quick-image-item card mb-2 p-2" onclick="selectQuickImage(${img.id}, '${imageUrl}', '${img.custom_id || 'No ID'}')">
+                                    <div class="row g-2 align-items-center">
+                                        <div class="col-3">
+                                            <img src="${imageUrl}" class="img-fluid rounded" style="height: 60px; object-fit: cover; width: 100%;">
+                                        </div>
+                                        <div class="col-9">
+                                            <small class="fw-bold">ID: ${img.custom_id || 'No ID'}</small><br>
+                                            <small class="text-muted">Grade: ${img.grade?.grade_name || 'N/A'}</small>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        `;
+                            `;
             }).join('');
         }
     </script>

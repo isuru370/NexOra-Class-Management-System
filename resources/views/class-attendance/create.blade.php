@@ -226,7 +226,7 @@
                         <div class="mb-3">
                             <label for="edit_start_time" class="form-label">Start Time <span
                                     class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="edit_start_time" name="start_time" 
+                            <input type="text" class="form-control" id="edit_start_time" name="start_time"
                                 placeholder="e.g., 9:00 AM, 2:30 PM" required>
                             <small class="text-muted">Sri Lankan Time Format (12-hour with AM/PM)</small>
                         </div>
@@ -235,7 +235,7 @@
                         <div class="mb-3">
                             <label for="edit_end_time" class="form-label">End Time <span
                                     class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="edit_end_time" name="end_time" 
+                            <input type="text" class="form-control" id="edit_end_time" name="end_time"
                                 placeholder="e.g., 10:00 AM, 3:30 PM" required>
                             <small class="text-muted">Sri Lankan Time Format (12-hour with AM/PM)</small>
                         </div>
@@ -289,7 +289,7 @@
             font-weight: 600;
             border: none;
         }
-        
+
         /* Sri Lankan Time Format Styling */
         .sl-time {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -331,8 +331,8 @@
                 const data = await response.json();
                 const classDetailsDiv = document.getElementById('classDetails');
 
-                if (data.data && data.data.length > 0) {
-                    const firstRecord = data.data[0];
+                if (data.data && data.data.data && data.data.data.length > 0) {
+                    const firstRecord = data.data.data[0];
                     const classData = firstRecord.class_category_student_class;
                     const hallData = firstRecord.hall;
 
@@ -366,24 +366,24 @@
                     }
 
                     classDetailsDiv.innerHTML = `
-                                                <p class="mb-1"><strong>Class Category Student Class ID:</strong> ${classCategoryHasStudentClassId}</p>
-                                                <p class="mb-1"><strong>Fees:</strong> Rs. ${classData.fees || '0'}</p>
-                                                <p class="mb-1"><strong>Student Class:</strong> ${classRoomDetails}</p>
-                                                <p class="mb-1"><strong>Class Category:</strong> ${categoryDetails}</p>
-                                                ${hallData ? `<p class="mb-0"><strong>Default Hall:</strong> ${hallData.hall_name} (${hallData.hall_id})</p>` : ''}
-                                            `;
+                                                        <p class="mb-1"><strong>Class Category Student Class ID:</strong> ${classCategoryHasStudentClassId}</p>
+                                                        <p class="mb-1"><strong>Fees:</strong> Rs. ${classData.fees || '0'}</p>
+                                                        <p class="mb-1"><strong>Student Class:</strong> ${classRoomDetails}</p>
+                                                        <p class="mb-1"><strong>Class Category:</strong> ${categoryDetails}</p>
+                                                        ${hallData ? `<p class="mb-0"><strong>Default Hall:</strong> ${hallData.hall_name} (${hallData.hall_id})</p>` : ''}
+                                                    `;
                 } else {
                     classDetailsDiv.innerHTML = `
-                                                <p class="mb-0"><strong>Class Category Student Class ID:</strong> ${classCategoryHasStudentClassId}</p>
-                                                <p class="mb-0 text-muted">No detailed information available</p>
-                                            `;
+                                                        <p class="mb-0"><strong>Class Category Student Class ID:</strong> ${classCategoryHasStudentClassId}</p>
+                                                        <p class="mb-0 text-muted">No detailed information available</p>
+                                                    `;
                 }
             } catch (error) {
                 console.error('Error loading class details:', error);
                 document.getElementById('classDetails').innerHTML = `
-                                            <p class="mb-0"><strong>Class Category Student Class ID:</strong> ${classCategoryHasStudentClassId}</p>
-                                            <p class="mb-0 text-muted">Failed to load class details</p>
-                                        `;
+                                                    <p class="mb-0"><strong>Class Category Student Class ID:</strong> ${classCategoryHasStudentClassId}</p>
+                                                    <p class="mb-0 text-muted">Failed to load class details</p>
+                                                `;
             }
         }
 
@@ -443,11 +443,11 @@
             const originalText = submitBtn.innerHTML;
 
             const formData = new FormData(document.getElementById('bulkAttendanceForm'));
-            
+
             // Convert time inputs to Sri Lankan format
             const startTimeSL = formatToSriLankanTime(formData.get('start_time'));
             const endTimeSL = formatToSriLankanTime(formData.get('end_time'));
-            
+
             const data = {
                 class_category_has_student_class_id: classCategoryHasStudentClassId,
                 start_month: formData.get('start_month'),
@@ -522,16 +522,32 @@
             fetch(`/api/class-attendances/${classCategoryHasStudentClassId}`)
                 .then(response => response.json())
                 .then(data => {
-                    allAttendanceData = data.data || [];
+
+                    console.log("Full API Response:", data);
+
+                    // Case 1: Direct array
+                    if (Array.isArray(data.data)) {
+                        allAttendanceData = data.data;
+                    }
+
+                    // Case 2: Laravel paginate() structure
+                    else if (data.data && Array.isArray(data.data.data)) {
+                        allAttendanceData = data.data.data;
+
+                        // Optional: If you want backend pagination instead
+                        totalPages = data.data.last_page;
+                        currentPage = data.data.current_page;
+                    }
+
+                    // Case 3: Unknown structure
+                    else {
+                        console.error("Unexpected response structure:", data);
+                        allAttendanceData = [];
+                    }
+
                     renderAttendanceTable(allAttendanceData);
                     updateAttendanceSummary(allAttendanceData);
                     hideAttendanceLoading();
-
-                    // Update total records count
-                    const totalRecordsElement = document.getElementById('totalRecords');
-                    if (totalRecordsElement) {
-                        totalRecordsElement.textContent = allAttendanceData.length;
-                    }
                 })
                 .catch(error => {
                     console.error('Error loading attendance data:', error);
@@ -609,40 +625,40 @@
                     '';
 
                 const row = `
-                    <tr class="${statusClass}">
-                        <td class="fw-bold text-muted">${actualIndex + 1}</td>
-                        <td>${formattedDate}</td>
-                        <td>${record.day_of_week || 'N/A'}</td>
-                        <td class="sl-time">${startTimeDisplay}</td>
-                        <td class="sl-time">${endTimeDisplay}</td>
-                        <td>${record.hall ? record.hall.hall_name : 'N/A'}</td>
-                        <td>
-                            <span class="badge ${statusClass.includes('marked') ? 'bg-success' : statusClass.includes('pending') ? 'bg-warning' : 'bg-danger'}">
-                                ${statusText}
-                            </span>
-                        </td>
-                        <td class="text-center">
-                            ${canEdit ?
+                            <tr class="${statusClass}">
+                                <td class="fw-bold text-muted">${actualIndex + 1}</td>
+                                <td>${formattedDate}</td>
+                                <td>${record.day_of_week || 'N/A'}</td>
+                                <td class="sl-time">${startTimeDisplay}</td>
+                                <td class="sl-time">${endTimeDisplay}</td>
+                                <td>${record.hall ? record.hall.hall_name : 'N/A'}</td>
+                                <td>
+                                    <span class="badge ${statusClass.includes('marked') ? 'bg-success' : statusClass.includes('pending') ? 'bg-warning' : 'bg-danger'}">
+                                        ${statusText}
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    ${canEdit ?
                         `<button class="btn btn-outline-warning btn-sm" title="Edit Attendance" 
-                                    onclick="editAttendance(
-                                        ${classattendanceId},
-                                        ${classCategoryHasStudentClassId},
-                                        '${record.date}',
-                                        '${record.day_of_week || ''}',
-                                        '${record.start_time || ''}',
-                                        '${record.end_time || ''}',
-                                        '${record.status}',
-                                        ${record.class_hall_id}
-                                    )">
-                                    <i class="fas fa-edit"></i>
-                                </button>`
+                                            onclick="editAttendance(
+                                                ${classattendanceId},
+                                                ${classCategoryHasStudentClassId},
+                                                '${record.date}',
+                                                '${record.day_of_week || ''}',
+                                                '${record.start_time || ''}',
+                                                '${record.end_time || ''}',
+                                                '${record.status}',
+                                                ${record.class_hall_id}
+                                            )">
+                                            <i class="fas fa-edit"></i>
+                                        </button>`
                         :
                         '<button class="btn btn-outline-secondary btn-sm" disabled title="Cannot Edit"><i class="fas fa-edit"></i></button>'
                     }
-                            ${deleteLabel}
-                        </td>
-                    </tr>
-                `;
+                                    ${deleteLabel}
+                                </td>
+                            </tr>
+                        `;
                 tbody.innerHTML += row;
             });
 
@@ -657,45 +673,45 @@
             const endRecord = Math.min(currentPage * recordsPerPage, totalRecords);
 
             paginationDiv.innerHTML = `
-                            <div class="row align-items-center">
-                                <div class="col-md-6">
-                                    <div class="d-flex align-items-center">
-                                        <span class="text-muted me-2">Show:</span>
-                                        <select class="form-select form-select-sm" style="width: auto;" onchange="changeRecordsPerPage(this.value)">
-                                            <option value="10" ${recordsPerPage === 10 ? 'selected' : ''}>10</option>
-                                            <option value="25" ${recordsPerPage === 25 ? 'selected' : ''}>25</option>
-                                            <option value="50" ${recordsPerPage === 50 ? 'selected' : ''}>50</option>
-                                            <option value="100" ${recordsPerPage === 100 ? 'selected' : ''}>100</option>
-                                        </select>
-                                        <span class="text-muted ms-2">records per page</span>
-                                    </div>
-                                </div>
-                                <div class="col-md-6 text-end">
-                                    <div class="d-flex align-items-center justify-content-end">
-                                        <span class="text-muted me-3">
-                                            Showing ${startRecord} to ${endRecord} of ${totalRecords} records
-                                        </span>
-                                        <nav>
-                                            <ul class="pagination pagination-sm mb-0">
-                                                <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-                                                    <a class="page-link" href="#" onclick="changePage(${currentPage - 1}); return false;">
-                                                        <i class="fas fa-chevron-left"></i>
-                                                    </a>
-                                                </li>
+                                    <div class="row align-items-center">
+                                        <div class="col-md-6">
+                                            <div class="d-flex align-items-center">
+                                                <span class="text-muted me-2">Show:</span>
+                                                <select class="form-select form-select-sm" style="width: auto;" onchange="changeRecordsPerPage(this.value)">
+                                                    <option value="10" ${recordsPerPage === 10 ? 'selected' : ''}>10</option>
+                                                    <option value="25" ${recordsPerPage === 25 ? 'selected' : ''}>25</option>
+                                                    <option value="50" ${recordsPerPage === 50 ? 'selected' : ''}>50</option>
+                                                    <option value="100" ${recordsPerPage === 100 ? 'selected' : ''}>100</option>
+                                                </select>
+                                                <span class="text-muted ms-2">records per page</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 text-end">
+                                            <div class="d-flex align-items-center justify-content-end">
+                                                <span class="text-muted me-3">
+                                                    Showing ${startRecord} to ${endRecord} of ${totalRecords} records
+                                                </span>
+                                                <nav>
+                                                    <ul class="pagination pagination-sm mb-0">
+                                                        <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                                                            <a class="page-link" href="#" onclick="changePage(${currentPage - 1}); return false;">
+                                                                <i class="fas fa-chevron-left"></i>
+                                                            </a>
+                                                        </li>
 
-                                                ${generatePageNumbers()}
+                                                        ${generatePageNumbers()}
 
-                                                <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
-                                                    <a class="page-link" href="#" onclick="changePage(${currentPage + 1}); return false;">
-                                                        <i class="fas fa-chevron-right"></i>
-                                                    </a>
-                                                </li>
-                                            </ul>
-                                        </nav>
+                                                        <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                                                            <a class="page-link" href="#" onclick="changePage(${currentPage + 1}); return false;">
+                                                                <i class="fas fa-chevron-right"></i>
+                                                            </a>
+                                                        </li>
+                                                    </ul>
+                                                </nav>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                            </div>
-                        `;
+                                `;
         }
 
         // Generate Page Numbers
@@ -711,10 +727,10 @@
 
             for (let i = startPage; i <= endPage; i++) {
                 pageNumbers += `
-                                <li class="page-item ${currentPage === i ? 'active' : ''}">
-                                    <a class="page-link" href="#" onclick="changePage(${i}); return false;">${i}</a>
-                                </li>
-                            `;
+                                        <li class="page-item ${currentPage === i ? 'active' : ''}">
+                                            <a class="page-link" href="#" onclick="changePage(${i}); return false;">${i}</a>
+                                        </li>
+                                    `;
             }
 
             return pageNumbers;
@@ -738,7 +754,7 @@
         function editAttendance(classattendanceId, classCategoryHasStudentClassId, date, dayOfWeek, startTime, endTime, status, classHallId) {
             document.getElementById('edit_attendance_id').value = classattendanceId;
             document.getElementById('edit_class_category_has_student_class_id').value = classCategoryHasStudentClassId;
-            
+
             // Format date for display
             const formattedDate = formatDateToSriLankan(date);
             document.getElementById('edit_date_display').textContent = formattedDate;
@@ -809,7 +825,7 @@
             // Time comparison validation
             const startTime24 = convertTo24Hour(startTimeSL);
             const endTime24 = convertTo24Hour(endTimeSL);
-            
+
             if (startTime24 >= endTime24) {
                 showAlert('End time must be after start time', 'warning');
                 return;
@@ -853,17 +869,17 @@
         // Format time to Sri Lankan format (12-hour with AM/PM)
         function formatToSriLankanTime(timeString) {
             if (!timeString) return '';
-            
+
             // If already in 12-hour format with AM/PM, return as is
             if (timeString.match(/\d{1,2}:\d{2}\s*(AM|PM)/i)) {
                 return timeString.toUpperCase();
             }
-            
+
             // Convert 24-hour format to 12-hour Sri Lankan format
             const [hours, minutes] = timeString.split(':');
             const hour = parseInt(hours);
             const minute = minutes || '00';
-            
+
             if (hour >= 12) {
                 const displayHour = hour > 12 ? hour - 12 : hour;
                 return `${displayHour}:${minute} PM`;
@@ -876,7 +892,7 @@
         // Format time input to Sri Lankan display format
         function formatToSriLankanDisplay(timeString) {
             if (!timeString) return 'N/A';
-            
+
             // Convert any format to proper Sri Lankan format
             const formattedTime = formatToSriLankanTime(timeString);
             return formattedTime;
@@ -885,44 +901,44 @@
         // Format time from user input to Sri Lankan time
         function formatToSriLankanTimeFromInput(input) {
             if (!input) return '';
-            
+
             // Remove extra spaces and convert to uppercase
             input = input.trim().toUpperCase();
-            
+
             // If already in correct format, return as is
             if (input.match(/^\d{1,2}:\d{2}\s*(AM|PM)$/)) {
                 return input;
             }
-            
+
             // Try to parse various formats
             const timeMatch = input.match(/(\d{1,2}):?(\d{2})?\s*(AM|PM|am|pm)?/i);
             if (timeMatch) {
                 let hours = parseInt(timeMatch[1]);
                 let minutes = timeMatch[2] || '00';
                 let period = timeMatch[3] || '';
-                
+
                 // Handle 24-hour format
                 if (!period) {
                     return formatToSriLankanTime(`${hours}:${minutes}`);
                 }
-                
+
                 // Ensure proper formatting
                 period = period.toUpperCase();
                 if (hours > 12) {
                     hours = hours - 12;
                     period = 'PM';
                 }
-                
+
                 return `${hours}:${minutes} ${period}`;
             }
-            
+
             return input;
         }
 
         // Validate Sri Lankan time format
         function isValidSriLankanTime(timeString) {
             if (!timeString) return false;
-            
+
             const timeRegex = /^(0?[1-9]|1[0-2]):[0-5][0-9]\s*(AM|PM)$/i;
             return timeRegex.test(timeString.trim());
         }
@@ -930,21 +946,21 @@
         // Format date to Sri Lankan format (DD-MM-YYYY)
         function formatDateToSriLankan(dateString) {
             if (!dateString) return 'N/A';
-            
+
             const date = new Date(dateString);
             if (isNaN(date)) return dateString;
-            
+
             const day = date.getDate().toString().padStart(2, '0');
             const month = (date.getMonth() + 1).toString().padStart(2, '0');
             const year = date.getFullYear();
-            
+
             return `${day}-${month}-${year}`;
         }
 
         // Convert 12-hour Sri Lankan time to 24-hour format for comparison
         function convertTo24Hour(timeString) {
             if (!timeString) return '';
-            
+
             const time = timeString.match(/(\d+):(\d+)\s*(AM|PM)/i);
             if (time) {
                 let hours = parseInt(time[1]);
@@ -956,7 +972,7 @@
 
                 return `${hours.toString().padStart(2, '0')}:${minutes}`;
             }
-            
+
             return timeString;
         }
 
@@ -987,9 +1003,9 @@
             const alertDiv = document.createElement('div');
             alertDiv.className = `alert alert-${type} alert-dismissible fade show mt-3`;
             alertDiv.innerHTML = `
-                            ${message}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        `;
+                                    ${message}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                `;
 
             const container = document.querySelector('.card-body');
             if (container) {

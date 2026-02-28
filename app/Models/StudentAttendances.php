@@ -13,16 +13,16 @@ class StudentAttendances extends Model
 
     protected $fillable = [
         'at_date',
-        'student_student_student_classes',
+        'student_student_student_classes_id',
         'student_id',
-        'status',
+        'attendance_id',
     ];
 
     // Type casting for JSON responses
     protected $casts = [
         'student_student_student_classes' => 'integer',
         'student_id'                       => 'integer',
-        'status'                           => 'integer',   // cast status as integer
+        'attendance_id'                    => 'integer',   // cast status as integer
         'at_date'                          => 'datetime',
         'created_at'                       => 'datetime',
         'updated_at'                       => 'datetime',
@@ -31,6 +31,11 @@ class StudentAttendances extends Model
     public function student()
     {
         return $this->belongsTo(Student::class, 'student_id');
+    }
+
+    public function attendance()
+    {
+        return $this->belongsTo(ClassAttendance::class, 'attendance_id');
     }
 
     // Relationship

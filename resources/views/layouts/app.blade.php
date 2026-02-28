@@ -490,6 +490,12 @@
                     <div class="collapse {{ request()->routeIs('students.*') ? 'show' : '' }}" id="studentsSubmenu">
                         <ul class="nav flex-column ms-3">
                             <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('students.import') ? 'active' : '' }}"
+                                    href="{{ route('students.import.form') }}">
+                                    <i class="fas fa-plus-circle"></i> Import Students
+                                </a>
+                            </li>
+                            <li class="nav-item">
                                 <a class="nav-link {{ request()->routeIs('students.create') ? 'active' : '' }}"
                                     href="{{ route('students.create') }}">
                                     <i class="fas fa-plus-circle"></i> Add New Student
@@ -514,10 +520,36 @@
                                     <i class="fas fa-camera"></i> Quick Images
                                 </a>
                             </li>
-                            <li class="nav-item">
+                            {{-- <li class="nav-item">
                                 <a class="nav-link {{ request()->routeIs('student-id-card.*') ? 'active' : '' }}"
                                     href="{{ route('student-id-card.ganarateStudentId') }}">
                                     <i class="fa fa-id-card"></i> Generate Student ID
+                                </a>
+                            </li> --}}
+                        </ul>
+
+                    </div>
+                </li>
+
+                <!--Exams-->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#examsSubmenu" data-bs-toggle="collapse" role="button"
+                        aria-expanded="false" aria-controls="examsSubmenu">
+                        <i class="fas fa-users"></i> <span>Manage Exams</span>
+                    </a>
+                    <div class="collapse {{ request()->routeIs('student_exam.*') ? 'show' : '' }}" id="examsSubmenu">
+                        <ul class="nav flex-column ms-3">
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('student_exam.create') ? 'active' : '' }}"
+                                    href="{{ route('student_exam.create') }}">
+                                    <i class="fas fa-plus-circle"></i> Add New Exam
+                                </a>
+                            </li>
+
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('student_exam.index') ? 'active' : '' }}"
+                                    href="{{ route('student_exam.index') }}">
+                                    <i class="fas fa-list"></i> View All Exams
                                 </a>
                             </li>
                         </ul>

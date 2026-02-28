@@ -35,24 +35,40 @@ class Student extends Model
         'class_type',
         'admission',
         'is_freecard',
-        'student_school'
+        'student_school',
+        'permanent_qr_active',
+        'student_disable'
     ];
 
-    // Type casting for JSON responses
     protected $casts = [
-        'grade_id'    => 'integer',
-        'admission'   => 'boolean',
-        'is_freecard' => 'boolean',
-        'is_active'   => 'boolean',
-        'created_at'  => 'datetime',
-        'updated_at'  => 'datetime',
+        'grade_id'            => 'integer',
+        'admission'           => 'boolean',
+        'is_freecard'         => 'boolean',
+        'is_active'           => 'boolean',
+        'permanent_qr_active' => 'boolean',
+        'student_disable'     => 'boolean',
+        'bday'                => 'date',
+        'created_at'          => 'datetime',
+        'updated_at'          => 'datetime',
     ];
 
-    // Relationship: student belongs to grade
+    // ===========================
+    // Relationships
+    // ===========================
+
     public function grade()
     {
         return $this->belongsTo(Grade::class);
     }
+
+    public function portalLogin()
+    {
+        return $this->hasOne(StudentPortalLogin::class);
+    }
+
+    // ===========================
+    // Helper Methods
+    // ===========================
 
     public function isOnline(): bool
     {
@@ -64,9 +80,12 @@ class Student extends Model
         return $this->class_type === ClassType::OFFLINE;
     }
 
-    // Student.php
-    public function portalLogin()
+    public function hasActivePermanentQr(): bool
     {
-        return $this->hasOne(StudentPortalLogin::class);
+        return $this->permanent_qr_active && !empty($this->permanent_qr);
+    }
+    public function studentResults()
+    {
+        return $this->hasMany(StudentResults::class, 'student_id');
     }
 }

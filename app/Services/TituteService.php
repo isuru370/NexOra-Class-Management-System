@@ -81,7 +81,6 @@ class TituteService
             $data['class_category_has_student_class_id']
                 ?? $titute->class_category_has_student_class_id,
             $month,
-            $id
         );
 
         $titute->update([

@@ -436,8 +436,8 @@
 
 @push('scripts')
     <script>
-
         let studentCode = null; // custom_id
+        let studentId = null;   // student_id from URL
 
         // Production Configuration
         const config = {
@@ -453,7 +453,7 @@
             return pathArray[pathArray.length - 1];
         };
 
-        const studentId = getStudentIdFromUrl();
+        studentId = getStudentIdFromUrl();
 
         // State Management
         let currentStudent = null;
@@ -602,7 +602,7 @@
                 const studentData = await apiFetch(`students/${studentId}`);
                 currentStudent = studentData.data || studentData;
 
-                // 🔹 custom_id save කරන්න
+                // Save custom_id
                 studentCode = currentStudent.custom_id;
 
                 displayStudentInfo(currentStudent);
@@ -611,7 +611,6 @@
                 displayStudentInfo(null);
             }
         }
-
 
         // Load Analytics Data
         async function loadAnalyticsData() {
@@ -626,6 +625,7 @@
                     processedData = analyticsData.classes;
                 }
 
+                // Check if it's an array - our new API returns array directly
                 if (Array.isArray(processedData)) {
                     enrollmentsData = processedData;
                     displayStudentEnrollments(enrollmentsData);
@@ -642,11 +642,11 @@
         function displayStudentInfo(student) {
             if (!student) {
                 elements.studentInfo.innerHTML = `
-                                <div class="alert alert-warning">
-                                    <i class="fas fa-exclamation-triangle me-2"></i>
-                                    Unable to load student information
-                                </div>
-                            `;
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Unable to load student information
+                    </div>
+                `;
                 return;
             }
 
@@ -655,51 +655,51 @@
             const studentCode = student.custom_id || student.code || 'N/A';
 
             // Check student status from API response (is_active field)
-            const isStudentActive = student.is_active == 1 ;
+            const isStudentActive = student.is_active == 1;
 
             elements.studentInfo.innerHTML = `
-                            <div class="row align-items-center">
-                                <div class="col-md-8">
-                                    <div class="d-flex align-items-center">
-                                        <div class="bg-primary bg-opacity-10 p-3 rounded-circle me-3">
-                                            <i class="fas fa-user-graduate fa-2x text-primary"></i>
-                                        </div>
-                                        <div>
-                                            <h4 class="mb-1">${studentName}</h4>
-                                            <div class="d-flex flex-wrap gap-3">
-                                                <div>
-                                                    <small class="text-muted">Student ID</small>
-                                                    <div class="fw-bold">${studentCode}</div>
-                                                </div>
-                                                <div>
-                                                    <small class="text-muted">Grade</small>
-                                                    <div class="fw-bold">${grade}</div>
-                                                </div>
-                                                <div>
-                                                    <small class="text-muted">Status</small>
-                                                    <div class="fw-bold">
-                                                        <span class="badge ${isStudentActive ? 'bg-success' : 'bg-secondary'}">
-                                                            <i class="fas fa-circle fa-xs me-1"></i>
-                                                            ${isStudentActive ? 'Active Student' : 'Inactive Student'}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-primary bg-opacity-10 p-3 rounded-circle me-3">
+                                <i class="fas fa-user-graduate fa-2x text-primary"></i>
+                            </div>
+                            <div>
+                                <h4 class="mb-1">${studentName}</h4>
+                                <div class="d-flex flex-wrap gap-3">
+                                    <div>
+                                        <small class="text-muted">Student ID</small>
+                                        <div class="fw-bold">${studentCode}</div>
                                     </div>
-                                </div>
-                                <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                                    <div class="d-flex flex-column flex-sm-row flex-md-column flex-lg-row gap-2">
-                                        <button class="btn btn-outline-primary btn-sm" onclick="viewStudentProfile()">
-                                            <i class="fas fa-eye me-2"></i>View Profile
-                                        </button>
-                                        <button class="btn btn-outline-success btn-sm" onclick="editStudentDetails()">
-                                            <i class="fas fa-edit me-2"></i>Edit Details
-                                        </button>
+                                    <div>
+                                        <small class="text-muted">Grade</small>
+                                        <div class="fw-bold">${grade}</div>
+                                    </div>
+                                    <div>
+                                        <small class="text-muted">Status</small>
+                                        <div class="fw-bold">
+                                            <span class="badge ${isStudentActive ? 'bg-success' : 'bg-secondary'}">
+                                                <i class="fas fa-circle fa-xs me-1"></i>
+                                                ${isStudentActive ? 'Active Student' : 'Inactive Student'}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        `;
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                        <div class="d-flex flex-column flex-sm-row flex-md-column flex-lg-row gap-2">
+                            <button class="btn btn-outline-primary btn-sm" onclick="viewStudentProfile()">
+                                <i class="fas fa-eye me-2"></i>View Profile
+                            </button>
+                            <button class="btn btn-outline-success btn-sm" onclick="editStudentDetails()">
+                                <i class="fas fa-edit me-2"></i>Edit Details
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
 
             // Update student status badge
             updateStudentStatusBadge(isStudentActive);
@@ -718,7 +718,7 @@
             }
         }
 
-        // Update Statistics
+        // Update Statistics based on new API structure
         function updateStatistics(enrollments) {
             if (!Array.isArray(enrollments)) {
                 enrollments = [];
@@ -726,14 +726,18 @@
 
             // Calculate statistics
             const totalClasses = enrollments.length;
-            const activeClasses = enrollments.filter(e => e.status === 1).length;
+            const activeClasses = enrollments.filter(e => e.status === true).length;  // status is boolean true/false
             const inactiveClasses = totalClasses - activeClasses;
+            
+            // Free cards - based on is_free_card field
             const freeCards = enrollments.filter(e => e.is_free_card === 1).length;
 
+            // Financial calculations
             const totalFees = enrollments.reduce((sum, e) => sum + (e.category_info?.fees || 0), 0);
             const totalPaid = enrollments.reduce((sum, e) => sum + (e.payments?.summary?.total_paid || 0), 0);
             const totalDue = Math.max(0, totalFees - totalPaid);
 
+            // Attendance calculations
             const totalSessions = enrollments.reduce((sum, e) => sum + (e.class_attendance?.total_sessions || 0), 0);
             const totalPresent = enrollments.reduce((sum, e) => sum + (e.student_attendance?.present_count || 0), 0);
             const totalAbsent = enrollments.reduce((sum, e) => sum + (e.student_attendance?.absent_count || 0), 0);
@@ -790,7 +794,7 @@
             }
         }
 
-        // Display Student Enrollments
+        // Display Student Enrollments with Exam Results button
         function displayStudentEnrollments(enrollments) {
             if (!elements.enrollmentsLoading || !elements.enrollmentsList || !elements.noEnrollments) return;
 
@@ -808,6 +812,9 @@
             let enrollmentsHTML = '';
 
             enrollments.forEach((enrollment) => {
+                // Get enrollment_id and classCategoryHasStudentClassId
+                const enrollmentId = enrollment.enrollment_id;
+                const classCategoryHasStudentClassId = enrollment.category_info?.class_category_has_student_class_id;
                 const classInfo = enrollment.class_info || {};
                 const categoryInfo = enrollment.category_info || {};
                 const payments = enrollment.payments?.summary || {};
@@ -826,10 +833,9 @@
                 const categoryName = categoryInfo.category_name || 'General';
                 const fees = categoryInfo.fees || 0;
                 const isSplitCategory = categoryInfo.is_split_category || false;
-                const originalCategoryId = categoryInfo.original_category_id;
 
                 // Status and badges
-                const isActive = enrollment.status === 1;
+                const isActive = enrollment.status === true;  // status is boolean
                 const isFreeCard = enrollment.is_free_card === 1;
                 const enrollmentDate = formatDate(enrollment.enrollment_date);
 
@@ -852,103 +858,124 @@
                 }
 
                 enrollmentsHTML += `
-                                <div class="col-xl-6 col-lg-12" data-status="${isActive ? 'active' : 'inactive'}" data-type="${isFreeCard ? 'free' : 'paid'}" data-category-type="${isSplitCategory ? 'split' : 'regular'}">
-                                    <div class="card border h-100 ${isSplitCategory ? 'combined-category' : ''}">
-                                        <div class="card-header ${isSplitCategory ? 'text-white' : 'bg-white'}">
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <div>
-                                                    <h6 class="mb-0 fw-bold ${isSplitCategory ? 'text-white' : 'text-dark'}">${className}</h6>
-                                                    ${isSplitCategory ?
-                        '<small class="opacity-75"><i class="fas fa-layer-group fa-xs me-1"></i>Part of Combined Category</small>' :
-                        ''
-                    }
-                                                </div>
-                                                <div class="d-flex gap-2">
-                                                    ${isSplitCategory ?
-                        '<span class="split-category-badge"><i class="fas fa-link fa-xs me-1"></i>Split</span>' :
-                        ''
-                    }
-                                                    <span class="badge ${isActive ? 'bg-success' : 'bg-secondary'}">
-                                                        ${isActive ? 'Active' : 'Inactive'}
-                                                    </span>
-                                                    ${isFreeCard ?
-                        '<span class="badge bg-warning text-dark"><i class="fas fa-crown me-1"></i>Free Card</span>' :
-                        ''
-                    }
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="card-body">
-                                            <!-- Class Info -->
-                                            <div class="row mb-3">
-                                                <div class="col-6">
-                                                    <small class="text-muted d-block">Teacher</small>
-                                                    <div class="fw-bold">${teacherName}</div>
-                                                </div>
-                                                <div class="col-6">
-                                                    <small class="text-muted d-block">Category</small>
-                                                    <div class="fw-bold ${isSplitCategory ? 'text-primary' : ''}">${categoryName}</div>
-                                                    ${isSplitCategory ?
-                        '<small class="text-muted">(Individual Category)</small>' :
-                        ''
-                    }
-                                                </div>
-                                            </div>
-                                            <div class="row mb-4">
-                                                <div class="col-6">
-                                                    <small class="text-muted d-block">Subject</small>
-                                                    <span class="badge bg-info">${subjectName}</span>
-                                                </div>
-                                                <div class="col-6">
-                                                    <small class="text-muted d-block">Grade</small>
-                                                    <span class="badge bg-primary">${gradeName}</span>
-                                                </div>
-                                            </div>
-
-                                            <!-- Financial Status -->
-                                            <div class="mb-4">
-                                                <small class="text-muted d-block mb-2">Financial Status</small>
-                                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                                    <span>Rs. ${totalPaid.toLocaleString()}</span>
-                                                    <span class="text-muted">/ Rs. ${fees.toLocaleString()}</span>
-                                                </div>
-                                                <div class="progress" style="height: 6px;">
-                                                    <div class="progress-bar bg-success" style="width: ${paymentPercentage}%"></div>
-                                                </div>
-                                                <div class="d-flex justify-content-between mt-1">
-                                                    <small class="text-muted">${paymentPercentage}% Paid</small>
-                                                    <small class="text-muted">${paymentCount} payment${paymentCount !== 1 ? 's' : ''}</small>
-                                                </div>
-                                            </div>
-
-                                            <!-- Attendance Status -->
-                                            <div>
-                                                <small class="text-muted d-block mb-2">Attendance Status</small>
-                                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                                    <span>${presentCount} present</span>
-                                                    <span class="text-muted">/ ${totalSessions} session${totalSessions !== 1 ? 's' : ''}</span>
-                                                </div>
-                                                <div class="progress" style="height: 6px;">
-                                                    <div class="progress-bar bg-info" style="width: ${attendancePercentage}%"></div>
-                                                </div>
-                                                <div class="d-flex justify-content-between mt-1">
-                                                    <small class="text-muted">${attendancePercentage}% Attendance</small>
-                                                    <small class="text-muted">${absentCount} absent</small>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="card-footer ${isSplitCategory ? 'bg-transparent text-white-50 border-top-0' : 'bg-white text-muted'}">
-                                            <small><i class="fas fa-calendar me-1"></i>Enrolled on: ${enrollmentDate}</small>
-                                        </div>
+                    <div class="col-xl-6 col-lg-12" 
+                         data-enrollment-id="${enrollmentId}"
+                         data-class-category-id="${classCategoryHasStudentClassId}"
+                         data-status="${isActive ? 'active' : 'inactive'}" 
+                         data-type="${isFreeCard ? 'free' : 'paid'}" 
+                         data-category-type="${isSplitCategory ? 'split' : 'regular'}">
+                        <div class="card border h-100 ${isSplitCategory ? 'combined-category' : ''}">
+                            <div class="card-header ${isSplitCategory ? 'text-white' : 'bg-white'}">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-0 fw-bold ${isSplitCategory ? 'text-white' : 'text-dark'}">${className}</h6>
+                                        ${isSplitCategory ?
+                                            '<small class="opacity-75"><i class="fas fa-layer-group fa-xs me-1"></i>Part of Combined Category</small>' :
+                                            ''
+                                        }
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        ${isSplitCategory ?
+                                            '<span class="split-category-badge"><i class="fas fa-link fa-xs me-1"></i>Split</span>' :
+                                            ''
+                                        }
+                                        <span class="badge ${isActive ? 'bg-success' : 'bg-secondary'}">
+                                            ${isActive ? 'Active' : 'Inactive'}
+                                        </span>
+                                        ${isFreeCard ?
+                                            '<span class="badge bg-warning text-dark"><i class="fas fa-crown me-1"></i>Free Card</span>' :
+                                            ''
+                                        }
                                     </div>
                                 </div>
-                            `;
+                            </div>
+                            <div class="card-body">
+                                <!-- Class Info -->
+                                <div class="row mb-3">
+                                    <div class="col-6">
+                                        <small class="text-muted d-block">Teacher</small>
+                                        <div class="fw-bold">${teacherName}</div>
+                                    </div>
+                                    <div class="col-6">
+                                        <small class="text-muted d-block">Category</small>
+                                        <div class="fw-bold ${isSplitCategory ? 'text-primary' : ''}">${categoryName}</div>
+                                        ${isSplitCategory ?
+                                            '<small class="text-muted">(Individual Category)</small>' :
+                                            ''
+                                        }
+                                    </div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-6">
+                                        <small class="text-muted d-block">Subject</small>
+                                        <span class="badge bg-info">${subjectName}</span>
+                                    </div>
+                                    <div class="col-6">
+                                        <small class="text-muted d-block">Grade</small>
+                                        <span class="badge bg-primary">${gradeName}</span>
+                                    </div>
+                                </div>
+
+                                <!-- Financial Status -->
+                                <div class="mb-4">
+                                    <small class="text-muted d-block mb-2">Financial Status</small>
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span>Rs. ${totalPaid.toLocaleString()}</span>
+                                        <span class="text-muted">/ Rs. ${fees.toLocaleString()}</span>
+                                    </div>
+                                    <div class="progress" style="height: 6px;">
+                                        <div class="progress-bar bg-success" style="width: ${paymentPercentage}%"></div>
+                                    </div>
+                                    <div class="d-flex justify-content-between mt-1">
+                                        <small class="text-muted">${paymentPercentage}% Paid</small>
+                                        <small class="text-muted">${paymentCount} payment${paymentCount !== 1 ? 's' : ''}</small>
+                                    </div>
+                                </div>
+
+                                <!-- Attendance Status -->
+                                <div class="mb-4">
+                                    <small class="text-muted d-block mb-2">Attendance Status</small>
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span>${presentCount} present</span>
+                                        <span class="text-muted">/ ${totalSessions} session${totalSessions !== 1 ? 's' : ''}</span>
+                                    </div>
+                                    <div class="progress" style="height: 6px;">
+                                        <div class="progress-bar bg-info" style="width: ${attendancePercentage}%"></div>
+                                    </div>
+                                    <div class="d-flex justify-content-between mt-1">
+                                        <small class="text-muted">${attendancePercentage}% Attendance</small>
+                                        <small class="text-muted">${absentCount} absent</small>
+                                    </div>
+                                </div>
+
+                                <!-- Exam Results Button -->
+                                <div class="d-grid">
+                                    <button class="btn btn-primary" onclick="goToExamResults(${classCategoryHasStudentClassId}, ${studentId})">
+                                        <i class="fas fa-chart-bar me-2"></i>View Exam Results
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-footer ${isSplitCategory ? 'bg-transparent text-white-50 border-top-0' : 'bg-white text-muted'}">
+                                <small><i class="fas fa-calendar me-1"></i>Enrolled on: ${enrollmentDate}</small>
+                            </div>
+                        </div>
+                    </div>
+                `;
             });
 
             elements.enrollmentsList.innerHTML = enrollmentsHTML;
 
             // Apply current filters
             filterEnrollmentsBySearch(elements.classSearch.value);
+        }
+
+        // Navigate to Exam Results page
+        function goToExamResults(classCategoryHasStudentClassId, studentId) {
+            if (classCategoryHasStudentClassId && studentId) {
+                window.location.href = `/students/${classCategoryHasStudentClassId}/${studentId}/exam-results`;
+            } else {
+                showAlert('Cannot navigate to exam results: Missing parameters', 'danger');
+            }
         }
 
         // Toggle Split Categories
@@ -971,10 +998,16 @@
             currentFilter = filterType;
 
             // Update button states
-            document.querySelectorAll('#enrollmentsSection .btn-group .btn').forEach(btn => {
+            const buttons = document.querySelectorAll('#enrollmentsSection .btn-group .btn');
+            buttons.forEach(btn => {
                 btn.classList.remove('active');
             });
-            event.target.classList.add('active');
+            
+            // Find which button was clicked and set it active
+            const activeBtn = Array.from(buttons).find(btn => btn.textContent.toLowerCase().includes(filterType));
+            if (activeBtn) {
+                activeBtn.classList.add('active');
+            }
 
             filterEnrollmentsBySearch(elements.classSearch.value);
         }
@@ -1002,9 +1035,10 @@
                 }
             });
 
-            if (visibleCount === 0) {
-                showNoEnrollments();
-            } else {
+            if (visibleCount === 0 && elements.noEnrollments && elements.enrollmentsList) {
+                elements.noEnrollments.classList.remove('d-none');
+                elements.enrollmentsList.classList.add('d-none');
+            } else if (elements.noEnrollments && elements.enrollmentsList) {
                 elements.noEnrollments.classList.add('d-none');
                 elements.enrollmentsList.classList.remove('d-none');
             }
@@ -1041,14 +1075,12 @@
             }
         }
 
-
         // Edit Student Details
         function editStudentDetails() {
-            if (currentStudent) {
+            if (currentStudent && studentCode) {
                 window.location.href = `/students/${studentCode}/edit`;
             }
         }
-
 
         // Format Date
         function formatDate(dateString) {
@@ -1084,12 +1116,12 @@
                     type === 'warning' ? 'exclamation-triangle' : 'info-circle';
 
             alertDiv.innerHTML = `
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-${icon} me-2"></i>
-                                <span class="flex-grow-1">${message}</span>
-                                <button type="button" class="btn-close ms-2" onclick="this.parentElement.parentElement.remove()"></button>
-                            </div>
-                        `;
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-${icon} me-2"></i>
+                    <span class="flex-grow-1">${message}</span>
+                    <button type="button" class="btn-close ms-2" onclick="this.parentElement.parentElement.remove()"></button>
+                </div>
+            `;
 
             document.body.appendChild(alertDiv);
 

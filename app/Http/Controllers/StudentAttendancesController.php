@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 
 use App\Services\StudentAttendanceService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 
 class StudentAttendancesController extends Controller
@@ -47,6 +48,11 @@ class StudentAttendancesController extends Controller
     public function attendanceRecoadDelete($id)
     {
         return $this->attendanceService->attendanceRecoadDelete($id);
+    }
+
+        public function getStudentAttendance($studentId,$classCategoryHasStudentClassId)
+    {
+        return $this->attendanceService->getStudentAttendances($studentId,$classCategoryHasStudentClassId);
     }
 
     public function storeAttendance(Request $request)

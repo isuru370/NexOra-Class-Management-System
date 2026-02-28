@@ -166,11 +166,12 @@
                         @csrf
                         <input type="hidden" id="attendance_student_id" name="student_id">
                         <input type="hidden" id="attendance_student_class_id" name="student_student_student_class_id">
-                        <input type="hidden" id="attendance_class_id" name="class_attendance_id">
+                        <input type="hidden" id="attendance_class_id" name="attendance_id">
                         <input type="hidden" id="attendance_guardian_mobile" name="guardian_mobile">
                         <input type="hidden" id="attendance_student_name" name="student_name">
                         <input type="hidden" id="attendance_class_name" name="class_name">
                         <input type="hidden" id="attendance_class_time" name="class_time">
+                        <input type="hidden" id="attendance_attendance_count" name="attendance_count">
                     </form>
                 </div>
                 <div class="modal-footer py-2">
@@ -329,6 +330,33 @@
             border-bottom: none;
             padding-bottom: 0;
             margin-bottom: 0;
+        }
+
+        .info-item {
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 11px;
+        }
+
+        .payment-info {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border: 1px solid #90caf9;
+        }
+
+        .tute-info {
+            background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+            border: 1px solid #ce93d8;
+        }
+
+        .attendance-info {
+            background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%);
+            border: 1px solid #a5d6a7;
+        }
+
+        .info-badge {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 3px;
         }
 
         #qr-reader {
@@ -518,33 +546,100 @@
 
             displayStudentInfo(data) {
                 const student = data.data[0]?.student || null;
+                const paymentInfo = data.data[0]?.payment_info || null;
+                const tuteInfo = data.data[0]?.tute_info || null;
+                const attendanceInfo = data.data[0]?.attendance_info || null;
+                
                 if (!student) return;
 
                 const studentDetails = document.getElementById('studentDetails');
                 if (!studentDetails) return;
 
                 const guardianMobile = student.guardian_mobile || 'Not available';
+                
+                // Format payment info
+                let paymentHTML = '';
+                if (paymentInfo) {
+                    const paymentStatus = paymentInfo.payment_status ? 
+                        `<span class="badge bg-success info-badge">Paid</span>` : 
+                        `<span class="badge bg-danger info-badge">Pending</span>`;
+                    
+                    paymentHTML = `
+                        <div class="info-item payment-info d-flex align-items-center mb-1">
+                            <i class="fas fa-money-bill-wave fa-xs me-2 text-primary"></i>
+                            <div class="flex-grow-1">
+                                <small class="text-muted d-block">Last Payment</small>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="small fw-semibold">Rs. ${paymentInfo.last_payment_amount || 0}</span>
+                                    ${paymentStatus}
+                                </div>
+                                <small class="text-muted">${paymentInfo.last_payment_date || 'No payment'}</small>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Format tute info
+                let tuteHTML = '';
+                if (tuteInfo) {
+                    const tuteStatus = tuteInfo.has_tute_for_this_month ? 
+                        `<span class="badge bg-success info-badge">✓</span>` : 
+                        `<span class="badge bg-warning text-dark info-badge">✗</span>`;
+                    
+                    tuteHTML = `
+                        <div class="info-item tute-info d-flex align-items-center mb-1">
+                            <i class="fas fa-book fa-xs me-2 text-purple"></i>
+                            <div class="flex-grow-1">
+                                <small class="text-muted d-block">Tute Status</small>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="small fw-semibold">${tuteInfo.current_month}</span>
+                                    ${tuteStatus}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Format attendance info
+                let attendanceHTML = '';
+                if (attendanceInfo) {
+                    attendanceHTML = `
+                        <div class="info-item attendance-info d-flex align-items-center">
+                            <i class="fas fa-calendar-check fa-xs me-2 text-success"></i>
+                            <div class="flex-grow-1">
+                                <small class="text-muted d-block">Attendance This Month</small>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="small fw-semibold">${attendanceInfo.attendance_count_this_month_total || 0} Classes</span>
+                                    <span class="badge bg-info info-badge">${attendanceInfo.current_month}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
 
                 studentDetails.innerHTML = `
-                            <div class="col-md-2 text-center">
-                                <img src="/uploads/logo/logo.png" alt="Student Photo" 
-                                     class="img-thumbnail rounded-circle avatar-sm"
-                                     onerror="this.src='/uploads/logo/logo.png'">
-                            </div>
-                            <div class="col-md-5">
-                                <h6 class="mb-1 fw-bold">${student.first_name} ${student.last_name}</h6>
-                                <p class="mb-1 small"><strong>Student ID:</strong> ${student.custom_id}</p>
-                                <p class="mb-0 small"><strong>Guardian Mobile:</strong> ${guardianMobile}</p>
-                            </div>
-                            <div class="col-md-5">
-                                <p class="mb-1 small"><strong>Status:</strong> 
-                                    <span class="badge bg-success">Active</span>
-                                </p>
-                                <p class="mb-0 small"><strong>Available Classes:</strong> 
-                                    <span class="badge bg-info">${data.data.length}</span>
-                                </p>
-                            </div>
-                        `;
+                    <div class="col-md-2 text-center">
+                        <img src="${student.img_url}" alt="Student Photo" 
+                             class="img-thumbnail rounded-circle avatar-sm"
+                             onerror="this.src='/uploads/logo/logo.png'">
+                    </div>
+                    <div class="col-md-5">
+                        <h6 class="mb-1 fw-bold">${student.first_name} ${student.last_name}</h6>
+                        <p class="mb-1 small"><strong>Student ID:</strong> ${student.custom_id}</p>
+                        <p class="mb-2 small"><strong>Guardian Mobile:</strong> ${guardianMobile}</p>
+                        ${paymentHTML}
+                    </div>
+                    <div class="col-md-5">
+                        <p class="mb-1 small"><strong>Status:</strong> 
+                            <span class="badge bg-success">Active</span>
+                        </p>
+                        <p class="mb-3 small"><strong>Available Classes:</strong> 
+                            <span class="badge bg-info">${data.data.length}</span>
+                        </p>
+                        ${tuteHTML}
+                        ${attendanceHTML}
+                    </div>
+                `;
 
                 const studentInfoCard = document.getElementById('studentInfoCard');
                 if (studentInfoCard) studentInfoCard.style.display = 'block';
@@ -565,13 +660,14 @@
 
                 let html = '';
 
-                classesData.forEach((classData) => {
+                classesData.forEach((classData, index) => {
                     const ongoingClass = classData.ongoing_class;
                     const studentStatus = classData.studentStudentStudentClass.student_class_status;
+                    const attendanceInfo = classData.attendance_info || {};
 
                     if (!ongoingClass) return;
 
-                    const canMarkAttendance = studentStatus === 1;
+                    const canMarkAttendance = studentStatus;
                     const currentTime = ongoingClass.current_time || new Date().toLocaleTimeString('en-US', {
                         hour: '2-digit',
                         minute: '2-digit',
@@ -590,104 +686,119 @@
                     }
                     const oneHourBeforeTime = `${oneHourBeforeHour}:${startTime.split(':')[1].split(' ')[0]} ${isPM ? 'PM' : 'AM'}`;
 
+                    // Attendance count for this class
+                    const classAttendanceCount = attendanceInfo.attendance_count_for_this_class || 0;
+
                     html += `
-                                <div class="col-xl-4 col-lg-4 col-md-6 col-sm-6">
-                                    <div class="class-card card h-100">
-                                        <div class="card-header bg-info text-white py-2 position-relative">
-                                            ${ongoingClass.is_ongoing == 1 ?
+                        <div class="col-xl-4 col-lg-4 col-md-6 col-sm-6">
+                            <div class="class-card card h-100">
+                                <div class="card-header bg-info text-white py-2 position-relative">
+                                    ${ongoingClass.is_ongoing == 1 ?
                             `<span class="ongoing-badge badge bg-danger">
-                                                    <i class="fas fa-circle fa-xs me-1"></i>LIVE
-                                                </span>` : ''
+                                <i class="fas fa-circle fa-xs me-1"></i>LIVE
+                            </span>` : ''
                         }
-                                            <h6 class="card-title mb-0 fw-bold">${classData.category_name}</h6>
-                                            <small class="opacity-75">${classData.student_class_name}</small>
+                                    <h6 class="card-title mb-0 fw-bold">${classData.category_name}</h6>
+                                    <small class="opacity-75">${classData.student_class_name}</small>
+                                </div>
+
+                                <div class="card-body p-2">
+                                    <div class="attendance-time-window">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <small class="text-muted">Attendance Window</small>
+                                            <small class="text-muted">Now: ${currentTime}</small>
                                         </div>
-
-                                        <div class="card-body p-2">
-                                            <div class="attendance-time-window">
-                                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                                    <small class="text-muted">Attendance Window</small>
-                                                    <small class="text-muted">Now: ${currentTime}</small>
-                                                </div>
-                                                <div class="d-flex justify-content-between align-items-center">
-                                                    <div class="text-center">
-                                                        <div class="fw-bold small">${oneHourBeforeTime}</div>
-                                                        <small class="text-muted">Start</small>
-                                                    </div>
-                                                    <i class="fas fa-arrow-right text-muted"></i>
-                                                    <div class="text-center">
-                                                        <div class="fw-bold small">${endTime}</div>
-                                                        <small class="text-muted">End</small>
-                                                    </div>
-                                                </div>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div class="text-center">
+                                                <div class="fw-bold small">${oneHourBeforeTime}</div>
+                                                <small class="text-muted">Start</small>
                                             </div>
-
-                                            <div class="row g-2 mb-2">
-                                                <div class="col-6">
-                                                    <div class="time-badge badge text-center">
-                                                        <i class="fas fa-clock me-1"></i>
-                                                        ${startTime}
-                                                    </div>
-                                                </div>
-                                                <div class="col-6">
-                                                    <div class="date-badge badge text-center">
-                                                        <i class="fas fa-calendar me-1"></i>
-                                                        ${ongoingClass.date}
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div class="class-info mb-2">
-                                                <div class="detail-item d-flex align-items-center">
-                                                    <div class="icon-wrapper bg-info bg-opacity-10 rounded-circle me-2">
-                                                        <i class="fas fa-door-open text-info fa-xs"></i>
-                                                    </div>
-                                                    <div class="flex-grow-1">
-                                                        <small class="text-muted d-block">Hall</small>
-                                                        <span class="fw-semibold small">${ongoingClass.class_hall_name || 'Hall #' + ongoingClass.class_hall_id}</span>
-                                                    </div>
-                                                </div>
-
-                                                <div class="detail-item d-flex align-items-center">
-                                                    <div class="icon-wrapper ${canMarkAttendance ? 'bg-success bg-opacity-10' : 'bg-danger bg-opacity-10'} rounded-circle me-2">
-                                                        <i class="fas ${canMarkAttendance ? 'fa-user-check text-success' : 'fa-user-times text-danger'} fa-xs"></i>
-                                                    </div>
-                                                    <div class="flex-grow-1">
-                                                        <small class="text-muted d-block">Status</small>
-                                                        <span class="fw-semibold small ${canMarkAttendance ? 'text-success' : 'text-danger'}">
-                                                            ${canMarkAttendance ? 'Active' : 'Inactive'}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div class="mt-2">
-                                                <button class="btn ${canMarkAttendance ? 'btn-success' : 'btn-secondary'} attendance-btn btn-sm" 
-                                                        data-student-id="${classData.student.id}"
-                                                        data-student-class-id="${classData.studentStudentStudentClass.student_student_student_class_id}"
-                                                        data-ongoing-class-id="${ongoingClass.id}"
-                                                        data-student-name="${classData.student.first_name} ${classData.student.last_name}"
-                                                        data-class-name="${classData.student_class_name}"
-                                                        data-class-time="${ongoingClass.start_time} - ${ongoingClass.end_time}"
-                                                        data-class-date="${ongoingClass.date}"
-                                                        data-student-status="${studentStatus}"
-                                                        data-guardian-mobile="${classData.student.guardian_mobile || ''}"
-                                                        ${!canMarkAttendance ? 'disabled' : ''}>
-                                                    <i class="fas ${canMarkAttendance ? 'fa-user-check' : 'fa-ban'} me-1"></i>
-                                                    ${canMarkAttendance ? 'Mark Attendance' : 'Disabled'}
-                                                </button>
-
-                                                ${!canMarkAttendance ?
-                            `<div class="attendance-disabled-message mt-1">
-                                                        <i class="fas fa-exclamation-triangle text-warning fa-xs me-1"></i>
-                                                        <small>Student enrollment is inactive</small>
-                                                    </div>` : ''
-                        }
+                                            <i class="fas fa-arrow-right text-muted"></i>
+                                            <div class="text-center">
+                                                <div class="fw-bold small">${endTime}</div>
+                                                <small class="text-muted">End</small>
                                             </div>
                                         </div>
                                     </div>
+
+                                    <div class="row g-2 mb-2">
+                                        <div class="col-6">
+                                            <div class="time-badge badge text-center">
+                                                <i class="fas fa-clock me-1"></i>
+                                                ${startTime}
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="date-badge badge text-center">
+                                                <i class="fas fa-calendar me-1"></i>
+                                                ${ongoingClass.date}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Class Attendance Count -->
+                                    <div class="info-item attendance-info mb-2">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <i class="fas fa-calendar-check fa-xs me-1"></i>
+                                                <small class="text-muted">Attendance this month:</small>
+                                            </div>
+                                            <span class="badge bg-primary info-badge">${classAttendanceCount} classes</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="class-info mb-2">
+                                        <div class="detail-item d-flex align-items-center">
+                                            <div class="icon-wrapper bg-info bg-opacity-10 rounded-circle me-2">
+                                                <i class="fas fa-door-open text-info fa-xs"></i>
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <small class="text-muted d-block">Hall</small>
+                                                <span class="fw-semibold small">${ongoingClass.class_hall_name || 'Hall #' + ongoingClass.class_hall_id}</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="detail-item d-flex align-items-center">
+                                            <div class="icon-wrapper ${canMarkAttendance ? 'bg-success bg-opacity-10' : 'bg-danger bg-opacity-10'} rounded-circle me-2">
+                                                <i class="fas ${canMarkAttendance ? 'fa-user-check text-success' : 'fa-user-times text-danger'} fa-xs"></i>
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <small class="text-muted d-block">Status</small>
+                                                <span class="fw-semibold small ${canMarkAttendance ? 'text-success' : 'text-danger'}">
+                                                    ${canMarkAttendance ? 'Active' : 'Inactive'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-2">
+                                        <button class="btn ${canMarkAttendance ? 'btn-success' : 'btn-secondary'} attendance-btn btn-sm" 
+                                                data-student-id="${classData.student.id}"
+                                                data-student-class-id="${classData.studentStudentStudentClass.student_student_student_class_id}"
+                                                data-ongoing-class-id="${ongoingClass.id}"
+                                                data-student-name="${classData.student.first_name} ${classData.student.last_name}"
+                                                data-class-name="${classData.student_class_name}"
+                                                data-class-time="${ongoingClass.start_time} - ${ongoingClass.end_time}"
+                                                data-class-date="${ongoingClass.date}"
+                                                data-student-status="${studentStatus}"
+                                                data-guardian-mobile="${classData.student.guardian_mobile || ''}"
+                                                data-attendance-count="${classAttendanceCount}"
+                                                ${!canMarkAttendance ? 'disabled' : ''}>
+                                            <i class="fas ${canMarkAttendance ? 'fa-user-check' : 'fa-ban'} me-1"></i>
+                                            ${canMarkAttendance ? 'Mark Attendance' : 'Disabled'}
+                                        </button>
+
+                                        ${!canMarkAttendance ?
+                            `<div class="attendance-disabled-message mt-1">
+                                <i class="fas fa-exclamation-triangle text-warning fa-xs me-1"></i>
+                                <small>Student enrollment is inactive</small>
+                            </div>` : ''
+                        }
+                                    </div>
                                 </div>
-                            `;
+                            </div>
+                        </div>
+                    `;
                 });
 
                 classesList.innerHTML = html;
@@ -709,6 +820,7 @@
                         const classDate = e.currentTarget.getAttribute('data-class-date');
                         const studentStatus = e.currentTarget.getAttribute('data-student-status');
                         const guardianMobile = e.currentTarget.getAttribute('data-guardian-mobile');
+                        const attendanceCount = e.currentTarget.getAttribute('data-attendance-count');
 
                         this.openAttendanceModal(
                             studentId,
@@ -719,13 +831,14 @@
                             classTime,
                             classDate,
                             studentStatus,
-                            guardianMobile
+                            guardianMobile,
+                            attendanceCount
                         );
                     });
                 });
             }
 
-            openAttendanceModal(studentId, studentClassId, ongoingClassId, studentName, className, classTime, classDate, studentStatus, guardianMobile) {
+            openAttendanceModal(studentId, studentClassId, ongoingClassId, studentName, className, classTime, classDate, studentStatus, guardianMobile, attendanceCount) {
                 // Set modal values
                 const attendanceStudentId = document.getElementById('attendance_student_id');
                 const attendanceStudentClassId = document.getElementById('attendance_student_class_id');
@@ -734,6 +847,7 @@
                 const attendanceStudentName = document.getElementById('attendance_student_name');
                 const attendanceClassName = document.getElementById('attendance_class_name');
                 const attendanceClassTime = document.getElementById('attendance_class_time');
+                const attendanceAttendanceCount = document.getElementById('attendance_attendance_count');
 
                 if (attendanceStudentId) attendanceStudentId.value = studentId;
                 if (attendanceStudentClassId) attendanceStudentClassId.value = studentClassId;
@@ -742,6 +856,7 @@
                 if (attendanceStudentName) attendanceStudentName.value = studentName;
                 if (attendanceClassName) attendanceClassName.value = className;
                 if (attendanceClassTime) attendanceClassTime.value = classTime;
+                if (attendanceAttendanceCount) attendanceAttendanceCount.value = attendanceCount;
 
                 // Set display information
                 const modalStudentName = document.getElementById('modalStudentName');
@@ -804,15 +919,15 @@
                 btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processing...';
 
                 try {
-                    // IMPORTANT: Change field names to match backend expectations
+                    // Use correct field names for backend
                     const formData = {
                         student_id: document.getElementById('attendance_student_id')?.value,
-                        student_student_student_classes: document.getElementById('attendance_student_class_id')?.value,  // Changed to "classes"
-                        status: document.getElementById('attendance_class_id')?.value,  // Changed to "status"
+                        student_student_student_classes_id: document.getElementById('attendance_student_class_id')?.value,
+                        attendance_id: document.getElementById('attendance_class_id')?.value,
                         _token: this.csrfToken
                     };
 
-                    console.log('Sending attendance data (UPDATED):', formData); // Debug log
+                    console.log('Sending attendance data:', formData);
 
                     const response = await fetch('/api/attendances', {
                         method: 'POST',
@@ -825,9 +940,14 @@
                     });
 
                     const data = await response.json();
-                    console.log('Response:', data); // Debug log
+                    console.log('Response:', data);
 
                     if (!response.ok) {
+                        if (response.status === 422) {
+                            const errors = data.errors || {};
+                            const errorMessages = Object.values(errors).flat().join(', ');
+                            throw new Error(`Validation failed: ${errorMessages}`);
+                        }
                         throw new Error(data.message || `HTTP error! status: ${response.status}`);
                     }
 
@@ -875,7 +995,7 @@
                     if (error.message.includes('duplicate') || error.message.includes('Duplicate')) {
                         this.showAlert('⚠️ Attendance already marked for this class!', 'warning');
                     } else if (error.message.includes('validation') || error.message.includes('Validation')) {
-                        this.showAlert('❌ Validation error. Please check all fields.', 'danger');
+                        this.showAlert(`❌ Validation error: ${error.message.replace('Validation failed: ', '')}`, 'danger');
                     } else if (error.message.includes('Something went wrong')) {
                         this.showAlert('❌ Server error. Please try again.', 'danger');
                     } else {
@@ -948,9 +1068,9 @@
                 alertDiv.id = alertId;
                 alertDiv.className = `alert alert-${type} alert-dismissible fade show py-2`;
                 alertDiv.innerHTML = `
-                            <span class="small">${message}</span>
-                            <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert"></button>
-                        `;
+                    <span class="small">${message}</span>
+                    <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert"></button>
+                `;
 
                 alertContainer.innerHTML = '';
                 alertContainer.appendChild(alertDiv);

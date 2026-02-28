@@ -20,6 +20,10 @@ class ClassCategoryHasStudentClassController extends Controller
     {
         return $this->classCategoryHasStudentService->fetchByClassId($classId);
     }
+    public function classCategoryHasStudentDropdown()
+    {
+        return $this->classCategoryHasStudentService->classCategoryHasStudentDropdown();
+    }
     public function searchClasses(Request $request)
     {
         return $this->classCategoryHasStudentService->searchClasses($request);

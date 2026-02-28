@@ -304,14 +304,6 @@
                                         </select>
                                     </div>
 
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Free Card</label>
-                                        <select name="is_freecard" class="form-select">
-                                            <option value="0">No</option>
-                                            <option value="1">Yes</option>
-                                        </select>
-                                    </div>
-
                                     <!-- Submit Button -->
                                     <div class="col-12 mt-4">
                                         <div class="d-flex gap-2">
@@ -637,17 +629,6 @@
                     console.log('🎫 Admission:', student.admission, '-> Selected value:', admissionSelect.value);
                 }
 
-                const freecardSelect = document.querySelector('select[name="is_freecard"]');
-                if (freecardSelect) {
-                    // Convert various boolean representations
-                    if (student.is_freecard === true || student.is_freecard === 1 || student.is_freecard === '1') {
-                        freecardSelect.value = '1';
-                    } else {
-                        freecardSelect.value = '0';
-                    }
-                    console.log('🎫 Free Card:', student.is_freecard, '-> Selected value:', freecardSelect.value);
-                }
-
                 // DEBUG: Log the final form state
                 console.log('📋 Final form state:');
                 console.log('  - Class Type select value:', classTypeSelect ? classTypeSelect.value : 'N/A');
@@ -875,7 +856,7 @@
             for (let [key, value] of formData.entries()) {
                 if (value) {
                     // Convert string '0'/'1' to boolean for specific fields
-                    if (['admission', 'is_freecard'].includes(key)) {
+                    if (['admission'].includes(key)) {
                         studentData[key] = value === '1';
                     } else {
                         studentData[key] = value;

@@ -265,163 +265,160 @@
 @endpush
 
 @push('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('createUserForm');
-    const userTypeSelect = document.getElementById('user_type');
-    const togglePassword = document.getElementById('togglePassword');
-    const passwordInput = document.getElementById('password');
-    
-    // Hide alerts initially
-    document.getElementById('successMessage').classList.add('d-none');
-    document.getElementById('errorMessage').classList.add('d-none');
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.getElementById('createUserForm');
+            const userTypeSelect = document.getElementById('user_type');
+            const togglePassword = document.getElementById('togglePassword');
+            const passwordInput = document.getElementById('password');
 
-    // Load user types with error handling
-    function loadUserTypes() {
-        fetch('/api/user-types/dropdown')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.status === 'success' && data.data) {
-                    let options = '<option value="">Select User Type</option>';
-                    data.data.forEach(type => {
-                        options += `<option value="${type.id}">${type.type}</option>`;
+            // Hide alerts initially
+            document.getElementById('successMessage').classList.add('d-none');
+            document.getElementById('errorMessage').classList.add('d-none');
+
+            // Load user types with error handling
+            function loadUserTypes() {
+                fetch('/api/user-types/dropdown')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.status === 'success' && data.data) {
+                            let options = '<option value="">Select User Type</option>';
+                            data.data.forEach(type => {
+                                options += `<option value="${type.id}">${type.type}</option>`;
+                            });
+                            userTypeSelect.innerHTML = options;
+                        } else {
+                            userTypeSelect.innerHTML = '<option value="">No user types available</option>';
+                        }
+                    })
+                    .catch(error => {
+                        console.warn('Failed to load user types:', error);
+                        userTypeSelect.innerHTML = '<option value="">Error loading user types</option>';
                     });
-                    userTypeSelect.innerHTML = options;
-                } else {
-                    userTypeSelect.innerHTML = '<option value="">No user types available</option>';
-                }
-            })
-            .catch(error => {
-                console.warn('Failed to load user types:', error);
-                userTypeSelect.innerHTML = '<option value="">Error loading user types</option>';
-            });
-    }
-
-    loadUserTypes();
-
-    // Toggle password visibility
-    togglePassword.addEventListener('click', function() {
-        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-        passwordInput.setAttribute('type', type);
-        this.innerHTML = type === 'password' ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
-    });
-
-    // Form validation and submission
-    form.addEventListener('submit', async function(event) {
-        event.preventDefault();
-        event.stopPropagation();
-
-        if (!form.checkValidity()) {
-            form.classList.add('was-validated');
-            return;
-        }
-
-        // Check password match
-        const password = document.getElementById('password').value;
-        const confirmPassword = document.getElementById('confirm_password').value;
-        
-        if (password !== confirmPassword) {
-            document.getElementById('confirm_password').setCustomValidity("Passwords don't match");
-            form.classList.add('was-validated');
-            return;
-        } else {
-            document.getElementById('confirm_password').setCustomValidity('');
-        }
-
-        // Show loading spinner
-        document.getElementById('loadingSpinner').classList.remove('d-none');
-        document.getElementById('submitBtn').disabled = true;
-        document.getElementById('successMessage').classList.add('d-none');
-        document.getElementById('errorMessage').classList.add('d-none');
-
-        try {
-            // Prepare form data
-            const formData = new FormData(form);
-            const data = {};
-            formData.forEach((value, key) => {
-                data[key] = value;
-            });
-
-            // Remove empty fields
-            Object.keys(data).forEach(key => {
-                if (data[key] === '') {
-                    delete data[key];
-                }
-            });
-
-            console.log('Submitting data:', data); // Debug log
-
-            // Send AJAX request to create user - CORRECTED URL
-            const response = await fetch('/api/system-users', {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data)
-            });
-
-            const result = await response.json();
-            
-            document.getElementById('loadingSpinner').classList.add('d-none');
-            document.getElementById('submitBtn').disabled = false;
-
-            if (result.status === 'success') {
-                document.getElementById('successMessage').classList.remove('d-none');
-                document.getElementById('successText').textContent = result.message;
-                
-                // Reset form after success
-                setTimeout(() => {
-                    form.reset();
-                    form.classList.remove('was-validated');
-                    document.getElementById('successMessage').classList.add('d-none');
-                    
-                    // Redirect to users list after 2 seconds
-                    setTimeout(() => {
-                        window.location.href = '{{ route("system-users.index") }}';
-                    }, 2000);
-                }, 3000);
-            } else {
-                document.getElementById('errorMessage').classList.remove('d-none');
-                document.getElementById('errorText').textContent = result.message || 'An error occurred while creating user';
-                console.error('API Error:', result);
             }
-        } catch (error) {
-            document.getElementById('loadingSpinner').classList.add('d-none');
-            document.getElementById('submitBtn').disabled = false;
-            document.getElementById('errorMessage').classList.remove('d-none');
-            document.getElementById('errorText').textContent = 'Network error occurred. Please try again.';
-            console.error('Network Error:', error);
-        }
-    });
 
-    // Real-time password confirmation validation
-    document.getElementById('confirm_password').addEventListener('input', function() {
-        const password = document.getElementById('password').value;
-        const confirmPassword = this.value;
-        
-        if (confirmPassword && password !== confirmPassword) {
-            this.setCustomValidity("Passwords don't match");
-        } else {
-            this.setCustomValidity('');
-        }
-    });
+            loadUserTypes();
 
-    // Reset form validation on reset
-    form.addEventListener('reset', function() {
-        form.classList.remove('was-validated');
-        document.getElementById('successMessage').classList.add('d-none');
-        document.getElementById('errorMessage').classList.add('d-none');
-        
-        // Clear custom validity
-        document.getElementById('confirm_password').setCustomValidity('');
-    });
-});
-</script>
+            // Toggle password visibility
+            togglePassword.addEventListener('click', function () {
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                this.innerHTML = type === 'password' ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
+            });
+
+            // Form validation and submission
+            form.addEventListener('submit', async function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                if (!form.checkValidity()) {
+                    form.classList.add('was-validated');
+                    return;
+                }
+
+                // Check password match
+                const password = document.getElementById('password').value;
+                const confirmPassword = document.getElementById('confirm_password').value;
+
+                if (password !== confirmPassword) {
+                    document.getElementById('confirm_password').setCustomValidity("Passwords don't match");
+                    form.classList.add('was-validated');
+                    return;
+                } else {
+                    document.getElementById('confirm_password').setCustomValidity('');
+                }
+
+                // Show loading spinner
+                document.getElementById('loadingSpinner').classList.remove('d-none');
+                document.getElementById('submitBtn').disabled = true;
+                document.getElementById('successMessage').classList.add('d-none');
+                document.getElementById('errorMessage').classList.add('d-none');
+
+                try {
+                    // Prepare form data
+                    const formData = new FormData(form);
+                    const data = {};
+                    formData.forEach((value, key) => {
+                        data[key] = value;
+                    });
+
+                    // Remove empty fields
+                    Object.keys(data).forEach(key => {
+                        if (data[key] === '') {
+                            delete data[key];
+                        }
+                    });
+
+                    console.log('Submitting data:', data); // Debug log
+
+                    // Send AJAX request to create user - CORRECTED URL
+                    const response = await fetch('/api/system-users', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(data)
+                    });
+
+                    const result = await response.json();
+
+                    document.getElementById('loadingSpinner').classList.add('d-none');
+                    document.getElementById('submitBtn').disabled = false;
+
+                    if (result.status === 'success') {
+
+                        document.getElementById('successMessage').classList.remove('d-none');
+                        document.getElementById('successText').textContent = result.message;
+
+                        setTimeout(() => {
+                            form.reset();
+                            form.classList.remove('was-validated');
+                            document.getElementById('successMessage').classList.add('d-none');
+
+                            setTimeout(() => {
+                                window.location.href = "/permission/" + result.data.id;
+                            }, 2000);
+
+                        }, 3000);
+
+                    }
+                } catch (error) {
+                    document.getElementById('loadingSpinner').classList.add('d-none');
+                    document.getElementById('submitBtn').disabled = false;
+                    document.getElementById('errorMessage').classList.remove('d-none');
+                    document.getElementById('errorText').textContent = 'Network error occurred. Please try again.';
+                    console.error('Network Error:', error);
+                }
+            });
+
+            // Real-time password confirmation validation
+            document.getElementById('confirm_password').addEventListener('input', function () {
+                const password = document.getElementById('password').value;
+                const confirmPassword = this.value;
+
+                if (confirmPassword && password !== confirmPassword) {
+                    this.setCustomValidity("Passwords don't match");
+                } else {
+                    this.setCustomValidity('');
+                }
+            });
+
+            // Reset form validation on reset
+            form.addEventListener('reset', function () {
+                form.classList.remove('was-validated');
+                document.getElementById('successMessage').classList.add('d-none');
+                document.getElementById('errorMessage').classList.add('d-none');
+
+                // Clear custom validity
+                document.getElementById('confirm_password').setCustomValidity('');
+            });
+        });
+    </script>
 @endpush

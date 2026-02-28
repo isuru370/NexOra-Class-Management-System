@@ -15,8 +15,6 @@ class UserTypesTableSeeder extends Seeder
         $userTypes = [
             ['type' => 'Admin'],
             ['type' => 'User'],
-            ['type' => 'Teacher'],
-            ['type' => 'Student'],
         ];
 
         // Check if data already exists

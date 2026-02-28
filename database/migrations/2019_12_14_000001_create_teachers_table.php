@@ -17,7 +17,7 @@ class CreateTeachersTable extends Migration
             $table->string('email');
             $table->string('mobile');
             $table->string('nic');
-            $table->string('bday');
+            $table->date('bday');
             $table->string('gender');
             $table->string('address1');
             $table->string('address2');

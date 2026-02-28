@@ -11,17 +11,22 @@ use App\Http\Controllers\ClassCategoryController;
 use App\Http\Controllers\ClassCategoryHasStudentClassController;
 use App\Http\Controllers\ClassHallsController;
 use App\Http\Controllers\ClassRoomController;
+use App\Http\Controllers\ExamController;
 use App\Http\Controllers\LedgerSummaryController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\GradeController;
 use App\Http\Controllers\InstitutePaymentController;
+use App\Http\Controllers\MobileDashboardController;
+use App\Http\Controllers\PageController;
 use App\Http\Controllers\PaymentReasonController;
 use App\Http\Controllers\PaymentsController;
+use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\QuickPhotoController;
 use App\Http\Controllers\ReadQRCodeController;
 use App\Http\Controllers\SmsController;
 use App\Http\Controllers\StudentAttendancesController;
 use App\Http\Controllers\StudentClassSeparateController;
+use App\Http\Controllers\StudentResultController;
 use App\Http\Controllers\StudentStudentStudentClassController;
 use App\Http\Controllers\SubjectController;
 use App\Http\Controllers\SystemUserController;
@@ -42,6 +47,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [AuthController::class, 'user']);
     Route::get('/profile', [AuthController::class, 'profile']);
     Route::post('/logout', [AuthController::class, 'logout']);
+
+    Route::get('/mobile-dashboard', [MobileDashboardController::class, 'index']);
 
     // Image Upload
     Route::prefix('image-upload')->group(function () {
@@ -87,7 +94,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Students
     Route::prefix('students')->group(function () {
+        Route::get('/custom_ids', [StudentController::class, 'fetchAllStudentCustomIDs']);
         Route::get('/active', [StudentController::class, 'fetchActiveStudents']);
+        Route::get('/temp_qr', [StudentController::class, 'fetchTempQrCode']);
         Route::get('/filter-by-date', [StudentController::class, 'filterByCreatedDate']);
         Route::post('/admission', [StudentController::class, 'fetchNotPaidAdmissionStudent']);
         Route::post('/custom_id', [StudentController::class, 'generateCustomIdAPI']);
@@ -138,6 +147,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('class-has-category-classes')->group(function () {
         // Specific routes FIRST
         Route::get('/dropdown', [ClassCategoryHasStudentClassController::class, 'getDropdownCategory']);
+        Route::get('/details', [ClassCategoryHasStudentClassController::class, 'classCategoryHasStudentDropdown']);
         Route::get('/class-category-class/{classId}', [ClassCategoryHasStudentClassController::class, 'fetchByClassId']);
 
         // CRUD routes
@@ -186,6 +196,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('attendances')->group(function () {
         Route::get('/student', [StudentAttendancesController::class, 'getAllAttendances']);
         Route::get('/read-attendance', [StudentAttendancesController::class, 'readAttendance']);
+        Route::get('/attend/{studentId}/{classCategoryHasStudentClassId}', [StudentAttendancesController::class, 'getStudentAttendance']);
         Route::get('/monthly/{student_id}/{student_class_id}/{yearMonth}', [StudentAttendancesController::class, 'monthStudentAttendanceCount']);
         Route::get('/daily/{student_class_id}/{attendance_id}/{class_category_student_class_id}/details', [StudentAttendancesController::class, 'studentAttendClass']);
         Route::put('/update/{id}', [StudentAttendancesController::class, 'updateAttendance']);
@@ -193,6 +204,30 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/', [StudentAttendancesController::class, 'storeAttendance']);
     });
 
+
+
+    Route::prefix('exams')->group(function () {
+
+        Route::get('/', [ExamController::class, 'index']);
+        // GET /exams → List exams
+
+        Route::post('/', [ExamController::class, 'store']);
+        // POST /exams → Create exam
+
+        Route::post('/results', [StudentResultController::class, 'store']);
+
+        Route::get('/results/{classCategoryHasStudentClassId}/{studentId}', [StudentResultController::class, 'fetchStudentExamChart']);
+
+        Route::get('/{exam_id}', [ExamController::class, 'studentClassMiniDetails']);
+        // POST /exams/{exam_id} → Get students with results for the exam
+
+        Route::put('/{exam_id}', [ExamController::class, 'update']);
+        // PUT /exams/5 → Update exam
+
+        Route::patch('/{exam_id}/cancel', [ExamController::class, 'cancel']);
+        // PATCH /exams/5/cancel → Cancel exam
+
+    });
 
     // Grades
     Route::prefix('grades')->group(function () {
@@ -239,6 +274,18 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::prefix('read-qr-code')->group(function () {
         Route::get('/student-id', [ReadQRCodeController::class, 'readQRCode']);
+        Route::get('/activated/{customId}', [ReadQRCodeController::class, 'studentIdCardActive']);
+    });
+
+
+    /*=================================================
+     Permission API Sections
+    /*================================================= */
+
+    Route::prefix('permission')->group(function () {
+        Route::get('/{userTypeId}', [PermissionController::class, 'getUserPermissions']);
+        Route::post('/store', [PermissionController::class, 'assignPermissions']);
+        Route::get('/', [PageController::class, 'allPages']);
     });
 
     /*=================================================
@@ -279,17 +326,19 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/', [PaymentsController::class, 'storePayment']);
         Route::get('/by-date/{date}', [PaymentsController::class, 'getPaymentsByDate']);
         Route::get('/receipt/{payment_id}', [PaymentsController::class, 'receiptPrint']);
+        Route::get('/mobile/{custom_id}', [PaymentsController::class, 'mobileReadStudentPayment']); // ✅ fixed
         Route::get('/teacher', [PaymentsController::class, 'getTeacherPayments']);
         Route::get('/{student_id}/{student_class_id}', [PaymentsController::class, 'fetchStudentPayments']);
         Route::put('/{id}', [PaymentsController::class, 'updatePayment']);
         Route::delete('/{id}', [PaymentsController::class, 'deletePayment']);
     });
 
+
     Route::prefix('teacher-payments')->group(function () {
         Route::get('/monthly-income', [TeacherPaymentsController::class, 'fetchTeacherPaymentsCurrentMonth']);
         Route::get('/monthly-income/{teacherId}/{yearMonth}', [TeacherPaymentsController::class, 'fetchTeacherClassPayments']);
         Route::get('/class-wise/{teacherId}/{yearMonth}', [TeacherPaymentsController::class, 'getTeacherClassWiseStudentPaymentStatus']);
-                Route::get('/student-pay/{teacherId}/{yearMonth}', [TeacherPaymentsController::class, 'studentPaymentMonthCheck']);
+        Route::get('/student-pay/{teacherId}/{yearMonth}', [TeacherPaymentsController::class, 'studentPaymentMonthCheck']);
         Route::get('/salary-slip/{teacherId}/{yearMonth}', [TeacherPaymentsController::class, 'fetchSalarySlipDataTest']);
         Route::get('/expenses/{yearMonth}', [TeacherPaymentsController::class, 'teachersExpenses']);
         Route::get('/monthly-income/{yearMonth}', [TeacherPaymentsController::class, 'getMonthlyPayments']);
@@ -311,6 +360,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('ledger')->group(function () {
         Route::get('/monthly/{yearMonth}', [LedgerSummaryController::class, 'getMonthlySummary'])
             ->where('yearMonth', '[0-9]{4}-[0-9]{2}');
-            Route::get('/test/{yearMonth}', [LedgerSummaryController::class, 'testMonth']);
+        Route::get('/test/{yearMonth}', [LedgerSummaryController::class, 'testMonth']);
     });
 });

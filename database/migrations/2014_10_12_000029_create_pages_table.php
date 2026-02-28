@@ -12,6 +12,7 @@ class CreatePagesTable extends Migration
         Schema::create('pages', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->string('page');
+            $table->string('route_name');
             $table->timestamps();
         });
     }

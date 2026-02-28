@@ -18,6 +18,9 @@ class DatabaseSeeder extends Seeder
             SystemUsersTableSeeder::class,
             GradesTableSeeder::class,
             BanksTableSeeder::class,
+            ClassCategoryTableSeeder::class,
+            PagesTableSeeder::class,
+            AdminPermissionsSeeder::class
         ]);
     }
 }

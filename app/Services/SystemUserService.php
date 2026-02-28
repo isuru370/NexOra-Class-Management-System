@@ -16,8 +16,9 @@ class SystemUserService
     public function getSystemUsers()
     {
         try {
-            $users = SystemUser::with(['user', 'user.userType'])->get();
-
+            $users = SystemUser::with(['user', 'user.userType'])
+                ->where('custom_id', '!=', 'ADM001') // skip the main admin
+                ->get();
 
             return response()->json([
                 'status' => 'success',

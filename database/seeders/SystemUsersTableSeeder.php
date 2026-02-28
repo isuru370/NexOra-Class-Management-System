@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use App\Models\User;
 
 class SystemUsersTableSeeder extends Seeder
 {
@@ -14,14 +13,10 @@ class SystemUsersTableSeeder extends Seeder
      */
     public function run(): void
     {
-        // First, create or obtain the administrator user.
-        $adminUser = $this->createAdminUser();
-        
-        // Create the system administrator user
-        $systemUsers = [
+        // Define multiple admin users
+        $admins = [
             [
                 'custom_id' => 'ADM001',
-                'user_id' => $adminUser->id,
                 'fname' => 'System',
                 'lname' => 'Administrator',
                 'email' => 'admin@nexorait.lk',
@@ -32,66 +27,90 @@ class SystemUsersTableSeeder extends Seeder
                 'address1' => 'Mirigama,Sri Lanka',
                 'address2' => 'Nexora IT Solutions',
                 'address3' => 'Mirigama',
-                'is_active' => true,
-                'created_at' => now(),
-                'updated_at' => now(),
             ],
+            [
+                'custom_id' => 'ADM002',
+                'fname' => 'System',
+                'lname' => 'Administrator',
+                'email' => 'admin@nexorait.com',
+                'mobile' => '0719876543',
+                'nic' => '987654321V',
+                'bday' => '1990-05-20',
+                'gender' => 'female',
+                'address1' => 'Colombo,Sri Lanka',
+                'address2' => 'Nexora IT Solutions',
+                'address3' => 'Colombo',
+            ],
+            // Add more admins here
         ];
 
-        // Check if the administrator already exists.
-        $existingAdmin = DB::table('system_users')
-            ->where('email', 'admin@nexorait.lk')
-            ->orWhere('custom_id', 'ADM001')
-            ->first();
+        foreach ($admins as $admin) {
+            // Create or get the admin user account
+            $user = $this->createAdminUser($admin['email']);
 
-        if (!$existingAdmin) {
-            DB::table('system_users')->insert($systemUsers);
-            $this->command->info('✅ The system administrator user was successfully created!');
-        } else {
-            $this->command->info('ℹ️ The system administrator user already exists.');
+            // Check if the system user already exists
+            $existingSystemUser = DB::table('system_users')
+                ->where('email', $admin['email'])
+                ->orWhere('custom_id', $admin['custom_id'])
+                ->first();
+
+            if (!$existingSystemUser) {
+                DB::table('system_users')->insert([
+                    'custom_id' => $admin['custom_id'],
+                    'user_id' => $user->id,
+                    'fname' => $admin['fname'],
+                    'lname' => $admin['lname'],
+                    'email' => $admin['email'],
+                    'mobile' => $admin['mobile'],
+                    'nic' => $admin['nic'],
+                    'bday' => $admin['bday'],
+                    'gender' => $admin['gender'],
+                    'address1' => $admin['address1'],
+                    'address2' => $admin['address2'],
+                    'address3' => $admin['address3'],
+                    'is_active' => true,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                $this->command->info("✅ Admin {$admin['email']} created successfully.");
+            } else {
+                $this->command->info("ℹ️ Admin {$admin['email']} already exists.");
+            }
         }
     }
 
     /**
      * Create the admin user in the users table.
      */
-    private function createAdminUser()
+    private function createAdminUser(string $email)
     {
-        // First, create or get the user_type for Admin in the user_types table.
-        $adminType = DB::table('user_types')
-            ->where('type', 'Admin')
-            ->first();
+        // Get or create Admin user type
+        $adminType = DB::table('user_types')->where('type', 'Admin')->first();
+        $adminTypeId = $adminType ? $adminType->id : DB::table('user_types')->insertGetId([
+            'type' => 'Admin',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
-        if (!$adminType) {
-            $adminTypeId = DB::table('user_types')->insertGetId([
-                'type' => 'Admin',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        } else {
-            $adminTypeId = $adminType->id;
-        }
+        // Check if user exists
+        $user = DB::table('users')->where('email', $email)->first();
 
-        // Create the administrator user account
-        $adminUser = DB::table('users')
-            ->where('email', 'admin@nexorait.lk')
-            ->first();
-
-        if (!$adminUser) {
+        if (!$user) {
             $userId = DB::table('users')->insertGetId([
                 'name' => 'System Administrator',
-                'email' => 'admin@nexorait.lk',
-                'password' => Hash::make('nexora'),
+                'email' => $email,
+                'password' => Hash::make('nexora'), // default password
                 'user_type' => $adminTypeId,
                 'is_active' => true,
                 'email_verified_at' => now(),
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-            
+
             return (object)['id' => $userId];
         }
 
-        return $adminUser;
+        return $user;
     }
 }

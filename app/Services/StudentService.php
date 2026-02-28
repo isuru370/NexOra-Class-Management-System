@@ -112,6 +112,52 @@ class StudentService
         }
     }
 
+    public function fetchTempQrCode()
+    {
+        try {
+            $students = Student::where('is_active', 1)
+                ->where('student_disable', 0)
+                ->orderBy('id', 'desc')
+                ->get()
+                ->map(function ($item) {
+
+                    // original creation date
+                    $updatedAt = $item->updated_at;
+
+                    // move forward 2 months
+                    $futureDate = $updatedAt ? $updatedAt->copy()->addMonths(2) : null;
+
+                    // calculate days left from today to futureDate
+                    $daysLeft = $futureDate ? now()->diffInDays($futureDate) : null;
+
+                    return [
+                        'student_id' => $item->id,
+                        'custom_id' => $item->custom_id,
+                        'fname' => $item->fname,
+                        'lname' => $item->lname,
+                        'mobile' => $item->mobile,
+                        'whatsapp_mobile' => $item->whatsapp_mobile,
+                        'update_at' => $updatedAt->toDateTimeString(),
+                        'days_left' => $daysLeft,
+                        'is_active' => $item->is_active,
+                        'status' => $item->status ?? 1,
+                    ];
+                });
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $students
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to fetch students',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
     public function fetchNotPaidAdmissionStudent()
     {
         try {
@@ -303,6 +349,7 @@ class StudentService
                 'portalLogin:id,student_id,username,is_verify,is_active'
             ])
                 ->where('custom_id', $customId)
+                ->where('student_disable', false)
                 ->first();
 
             if (!$student) {
@@ -375,7 +422,6 @@ class StudentService
                 'grade_id' => ['required', 'exists:grades,id'],
                 'class_type' => 'required|in:online,offline',
                 'admission' => 'nullable|boolean',
-                'is_freecard' => 'nullable|boolean',
                 'student_school' => 'nullable|string|max:255'
             ]);
 
@@ -395,7 +441,6 @@ class StudentService
             // Ensure boolean fields are properly cast
             $data['is_active'] = filter_var($data['is_active'] ?? 1, FILTER_VALIDATE_BOOLEAN);
             $data['admission'] = filter_var($data['admission'] ?? 0, FILTER_VALIDATE_BOOLEAN);
-            $data['is_freecard'] = filter_var($data['is_freecard'] ?? 0, FILTER_VALIDATE_BOOLEAN);
 
             // Ensure class_type is set (already validated as required)
             // $data['class_type'] is already set from $request->all()
@@ -455,7 +500,6 @@ class StudentService
                 'grade_id' => ['required', 'exists:grades,id'],
                 'class_type' => 'required|in:online,offline',
                 'admission' => 'nullable|boolean',
-                'is_freecard' => 'nullable|boolean',
                 'student_school' => 'nullable|string|max:255'
             ]);
 
@@ -475,9 +519,8 @@ class StudentService
             // Ensure boolean fields are properly cast
             $data['is_active'] = filter_var($data['is_active'] ?? 1, FILTER_VALIDATE_BOOLEAN);
             $data['admission'] = filter_var($data['admission'] ?? 0, FILTER_VALIDATE_BOOLEAN);
-            $data['is_freecard'] = filter_var($data['is_freecard'] ?? 0, FILTER_VALIDATE_BOOLEAN);
 
-            Log::info('Creating student with data:', $data);
+            //Log::info('Creating student with data:', $data);
 
             $student = Student::create($data);
 
@@ -552,7 +595,6 @@ class StudentService
                 'grade_id' => ['required', 'exists:grades,id'],
                 'class_type' => 'required|in:online,offline',
                 'admission'         => 'required|boolean',
-                'is_freecard'       => 'required|boolean',
                 'student_school'    => 'nullable|string|max:255'
             ]);
 
@@ -908,11 +950,10 @@ class StudentService
                     $classAttendance['count']
                 );
 
-                return [
+                return  [
                     'enrollment_id'   => $item->id,
                     'enrollment_date' => $item->created_at->toDateTimeString(),
                     'status'          => $item->status,
-                    'is_free_card'    => $item->is_free_card,
 
                     // CLASS INFO
                     'class_info' => $studentClass ? [
@@ -933,6 +974,7 @@ class StudentService
 
                     // CATEGORY INFO
                     'category_info' => $classRelation ? [
+                        'class_category_has_student_class_id'             => $classRelation->id,
                         'fees'          => $classRelation->fees,
                         'category_name' => $classRelation->classCategory->category_name ?? null
                     ] : null,
@@ -1048,7 +1090,7 @@ class StudentService
                 'otp_expires_at' => null,
             ]);
 
-            Log::info("Admin created portal login for student ID {$student->id}");
+            //Log::info("Admin created portal login for student ID {$student->id}");
         } else {
             // Self-registration → OTP required
             $otp = rand(100000, 999999); // 6-digit OTP
@@ -1064,7 +1106,7 @@ class StudentService
             ]);
 
             // TODO: send OTP via SMS gateway
-            Log::info("OTP {$otp} generated for student ID {$student->id} (self-registration)");
+            // Log::info("OTP {$otp} generated for student ID {$student->id} (self-registration)");
         }
     }
 
@@ -1092,5 +1134,66 @@ class StudentService
         ]);
 
         return response()->json(['message' => 'OTP verified, account active']);
+    }
+
+    public function fetchAllStudentCustomIDs()
+    {
+        try {
+            $search = request()->get('search', '');
+            $month  = request()->get('month'); // format: 2026-02
+
+            $studentsQuery = Student::with([
+                'grade' => function ($query) {
+                    $query->select('id', 'grade_name');
+                },
+            ])
+                ->select(
+                    'id',
+                    'custom_id',
+                    'fname',
+                    'lname',
+                    'mobile',
+                    'created_at',
+                    'img_url',
+                    'grade_id'
+                );
+
+            // ✅ Month filter
+            if (!empty($month)) {
+                $studentsQuery->whereYear('created_at', date('Y', strtotime($month)))
+                    ->whereMonth('created_at', date('m', strtotime($month)));
+            } else {
+                // Default: current month
+                $studentsQuery->whereYear('created_at', now()->year)
+                    ->whereMonth('created_at', now()->month);
+            }
+
+            // ✅ Search functionality
+            if (!empty($search)) {
+                $studentsQuery->where(function ($query) use ($search) {
+                    $query->where('custom_id', 'like', "%{$search}%")
+                        ->orWhere('fname', 'like', "%{$search}%")
+                        ->orWhere('lname', 'like', "%{$search}%")
+                        ->orWhere('mobile', 'like', "%{$search}%")
+                        ->orWhereHas('grade', function ($gradeQuery) use ($search) {
+                            $gradeQuery->where('grade_name', 'like', "%{$search}%");
+                        });
+                });
+            }
+
+            // ✅ Get all records (No pagination)
+            $students = $studentsQuery->orderBy('created_at', 'desc')->get();
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $students
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to fetch students',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }

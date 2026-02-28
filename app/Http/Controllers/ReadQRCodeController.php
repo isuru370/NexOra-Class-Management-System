@@ -19,4 +19,9 @@ class ReadQRCodeController extends Controller
     {
         return $this->readQRCodeService->readQRCode($request);
     }
+
+        public function studentIdCardActive($custom_id)
+    {
+        return $this->readQRCodeService->studentIdCardActive($custom_id);
+    }
 }

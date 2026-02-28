@@ -15,8 +15,9 @@ use App\Services\GradeService;
 use App\Services\ImageUploadService;
 use App\Services\InstitutePaymentService;
 use App\Services\LedgerSummaryService;
-use App\Services\PaymentReasonService;
+use App\Services\PermissionService;
 use App\Services\QuickPhotoService;
+use App\Services\StudentResultsService;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Schema;
 use App\Services\StudentAttendanceService;
@@ -138,6 +139,12 @@ class AppServiceProvider extends ServiceProvider
         });
         $this->app->bind(UserTypesService::class, function ($app) {
             return new UserTypesService();
+        });
+        $this->app->bind(PermissionService::class, function ($app) {
+            return new PermissionService();
+        });
+        $this->app->bind(StudentResultsService::class, function ($app) {
+            return new StudentResultsService();
         });
     }
 

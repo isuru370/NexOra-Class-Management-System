@@ -461,7 +461,6 @@
 
                 document.getElementById('student_school').textContent = student.student_school || 'N/A';
                 document.getElementById('admissionStatus').textContent = student.admission ? 'Yes' : 'No';
-                document.getElementById('freeCardStatus').textContent = student.is_freecard ? 'Yes' : 'No';
 
                 // Format registration date
                 const createdAtElement = document.getElementById('createdAt');

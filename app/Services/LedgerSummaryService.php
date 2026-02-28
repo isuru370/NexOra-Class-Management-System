@@ -6,6 +6,7 @@ use App\Models\AdmissionPayments;
 use App\Models\ExtraIncomes;
 use App\Models\InstitutePayment;
 use App\Models\Payments;
+use App\Models\Teacher;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\Log;
@@ -66,46 +67,39 @@ class LedgerSummaryService
     private function getOpeningBalance(string $yearMonth): float
     {
         try {
-            // YYYY-MM format validate
             if (!preg_match('/^\d{4}-\d{2}$/', $yearMonth)) {
                 return 0.0;
             }
 
-            // Start from 2026-01
             $startDate = Carbon::create(2026, 1, 1)->startOfDay();
             $endDate   = Carbon::createFromFormat('Y-m', $yearMonth)->startOfMonth();
 
-            // If month before 2026-01
             if ($endDate->lessThanOrEqualTo($startDate)) {
                 return 0.0;
             }
 
             $openingBalance = 0;
+            $period = $startDate->copy();
 
-            // Loop over all months from 2026-01 until selected month (exclusive)
-            $period = Carbon::parse($startDate);
             while ($period->lt($endDate)) {
-
                 $monthStart = $period->copy()->startOfMonth();
                 $monthEnd   = $period->copy()->endOfMonth();
 
-                /** -------------------------
-                 * 1. Institute receipts
-                 * ------------------------*/
-                $totalInstituteReceipts = 0;
-
-                // Class payments (after teacher share)
+                // ---------- CLASS PAYMENTS ----------
                 $classPayments = Payments::with(['studentStudentClass.studentClass.teacher'])
                     ->where('status', 1)
                     ->whereBetween('payment_date', [$monthStart, $monthEnd])
                     ->get();
 
+                $totalInstituteReceipts = 0;
                 foreach ($classPayments as $payment) {
-                    $teacher = $payment->studentStudentClass->studentClass->teacher ?? null;
+                    $class = $payment->studentStudentClass->studentClass ?? null;
+                    $percentage = $class->teacher_percentage ?? 0;
+                    $teacher = $class->teacher ?? null;
 
-                    if ($teacher && $teacher->is_active) {
-                        $teacherShare = ($payment->amount * $teacher->precentage) / 100;
-                        $instituteShare = $payment->amount - $teacherShare;
+                    if ($class && $teacher && $teacher->is_active) {
+                        $teacherShare = round(($payment->amount * $percentage) / 100, 2);
+                        $instituteShare = round($payment->amount - $teacherShare, 2);
                     } else {
                         $instituteShare = $payment->amount;
                     }
@@ -114,25 +108,19 @@ class LedgerSummaryService
                 }
 
                 // Admission payments
-                $totalInstituteReceipts += (float) AdmissionPayments::whereBetween('created_at', [$monthStart, $monthEnd])
-                    ->sum('amount');
+                $totalInstituteReceipts += (float) AdmissionPayments::whereBetween('created_at', [$monthStart, $monthEnd])->sum('amount');
 
                 // Extra incomes
-                $totalInstituteReceipts += (float) ExtraIncomes::whereBetween('created_at', [$monthStart, $monthEnd])
-                    ->sum('amount');
+                $totalInstituteReceipts += (float) ExtraIncomes::whereBetween('created_at', [$monthStart, $monthEnd])->sum('amount');
 
-
-                /** -------------------------
-                 * 2. Expenses
-                 * ------------------------*/
+                // ---------- EXPENSES ----------
                 $totalExpenses = (float) InstitutePayment::where('status', 1)
                     ->whereBetween('date', [$monthStart, $monthEnd])
                     ->sum('payment');
 
-                // Add net balance for this month
+                // Update opening balance
                 $openingBalance += ($totalInstituteReceipts - $totalExpenses);
 
-                // Move to next month
                 $period->addMonth();
             }
 
@@ -142,7 +130,6 @@ class LedgerSummaryService
         }
     }
 
-
     /**
      * Class income ledger entries (INSTITUTE SHARE ONLY - After teacher percentage deduction)
      */
@@ -150,30 +137,26 @@ class LedgerSummaryService
     {
         $entries = collect();
 
-        // Get payments grouped by date
         $paymentsByDate = Payments::with(['studentStudentClass.studentClass.teacher'])
             ->where('status', 1)
             ->whereBetween('payment_date', [$start, $end])
             ->orderBy('payment_date')
             ->get()
-            ->groupBy(function ($payment) {
-                return Carbon::parse($payment->payment_date)->format('Y-m-d');
-            });
+            ->groupBy(fn($payment) => Carbon::parse($payment->payment_date)->format('Y-m-d'));
 
         foreach ($paymentsByDate as $date => $payments) {
             $totalForDay = 0;
             $paymentCount = $payments->count();
 
             foreach ($payments as $payment) {
-                $teacher = $payment->studentStudentClass->studentClass->teacher ?? null;
+                $class = $payment->studentStudentClass->studentClass ?? null;
+                $percentage = $class->teacher_percentage ?? 0;
+                $teacher = $class->teacher ?? null;
 
-                if ($teacher && $teacher->is_active) {
-                    // Teacher's share
-                    $teacherShare = ($payment->amount * $teacher->precentage) / 100;
-                    // Institute's share (full amount minus teacher's share)
-                    $instituteShare = $payment->amount - $teacherShare;
+                if ($class && $teacher && $teacher->is_active) {
+                    $teacherShare = round(($payment->amount * $percentage) / 100, 2);
+                    $instituteShare = round($payment->amount - $teacherShare, 2);
                 } else {
-                    // No teacher assigned or teacher inactive - institute gets full amount
                     $instituteShare = $payment->amount;
                 }
 

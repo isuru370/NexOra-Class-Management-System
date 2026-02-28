@@ -12,11 +12,11 @@ class CreateStudentAttendancesTable extends Migration
         Schema::create('student_attendances', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->dateTime('at_date');
-            $table->foreignId('student_student_student_classes')
+            $table->foreignId('student_student_student_classes_id')
                 ->constrained('student_student_student_classes');
             $table->foreignId('student_id')
                 ->constrained('students');
-            $table->string('status');
+            $table->foreignId('attendance_id')->constrained('class_attendances');
             $table->timestamps();
         });
     }

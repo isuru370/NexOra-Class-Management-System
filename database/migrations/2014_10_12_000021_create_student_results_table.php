@@ -14,9 +14,9 @@ class CreateStudentResultsTable extends Migration
             $table->string('marks');
             $table->string('reason')->nullable();
             $table->boolean('is_updated')->default(false);
-            $table->unsignedBigInteger('student_id');
-            $table->unsignedBigInteger('exam_id');
-            $table->unsignedBigInteger('user_id');
+            $table->foreignId('student_id')->constrained('students')->onDelete('cascade');
+            $table->foreignId('exam_id')->constrained('exams')->onDelete('cascade');
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->timestamps();
         });
     }

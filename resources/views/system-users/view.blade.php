@@ -226,6 +226,8 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <!-- New Add Permission Button -->
+                    <button type="button" class="btn btn-primary" id="addPermissionBtn">Add Permission</button>
                 </div>
             </div>
         </div>

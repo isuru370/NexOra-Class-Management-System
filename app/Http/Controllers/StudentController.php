@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Imports\StudentsImport;
 use App\Models\Student;
 use App\Services\StudentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Maatwebsite\Excel\Facades\Excel;
 
 class StudentController extends Controller
 {
@@ -21,9 +23,18 @@ class StudentController extends Controller
     {
         return $this->studentService->fetchStudents();
     }
+    public function fetchAllStudentCustomIDs()
+    {
+        return $this->studentService->fetchAllStudentCustomIDs();
+    }
     public function fetchActiveStudents()
     {
         return $this->studentService->fetchActiveStudents();
+    }
+
+    public function fetchTempQrCode()
+    {
+        return $this->studentService->fetchTempQrCode();
     }
 
     public function fetchNotPaidAdmissionStudent()
@@ -158,6 +169,31 @@ class StudentController extends Controller
         }
     }
 
+    // Handle CSV import
+    public function import(Request $request)
+    {
+        // Validate uploaded file
+        $request->validate([
+            'file' => 'required|mimes:csv,xlsx'
+        ]);
+
+        $import = new StudentsImport;
+
+        try {
+            Excel::import($import, $request->file('file'));
+
+            $errors = $import->errors;
+
+            if (count($errors) > 0) {
+                return back()->with('errors', $errors)
+                    ->with('success', 'Some students imported successfully.');
+            }
+
+            return back()->with('success', 'All students imported successfully!');
+        } catch (\Exception $e) {
+            return back()->with('errors', ['Import failed: ' . $e->getMessage()]);
+        }
+    }
 
 
 
@@ -174,5 +210,15 @@ class StudentController extends Controller
     public function studentAnalytic($student_id)
     {
         return view('students.student_analytic', compact('student_id'));
+    }
+
+    public function showImportForm()
+    {
+        return view('students.import');
+    }
+
+    public function examResults($classCategoryHasStudentClassId, $student_id)
+    {
+        return view('students.exam_results', compact('classCategoryHasStudentClassId', 'student_id'));
     }
 }

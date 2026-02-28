@@ -1266,6 +1266,7 @@
                 });
             }
 
+            // අලුත් කරපු renderPaymentTable function එක
             function renderPaymentTable() {
                 if (!state.teacherData || !elements.paymentTableBody) {
                     ui.showTableEmptyState(true);
@@ -1276,25 +1277,42 @@
                 state.allPayments = [];
                 state.allGrades = new Set();
 
-                // Collect all unique dates and grades from daily_payments
+                // --- Step 1: Create a map for quick class data access by grade ---
+                const classDataByGrade = {};
+                if (state.teacherData.classes) {
+                    state.teacherData.classes.forEach(cls => {
+                        const grade = cls.grade_name;
+                        if (grade) {
+                            classDataByGrade[grade] = {
+                                teacherPercentage: parseFloat(cls.teacher_percentage) || 0,
+                            };
+                            state.allGrades.add(grade);
+                        }
+                    });
+                }
+                state.allGrades = Array.from(state.allGrades).sort();
+                // ----------------------------------------------------------------
+
+                // Collect all unique dates from daily_payments
                 const dateMap = new Map();
 
                 state.teacherData.classes.forEach(cls => {
                     const grade = cls.grade_name;
-                    if (grade) state.allGrades.add(grade);
-
                     if (cls.daily_payments && typeof cls.daily_payments === 'object') {
                         Object.entries(cls.daily_payments).forEach(([date, amount]) => {
                             if (!dateMap.has(date)) {
                                 dateMap.set(date, {
                                     date: date,
                                     gradePayments: {},
+                                    gradePercentages: {}, // Store percentage for each grade's payment
                                     totalCollection: 0
                                 });
                             }
                             const dayData = dateMap.get(date);
-                            dayData.gradePayments[grade] = (dayData.gradePayments[grade] || 0) + utils.toNumber(amount);
-                            dayData.totalCollection += utils.toNumber(amount);
+                            const numericAmount = utils.toNumber(amount);
+                            dayData.gradePayments[grade] = (dayData.gradePayments[grade] || 0) + numericAmount;
+                            dayData.gradePercentages[grade] = classDataByGrade[grade]?.teacherPercentage || 0;
+                            dayData.totalCollection += numericAmount;
                         });
                     }
                 });
@@ -1303,8 +1321,6 @@
                 const sortedDates = Array.from(dateMap.values()).sort((a, b) =>
                     new Date(a.date) - new Date(b.date)
                 );
-
-                state.allGrades = Array.from(state.allGrades).sort();
 
                 if (sortedDates.length === 0) {
                     ui.showTableEmptyState(true);
@@ -1326,28 +1342,12 @@
                     totals.gradeTotals[grade] = 0;
                 });
 
-                // Calculate overall teacher percentage average from all classes
-                let totalTeacherPercentage = 0;
-                let validClassesCount = 0;
-
-                if (state.teacherData.classes && state.teacherData.classes.length > 0) {
-                    state.teacherData.classes.forEach(cls => {
-                        const percentage = utils.toNumber(cls.teacher_percentage);
-                        if (percentage > 0) {
-                            totalTeacherPercentage += percentage;
-                            validClassesCount++;
-                        }
-                    });
-                }
-
-                const avgTeacherPercentage = validClassesCount > 0 ? totalTeacherPercentage / validClassesCount : 0;
-                const avgInstitutionPercentage = 100 - avgTeacherPercentage;
-
                 // Render table rows
                 sortedDates.forEach(dayData => {
                     const row = document.createElement('tr');
                     let rowHTML = `<td class="fw-bold">${utils.formatDateTable(dayData.date)}</td>`;
 
+                    // For each grade, display the amount
                     state.allGrades.forEach(grade => {
                         const amount = dayData.gradePayments[grade] || 0;
                         totals.gradeTotals[grade] += amount;
@@ -1356,17 +1356,42 @@
 
                     totals.totalCollection += dayData.totalCollection;
 
-                    // Calculate shares based on average percentages
-                    const teacherShare = dayData.totalCollection * avgTeacherPercentage / 100;
-                    const institutionShare = dayData.totalCollection * avgInstitutionPercentage / 100;
+                    // --- Step 2: Calculate shares based on each grade's actual percentage ---
+                    let dailyTeacherShare = 0;
+                    let dailyInstitutionShare = 0;
 
-                    totals.teacherShare += teacherShare;
-                    totals.institutionShare += institutionShare;
+                    Object.entries(dayData.gradePayments).forEach(([grade, amount]) => {
+                        const teacherPercentage = dayData.gradePercentages[grade] || 0;
+                        const institutionPercentage = 100 - teacherPercentage;
+
+                        const teacherPortion = amount * (teacherPercentage / 100);
+                        const institutionPortion = amount * (institutionPercentage / 100);
+
+                        dailyTeacherShare += teacherPortion;
+                        dailyInstitutionShare += institutionPortion;
+                    });
+
+                    // Add to overall totals
+                    totals.teacherShare += dailyTeacherShare;
+                    totals.institutionShare += dailyInstitutionShare;
+                    // --------------------------------------------------------------------
+
+                    // Calculate percentages for display in this row
+                    const teacherPercentageForRow = dayData.totalCollection > 0
+                        ? (dailyTeacherShare / dayData.totalCollection) * 100
+                        : 0;
+                    const institutionPercentageForRow = 100 - teacherPercentageForRow;
 
                     rowHTML += `
                         <td class="fw-bold text-primary">${utils.formatCurrency(dayData.totalCollection)}</td>
-                        <td class="text-secondary">${utils.formatCurrency(institutionShare)}</td>
-                        <td class="fw-bold text-success">${utils.formatCurrency(teacherShare)}</td>
+                        <td class="text-secondary">
+                            ${utils.formatCurrency(dailyInstitutionShare)}
+                            <small class="d-block">(${institutionPercentageForRow.toFixed(1)}%)</small>
+                        </td>
+                        <td class="fw-bold text-success">
+                            ${utils.formatCurrency(dailyTeacherShare)}
+                            <small class="d-block">(${teacherPercentageForRow.toFixed(1)}%)</small>
+                        </td>
                     `;
 
                     row.innerHTML = rowHTML;
@@ -1374,17 +1399,24 @@
 
                     // Store for export
                     state.allPayments.push({
-                        ...dayData,
-                        institutionShare,
-                        teacherShare,
-                        teacherPercentage: avgTeacherPercentage,
-                        institutionPercentage: avgInstitutionPercentage
+                        date: dayData.date,
+                        gradePayments: dayData.gradePayments,
+                        totalCollection: dayData.totalCollection,
+                        institutionShare: dailyInstitutionShare,
+                        teacherShare: dailyTeacherShare,
                     });
                 });
 
-                renderTableFooter(totals, avgTeacherPercentage, avgInstitutionPercentage);
+                // Calculate overall percentages for footer
+                const overallTeacherPercentage = totals.totalCollection > 0
+                    ? (totals.teacherShare / totals.totalCollection) * 100
+                    : 0;
+                const overallInstitutionPercentage = 100 - overallTeacherPercentage;
+
+                renderTableFooter(totals, overallTeacherPercentage, overallInstitutionPercentage);
             }
 
+            // renderTableHeader function එක (වෙනසක් නැහැ)
             function renderTableHeader() {
                 if (!elements.paymentTableHeader) return;
 
@@ -1399,6 +1431,7 @@
                 `;
             }
 
+            // අලුත් කරපු renderTableFooter function එක
             function renderTableFooter(totals, teacherPercentage, institutionPercentage) {
                 if (!elements.paymentTableFooter) return;
 
@@ -1409,8 +1442,14 @@
                             <td class="fw-bold py-2">${utils.formatCurrency(totals.gradeTotals[grade] || 0)}</td>
                         `).join('')}
                         <td class="fw-bold py-2 text-primary">${utils.formatCurrency(totals.totalCollection)}</td>
-                        <td class="fw-bold py-2 text-secondary">${utils.formatCurrency(totals.institutionShare)}<br><small>(${institutionPercentage.toFixed(1)}%)</small></td>
-                        <td class="fw-bold py-2 text-success">${utils.formatCurrency(totals.teacherShare)}<br><small>(${teacherPercentage.toFixed(1)}%)</small></td>
+                        <td class="fw-bold py-2 text-secondary">
+                            ${utils.formatCurrency(totals.institutionShare)}
+                            <small class="d-block">(${institutionPercentage.toFixed(1)}%)</small>
+                        </td>
+                        <td class="fw-bold py-2 text-success">
+                            ${utils.formatCurrency(totals.teacherShare)}
+                            <small class="d-block">(${teacherPercentage.toFixed(1)}%)</small>
+                        </td>
                     </tr>
                 `;
             }
@@ -1753,23 +1792,6 @@
                     }
 
                     try {
-                        // Get average percentages for export
-                        let totalTeacherPercentage = 0;
-                        let validClassesCount = 0;
-
-                        if (state.teacherData.classes && state.teacherData.classes.length > 0) {
-                            state.teacherData.classes.forEach(cls => {
-                                const percentage = utils.toNumber(cls.teacher_percentage);
-                                if (percentage > 0) {
-                                    totalTeacherPercentage += percentage;
-                                    validClassesCount++;
-                                }
-                            });
-                        }
-
-                        const avgTeacherPercentage = validClassesCount > 0 ? totalTeacherPercentage / validClassesCount : 0;
-                        const avgInstitutionPercentage = 100 - avgTeacherPercentage;
-
                         const exportData = state.allPayments.map(payment => {
                             const rowData = {
                                 'Date': utils.formatDateTable(payment.date)
@@ -1780,8 +1802,8 @@
                             });
 
                             rowData['Total Collection'] = payment.totalCollection || 0;
-                            rowData[`Institution Share (${avgInstitutionPercentage.toFixed(1)}%)`] = payment.institutionShare || 0;
-                            rowData[`Teacher Share (${avgTeacherPercentage.toFixed(1)}%)`] = payment.teacherShare || 0;
+                            rowData['Institution Share'] = payment.institutionShare || 0;
+                            rowData['Teacher Share'] = payment.teacherShare || 0;
 
                             return rowData;
                         });
@@ -1824,25 +1846,7 @@
                         state.allGrades.forEach(grade => {
                             headers.push(`Grade ${grade}`);
                         });
-
-                        // Get average percentages
-                        let totalTeacherPercentage = 0;
-                        let validClassesCount = 0;
-
-                        if (state.teacherData.classes && state.teacherData.classes.length > 0) {
-                            state.teacherData.classes.forEach(cls => {
-                                const percentage = utils.toNumber(cls.teacher_percentage);
-                                if (percentage > 0) {
-                                    totalTeacherPercentage += percentage;
-                                    validClassesCount++;
-                                }
-                            });
-                        }
-
-                        const avgTeacherPercentage = validClassesCount > 0 ? totalTeacherPercentage / validClassesCount : 0;
-                        const avgInstitutionPercentage = 100 - avgTeacherPercentage;
-
-                        headers.push('Total', `Institution (${avgInstitutionPercentage.toFixed(1)}%)`, `Teacher (${avgTeacherPercentage.toFixed(1)}%)`);
+                        headers.push('Total', 'Institution', 'Teacher');
 
                         const tableData = state.allPayments.map(payment => {
                             const row = [utils.formatDateTable(payment.date)];

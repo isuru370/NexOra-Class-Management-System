@@ -1244,6 +1244,8 @@
 
         <div class="nav-links">
             <a href="{{ url('/') }}" class="nav-link active">Home</a>
+            <a href="{{ route('mobile-app') }}" class="nav-link">Mobile App</a>
+            <a href="{{ route('web-platform') }}" class="mobile-nav-link">Web Platform</a>
             <a href="{{ route('pricing') }}" class="nav-link">Pricing</a>
         </div>
     </nav>
@@ -1252,6 +1254,8 @@
     <div class="mobile-menu" id="mobileMenu">
         <div class="mobile-nav-links">
             <a href="{{ url('/') }}" class="mobile-nav-link">Home</a>
+            <a href="{{ route('mobile-app') }}" class="nav-link">Mobile App</a>
+             <a href="{{ route('web-platform') }}" class="mobile-nav-link">Web Platform</a>
             <a href="{{ route('pricing') }}" class="mobile-nav-link">Pricing</a>
         </div>
     </div>
@@ -1292,7 +1296,7 @@
 
                 <!-- Features Grid -->
                 <div class="features-grid">
-                    <a href="#" class="feature-btn">
+                    <a href="{{ route('mobile-app') }}" class="feature-btn">
                         <div class="feature-icon">
                             <i class="fas fa-mobile-alt"></i>
                         </div>
@@ -1334,7 +1338,7 @@
                     <p style="margin-top: 0.75rem; font-size: 0.85rem; color: #94a3b8; text-align: center;">
                         <i class="fas fa-info-circle" style="color: var(--accent-green); margin-right: 0.25rem;"></i>
                         Demo: <code
-                            style="background: rgba(255, 255, 255, 0.1); padding: 0.15rem 0.5rem; border-radius: 4px; margin: 0 0.25rem;">admin@nexora.com</code>
+                            style="background: rgba(255, 255, 255, 0.1); padding: 0.15rem 0.5rem; border-radius: 4px; margin: 0 0.25rem;">admin@nexora.lk</code>
                         |
                         <code
                             style="background: rgba(255, 255, 255, 0.1); padding: 0.15rem 0.5rem; border-radius: 4px; margin-left: 0.25rem;">nexora</code>
@@ -1651,6 +1655,8 @@
             <div class="footer-links">
                 <a href="{{ url('/') }}" class="footer-link">Home</a>
                 <a href="{{ route('pricing') }}" class="footer-link">Pricing</a>
+                <a href="{{ route('mobile-app') }}" class="nav-link">Mobile App</a>
+                <a href="{{ route('web-platform') }}" class="mobile-nav-link">Web Platform</a>
                 <a href="{{ route('login') }}" class="footer-link">Login</a>
             </div>
             <p>&copy; 2024 NEXORA Education System. All rights reserved.</p>

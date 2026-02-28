@@ -14,25 +14,25 @@ class ClassAttendanceService
 {
 
     public function fetchByClassCategoryHasStudentClasses($classCategoryHasStudentClassId)
-    {
-        try {
-            $attendanceRecords = ClassAttendance::with(['classCategoryStudentClass', 'hall'])
-                ->where('class_category_has_student_class_id', $classCategoryHasStudentClassId)
-                ->orderBy('date', 'desc')
-                ->get();
+{
+    try {
+        $attendanceRecords = ClassAttendance::with(['classCategoryStudentClass', 'hall'])
+            ->where('class_category_has_student_class_id', $classCategoryHasStudentClassId)
+            ->orderBy('date', 'desc')
+            ->paginate(10); // 👈 10 records per page
 
-            return response()->json([
-                'status' => 'success',
-                'data' => $attendanceRecords
-            ]);
-        } catch (Exception $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Failed to fetch attendance records',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+        return response()->json([
+            'status' => 'success',
+            'data' => $attendanceRecords
+        ]);
+    } catch (Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Failed to fetch attendance records',
+            'error' => $e->getMessage()
+        ], 500);
     }
+}
 
     public function fetchClassesByDate(Request $request)
     {

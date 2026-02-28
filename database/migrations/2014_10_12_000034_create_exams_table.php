@@ -5,19 +5,21 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateExamTable extends Migration
+class CreateExamsTable extends Migration
 {
     public function up()
     {
-        Schema::create('exam', function (Blueprint $table) {
+        Schema::create('exams', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->string('title');
             $table->string('date');
             $table->string('start_time')->nullable();
             $table->string('end_time')->nullable();
-            $table->foreignId('student_classes_id')
-                ->constrained('student_classes');
-            $table->boolean('is_canceled');
+            $table->foreignId('class_category_has_student_class_id')
+                ->constrained('class_category_has_student_class');
+            $table->foreignId('class_hall_id')
+                ->constrained('class_halls');
+            $table->boolean('is_canceled')->default(false);
             $table->timestamps();
 
             $table->foreign('student_classes_id')->references('id')->on('student_classes');
