@@ -245,7 +245,7 @@ class StudentAttendanceService
             }
 
             // Mark attendance
-            $attendance = StudentAttendances::create([
+            StudentAttendances::create([
                 'at_date' => $date,
                 'student_student_student_classes_id' => $studentClassId,
                 'student_id' => $studentId,

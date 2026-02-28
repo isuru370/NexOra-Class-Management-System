@@ -947,8 +947,7 @@
                     <p>
                         Get the <strong>complete NEXORA Education System for FREE</strong>!
                         Pay only for Student ID Cards. First 500 students at special rate of
-                        <strong>LKR 350 per student</strong>. Additional students at only
-                        <strong>LKR 400 per student</strong>.
+                        <strong>LKR 350 per students</strong>.
                     </p>
                 </div>
                 <button class="pricing-button btn-whatsapp" onclick="sendToWhatsApp('Special Offer', 'Free System + ID Cards')">
@@ -995,7 +994,6 @@
                             <li>
                                 <i class="fas fa-check"></i>
                                 <span class="feature-included">
-                                    <strong>Additional Students - LKR 400 per student</strong><br>
                                     <small style="color: #94a3b8;">(Includes ID Card + Full system access)</small>
                                 </span>
                             </li>
@@ -1137,15 +1135,11 @@
                             <td><strong style="color: #10b981;">FREE</strong></td>
                         </tr>
                         <tr>
-                            <td>Student ID Cards (First 500)</td>
+                            <td>Student ID Cards</td>
                             <td><strong>LKR 350/student</strong></td>
                             <td><strong>Custom Pricing</strong></td>
                         </tr>
-                        <tr>
-                            <td>Additional Students</td>
-                            <td><strong>LKR 400/student</strong></td>
-                            <td><strong>Custom Pricing</strong></td>
-                        </tr>
+                        
                         <tr>
                             <td>Student Management</td>
                             <td><i class="fas fa-check feature-check"></i></td>
@@ -1237,12 +1231,8 @@
                         <p><strong>Student ID Card Pricing:</strong></p>
                         <div style="margin: 1rem 0; padding: 1rem; background: rgba(16, 185, 129, 0.1); border-radius: 8px;">
                             <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
-                                <span><strong>First 500 Students:</strong></span>
+                                <span><strong>All Students:</strong></span>
                                 <span><strong>LKR 350 per student</strong></span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; padding: 0.5rem 0;">
-                                <span><strong>Additional Students:</strong></span>
-                                <span><strong>LKR 400 per student</strong></span>
                             </div>
                         </div>
                         <p style="color: #94a3b8; font-size: 0.9rem; margin-top: 0.5rem;">
