@@ -1235,7 +1235,7 @@
     <nav class="navbar">
         <a href="{{ url('/') }}" class="logo-container">
             <img src="{{ asset('uploads/logo/white_logo.png') }}" alt="NEXORA Logo">
-            <span class="logo-text">NEXORA</span>
+            <span class="logo-text">NEXORAEDU</span>
         </a>
 
         <button class="mobile-menu-btn" id="mobileMenuBtn">
