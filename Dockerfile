@@ -6,10 +6,9 @@ FROM php:8.2-apache
 RUN a2enmod rewrite remoteip headers
 
 # Make Apache respect reverse proxy HTTPS headers (Coolify / Cloudflare)
-RUN echo "RemoteIPHeader X-Forwarded-For" >> /etc/apache2/apache2.conf && \
-    echo "RemoteIPTrustedProxy 0.0.0.0/0" >> /etc/apache2/apache2.conf && \
+RUN a2enmod rewrite remoteip headers && \
+    echo "RemoteIPHeader X-Forwarded-For" >> /etc/apache2/apache2.conf && \
     echo "SetEnvIf X-Forwarded-Proto https HTTPS=on" >> /etc/apache2/apache2.conf
-
 # ----------------------------
 # Install system dependencies
 # ----------------------------
