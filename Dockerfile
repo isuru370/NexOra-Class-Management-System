@@ -5,26 +5,18 @@ FROM php:8.2-apache
 # ----------------------------
 RUN a2enmod rewrite remoteip headers
 
-# Make Apache respect reverse proxy HTTPS headers (Coolify / Cloudflare)
-RUN a2enmod rewrite remoteip headers && \
-    echo "RemoteIPHeader X-Forwarded-For" >> /etc/apache2/apache2.conf && \
+# ----------------------------
+# Make Apache respect proxy HTTPS headers
+# ----------------------------
+RUN echo "RemoteIPHeader X-Forwarded-For" >> /etc/apache2/apache2.conf && \
     echo "SetEnvIf X-Forwarded-Proto https HTTPS=on" >> /etc/apache2/apache2.conf
+
 # ----------------------------
 # Install system dependencies
 # ----------------------------
 RUN apt-get update && apt-get install -y \
-    git \
-    unzip \
-    zip \
-    curl \
-    libzip-dev \
-    libonig-dev \
-    libpng-dev \
-    libxml2-dev \
-    libicu-dev \
-    libjpeg-dev \
-    libfreetype6-dev \
-    build-essential \
+    git unzip zip curl libzip-dev libonig-dev libpng-dev \
+    libxml2-dev libicu-dev libjpeg-dev libfreetype6-dev build-essential \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install pdo pdo_mysql mbstring bcmath gd zip intl \
     && rm -rf /var/lib/apt/lists/*
