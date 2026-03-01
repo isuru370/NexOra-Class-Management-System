@@ -1335,14 +1335,6 @@
                     <a href="{{ route('login') }}" class="btn btn-primary">
                         <i class="fas fa-sign-in-alt"></i> ACCESS LOGIN PORTAL
                     </a>
-                    <p style="margin-top: 0.75rem; font-size: 0.85rem; color: #94a3b8; text-align: center;">
-                        <i class="fas fa-info-circle" style="color: var(--accent-green); margin-right: 0.25rem;"></i>
-                        Demo: <code
-                            style="background: rgba(255, 255, 255, 0.1); padding: 0.15rem 0.5rem; border-radius: 4px; margin: 0 0.25rem;">admin@nexora.lk</code>
-                        |
-                        <code
-                            style="background: rgba(255, 255, 255, 0.1); padding: 0.15rem 0.5rem; border-radius: 4px; margin-left: 0.25rem;">nexora</code>
-                    </p>
                 </div>
             </div>
 
