@@ -946,7 +946,7 @@
                     <h3>🎉 Special Launch Offer!</h3>
                     <p>
                         Get the <strong>complete NEXORA Education System for FREE</strong>!
-                        Pay only for Student ID Cards. First 500 students at special rate of
+                        Pay only for Student ID Cards at a special rate of
                         <strong>LKR 350 per students</strong>.
                     </p>
                 </div>
