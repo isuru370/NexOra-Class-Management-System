@@ -946,11 +946,12 @@
                     <h3>🎉 Special Launch Offer!</h3>
                     <p>
                         Get the <strong>complete NEXORA Education System for FREE</strong>!
-                        Pay only for Student ID Cards at a special rate of
-                        <strong>LKR 350 per students</strong>.
+                        Pay only for Student ID Cards at a flat rate of
+                        <strong>LKR 350 per student</strong>.
                     </p>
                 </div>
-                <button class="pricing-button btn-whatsapp" onclick="sendToWhatsApp('Special Offer', 'Free System + ID Cards')">
+                <button class="pricing-button btn-whatsapp"
+                    onclick="sendToWhatsApp('Special Offer', 'Free System + ID Cards')">
                     <i class="fab fa-whatsapp"></i> Get This Offer
                 </button>
             </div>
@@ -973,7 +974,7 @@
                             <div class="price-period">System Setup</div>
                             <div class="price-highlight">
                                 <i class="fas fa-graduation-cap"></i>
-                                First 500 Students - Special Rate
+                                Only pay for ID Cards - LKR 350/student
                             </div>
                         </div>
                     </div>
@@ -988,7 +989,7 @@
                             <li>
                                 <i class="fas fa-check"></i>
                                 <span class="feature-included">
-                                    <strong>First 500 Students - LKR 350 per student</strong>
+                                    <strong>Student ID Cards - LKR 350 per student</strong>
                                 </span>
                             </li>
                             <li>
@@ -1018,16 +1019,19 @@
                                 <span class="feature-included">Priority Support & Regular Updates</span>
                             </li>
                         </ul>
-                        <div style="margin-top: 1rem; padding: 1rem; background: rgba(16, 185, 129, 0.1); border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.3);">
+                        <div
+                            style="margin-top: 1rem; padding: 1rem; background: rgba(16, 185, 129, 0.1); border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.3);">
                             <p style="color: #cbd5e1; font-size: 0.9rem; margin: 0;">
                                 <i class="fas fa-info-circle" style="color: #10b981;"></i>
-                                <strong>Note:</strong> System is completely FREE. You only pay for Student ID Cards.
+                                <strong>Note:</strong> System is completely FREE. You only pay for Student ID Cards at
+                                LKR 350 per student.
                             </p>
                         </div>
                     </div>
 
                     <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: auto;">
-                        <button class="pricing-button btn-whatsapp" onclick="sendToWhatsApp('Professional FREE Plan', 'Free System + ID Card Packages')">
+                        <button class="pricing-button btn-whatsapp"
+                            onclick="sendToWhatsApp('Professional FREE Plan', 'Free System + ID Card Packages')">
                             <i class="fab fa-whatsapp"></i> Get Free System
                         </button>
                         <a href="{{ route('login') }}" class="pricing-button btn-secondary">
@@ -1091,7 +1095,8 @@
                     </div>
 
                     <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: auto;">
-                        <button class="pricing-button btn-whatsapp" onclick="sendToWhatsApp('Enterprise Plan', 'Custom Pricing')">
+                        <button class="pricing-button btn-whatsapp"
+                            onclick="sendToWhatsApp('Enterprise Plan', 'Custom Pricing')">
                             <i class="fab fa-whatsapp"></i> Contact Sales
                         </button>
                         <a href="{{ route('login') }}" class="pricing-button btn-outline">
@@ -1109,8 +1114,8 @@
                 </h4>
                 <p style="color: #cbd5e1; max-width: 800px; margin: 0 auto;">
                     All plans include <strong>regular updates, security patches, and technical support</strong>.
-                    The Professional plan offers the complete system for FREE with ID Card packages starting from
-                    <strong>LKR 350 per student</strong> for the first 500 students.
+                    The Professional plan offers the complete system for FREE with ID Card packages at
+                    <strong>LKR 350 per student</strong>.
                 </p>
             </div>
         </section>
@@ -1139,7 +1144,7 @@
                             <td><strong>LKR 350/student</strong></td>
                             <td><strong>Custom Pricing</strong></td>
                         </tr>
-                        
+
                         <tr>
                             <td>Student Management</td>
                             <td><i class="fas fa-check feature-check"></i></td>
@@ -1216,8 +1221,10 @@
                         <span class="faq-toggle">+</span>
                     </div>
                     <div class="faq-answer">
-                        <strong>Yes, absolutely FREE!</strong> The complete NEXORA Education System including all features 
-                        (student management, teacher management, attendance system, payment system, mobile app) is completely 
+                        <strong>Yes, absolutely FREE!</strong> The complete NEXORA Education System including all
+                        features
+                        (student management, teacher management, attendance system, payment system, mobile app) is
+                        completely
                         FREE. You only pay for Student ID Cards.
                     </div>
                 </div>
@@ -1229,14 +1236,17 @@
                     </div>
                     <div class="faq-answer">
                         <p><strong>Student ID Card Pricing:</strong></p>
-                        <div style="margin: 1rem 0; padding: 1rem; background: rgba(16, 185, 129, 0.1); border-radius: 8px;">
-                            <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+                        <div
+                            style="margin: 1rem 0; padding: 1rem; background: rgba(16, 185, 129, 0.1); border-radius: 8px;">
+                            <div
+                                style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
                                 <span><strong>All Students:</strong></span>
                                 <span><strong>LKR 350 per student</strong></span>
                             </div>
                         </div>
                         <p style="color: #94a3b8; font-size: 0.9rem; margin-top: 0.5rem;">
-                            <i class="fas fa-info-circle"></i> Each ID Card includes full-color printing, lamination, and unique student identification.
+                            <i class="fas fa-info-circle"></i> Each ID Card includes full-color printing, lamination,
+                            and unique student identification.
                         </p>
                     </div>
                 </div>
@@ -1255,8 +1265,8 @@
                             <li>Access all features immediately</li>
                             <li>Start using the mobile app</li>
                         </ul>
-                        <p>When you're ready to issue Student ID Cards, simply contact us with the number of students 
-                        and we'll process your ID Card order at the special rates.</p>
+                        <p>When you're ready to issue Student ID Cards, simply contact us with the number of students
+                            and we'll process your ID Card order at LKR 350 per student.</p>
                     </div>
                 </div>
 
@@ -1266,9 +1276,9 @@
                         <span class="faq-toggle">+</span>
                     </div>
                     <div class="faq-answer">
-                        <p><strong>No additional maintenance fees!</strong> All regular updates, security patches, 
-                        and basic technical support are included with your FREE system. The only charges are for 
-                        Student ID Cards as described.</p>
+                        <p><strong>No additional maintenance fees!</strong> All regular updates, security patches,
+                            and basic technical support are included with your FREE system. The only charges are for
+                            Student ID Cards as described.</p>
                     </div>
                 </div>
 
@@ -1278,7 +1288,7 @@
                         <span class="faq-toggle">+</span>
                     </div>
                     <div class="faq-answer">
-                        Absolutely! We provide sample ID Cards for review before you place your order. 
+                        Absolutely! We provide sample ID Cards for review before you place your order.
                         Contact us via WhatsApp to request samples and discuss your specific requirements.
                     </div>
                 </div>
@@ -1289,8 +1299,8 @@
                         <span class="faq-toggle">+</span>
                     </div>
                     <div class="faq-answer">
-                        System setup typically takes <strong>24-48 hours</strong>. Once setup is complete, 
-                        you'll receive login credentials and can start using the system immediately. 
+                        System setup typically takes <strong>24-48 hours</strong>. Once setup is complete,
+                        you'll receive login credentials and can start using the system immediately.
                         ID Card production starts after we receive your student list and photos.
                     </div>
                 </div>
@@ -1302,11 +1312,12 @@
             <h2 class="cta-title">Ready to Get Your FREE System?</h2>
             <p class="cta-text">
                 Get the complete NEXORA Education System for FREE today! Pay only for Student ID Cards
-                at our special launch rates. Perfect for educational institutions of all sizes.
+                at a flat rate of LKR 350 per student. Perfect for educational institutions of all sizes.
             </p>
 
             <div class="cta-buttons">
-                <button class="pricing-button btn-whatsapp" onclick="sendToWhatsApp('Professional FREE Plan', 'Free System + ID Card Packages')">
+                <button class="pricing-button btn-whatsapp"
+                    onclick="sendToWhatsApp('Professional FREE Plan', 'Free System + ID Card Packages')">
                     <i class="fab fa-whatsapp"></i> Get FREE System on WhatsApp
                 </button>
                 <a href="{{ url('/') }}" class="pricing-button btn-secondary">
@@ -1366,12 +1377,12 @@
         // WhatsApp sharing function
         function sendToWhatsApp(planName, price) {
             const phoneNumber = '768971213'; // Your WhatsApp number without +94
-            const message = `Hello NEXORA Team!\n\nI'm interested in the *${planName}* (${price}).\n\nPlease send me more details about:\n1. Getting the FREE system\n2. Student ID Card pricing\n3. Setup process\n4. System features\n\nThank you!\n\n*Name:* \n*Institute:* \n*Number of Students:* \n*Contact Number:* `;
-            
+            const message = `Hello NEXORA Team!\n\nI'm interested in the *${planName}* (${price}).\n\nPlease send me more details about:\n1. Getting the FREE system\n2. Student ID Card pricing (LKR 350 per student)\n3. Setup process\n4. System features\n\nThank you!\n\n*Name:* \n*Institute:* \n*Number of Students:* \n*Contact Number:* `;
+
             // Encode the message for URL
             const encodedMessage = encodeURIComponent(message);
             const whatsappURL = `https://wa.me/94${phoneNumber}?text=${encodedMessage}`;
-            
+
             // Open WhatsApp in new tab
             window.open(whatsappURL, '_blank', 'noopener,noreferrer');
         }
