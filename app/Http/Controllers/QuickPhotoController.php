@@ -21,6 +21,11 @@ class QuickPhotoController extends Controller
     {
         return $this->quickPhotoService->fetchActiveQuickPhoto();
     }
+
+    public function fetchQuickImage($customId)
+    {
+        return $this->quickPhotoService->fetchQuickImage($customId);
+    }
     public function destroy($id)
     {
         return $this->quickPhotoService->destroy($id);

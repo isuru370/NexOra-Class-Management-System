@@ -10,6 +10,33 @@ use Exception;
 
 class QuickPhotoService
 {
+
+    public function fetchQuickImage($customId)
+    {
+        try {
+            if(!$customId) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Custom ID is required.'
+                ], 400);
+            }
+
+            $activePhotos = QuickPhoto::where('is_active', 1)
+                ->where('custom_id', $customId)
+                ->get();
+
+            return response()->json([
+                'status' => 'success',
+                'id' => $activePhotos->first()->id ?? null,
+                'img_url' => $activePhotos->first()->quick_img ?? null,
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to fetch active quick photos',
+            ], 500);
+        }
+    }
     // Fetch all active Quick Photos
     public function fetchActiveQuickPhoto()
     {
