@@ -271,6 +271,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/active', [QuickPhotoController::class, 'fetchActiveQuickPhoto']);
         Route::post('/', [QuickPhotoController::class, 'store']);
         Route::delete('/{id}', [QuickPhotoController::class, 'destroy']);
+        Route::get('/{customId}', [QuickPhotoController::class, 'fetchQuickImage']);
     });
 
     Route::prefix('read-qr-code')->group(function () {
