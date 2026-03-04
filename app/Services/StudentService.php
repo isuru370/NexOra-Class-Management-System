@@ -404,7 +404,7 @@ class StudentService
         try {
             if ($request->quick_image_id) {
 
-                $quickPhoto = QuickPhoto::where('custom_id', $request->quick_image_id)
+                $quickPhoto = QuickPhoto::where('id', $request->quick_image_id)
                     ->where('is_active', 1)
                     ->first();
 
