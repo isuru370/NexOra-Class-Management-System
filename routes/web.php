@@ -113,8 +113,8 @@ Route::middleware(['auth', 'check.permission'])->group(function () {
         Route::get('/add_student_to_single_class/{student_id}', [StudentController::class, 'addStudentToSingleClass'])->name('students.add_student_to_single_class');
         Route::get('/student_analytic/{student_id}', [StudentController::class, 'studentAnalytic'])->name('students.student_analytic');
 
-        Route::get('/{id}/edit', [StudentController::class, 'editPage'])->name('students.edit');
-        Route::get('/{custom_id}', [StudentController::class, 'show'])->name('students.show');
+        Route::get('/{student_id}/edit', [StudentController::class, 'editPage'])->name('students.edit');
+        Route::get('/{student_id}', [StudentController::class, 'show'])->name('students.show');
         Route::get('/{classCategoryHasStudentClassId}/{student_id}/exam-results', [StudentController::class, 'examResults'])->name('students.exam_results');
     });
 
