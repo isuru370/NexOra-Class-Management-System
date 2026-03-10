@@ -21,9 +21,8 @@ class CreateStudentCoursePaymentsTable extends Migration
             $table->unsignedBigInteger('registration_id');
 
             // ✅ then create FK
-            $table->foreign('registration_id')
-                ->references('registration_id')
-                ->on('student_registration')
+            $table->foreignId('registration_id')
+                ->constrained('student_registration') // references 'id'
                 ->cascadeOnDelete();
 
             $table->foreignId('student_id')->constrained('students')->cascadeOnDelete();
