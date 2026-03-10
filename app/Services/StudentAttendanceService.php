@@ -13,7 +13,6 @@ use App\Models\Titute;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Exception;
-use Illuminate\Support\Facades\Log;
 
 class StudentAttendanceService
 {
@@ -85,10 +84,6 @@ class StudentAttendanceService
                 'data' => $result
             ], 200);
         } catch (Exception $e) {
-            Log::error('readAttendance error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
 
             return response()->json([
                 'status' => 'error',
@@ -121,7 +116,6 @@ class StudentAttendanceService
 
         $categoryIds = $allCategories->pluck('id')->unique();
         if ($categoryIds->isEmpty()) {
-            Log::warning('No category IDs found');
             return [];
         }
 
@@ -352,35 +346,8 @@ class StudentAttendanceService
 
                 $message = "Attendance marked for {$studentName} ({$className} - {$categoryName}) on {$date}. Thank you.";
 
-                // 🔍 LOG 1: SMS details before dispatching
-                Log::info('SMS preparation details', [
-                    'guardian_number' => $guardianNumber,
-                    'student_name' => $studentName,
-                    'class_name' => $className,
-                    'category_name' => $categoryName,
-                    'date' => $date,
-                    'message_preview' => $message,
-                    'student_class_id' => $studentClassId,
-                    'attendance_id' => $attendanceId
-                ]);
-
                 // Dispatch SMS job async
                 SendPaymentSms::dispatch($guardianNumber, $message)->onQueue('sms');
-
-                // 🔍 LOG 2: SMS job dispatched
-                Log::info('SMS job dispatched successfully', [
-                    'guardian_number' => $guardianNumber,
-                    'queue' => 'sms',
-                    'job_class' => 'SendPaymentSms',
-                    'timestamp' => now()->toDateTimeString()
-                ]);
-            } else {
-                // 🔍 LOG 3: Child info not found
-                Log::warning('Child info not found for SMS', [
-                    'student_class_id' => $studentClassId,
-                    'student_id' => $studentId,
-                    'guardian_mobile_provided' => $request->guardian_mobile
-                ]);
             }
 
             return response()->json([
@@ -390,13 +357,6 @@ class StudentAttendanceService
                 'tute_marked' => $tuteMarked,
             ]);
         } catch (Exception $e) {
-            // 🔍 LOG 4: Error details
-            Log::error('storeAttendance error', [
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString()
-            ]);
 
             return response()->json([
                 'status' => 'error',

@@ -16,7 +16,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Str; // Add this import
@@ -525,11 +524,6 @@ class StudentService
             ]);
         } catch (Exception $e) {
             DB::rollBack();
-            Log::error('Student creation failed:', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'request_data' => $request->all()
-            ]);
 
             return response()->json([
                 'status' => 'error',
@@ -643,11 +637,6 @@ class StudentService
             ]);
         } catch (Exception $e) {
             DB::rollBack();
-            Log::error('Student update failed:', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'request_data' => $request->all()
-            ]);
 
             return response()->json([
                 'status'  => 'error',
@@ -709,23 +698,18 @@ class StudentService
     {
         DB::beginTransaction();
         try {
-            Log::info('Attempting to deactivate student ID: ' . $id);
 
             $student = Student::find($id);
 
             if (!$student) {
-                Log::warning('Student not found with ID: ' . $id);
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Student not found'
                 ], 404);
             }
 
-            Log::info('Student found:', ['student_id' => $student->id, 'current_status' => $student->is_active]);
 
             $student->update(['is_active' => 0]);
-
-            Log::info('Student deactivated successfully:', ['student_id' => $student->id, 'new_status' => $student->is_active]);
 
             DB::commit();
 
@@ -739,11 +723,6 @@ class StudentService
             ]);
         } catch (Exception $e) {
             DB::rollBack();
-            Log::error('Failed to deactivate student:', [
-                'student_id' => $id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to deactivate student',
