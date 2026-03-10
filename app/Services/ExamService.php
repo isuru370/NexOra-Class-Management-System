@@ -36,8 +36,8 @@ class ExamService
                     return [
                         'id' => $student->id,
                         'custom_id' => $student->custom_id,
-                        'fname' => $student->fname,
-                        'lname' => $student->lname,
+                        'full_name' => $student->full_name,
+                        'initial_name' => $student->initial_name,
                         'mobile' => $student->mobile,
                         'guardian_mobile' => $student->guardian_mobile,
                         'marks' => $result ? $result->marks : null,

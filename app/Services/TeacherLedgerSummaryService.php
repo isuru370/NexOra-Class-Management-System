@@ -143,7 +143,6 @@ class TeacherLedgerSummaryService
     }
 
 
-
     /**
      * Teacher payment ledger entries
      */
