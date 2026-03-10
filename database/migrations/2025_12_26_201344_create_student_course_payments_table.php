@@ -17,9 +17,6 @@ class CreateStudentCoursePaymentsTable extends Migration
 
             $table->id('payment_id');
 
-            // ✅ create column first
-            $table->unsignedBigInteger('registration_id');
-
             // ✅ then create FK
             $table->foreignId('registration_id')
                 ->constrained('student_registration') // references 'id'
