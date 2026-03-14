@@ -24,7 +24,7 @@ class Payments extends Model
     // Type casting for JSON responses
     protected $casts = [
         'status'                             => 'boolean',
-        'amount'                             => 'double',
+        'amount'                             => 'decimal:2',
         'student_id'                          => 'integer',
         'student_student_student_classes_id'  => 'integer',
         'payment_date'                        => 'datetime',

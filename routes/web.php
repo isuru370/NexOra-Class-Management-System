@@ -13,7 +13,6 @@ use App\Http\Controllers\InstitutePaymentController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\PaymentReasonController;
 use App\Http\Controllers\PaymentsController;
-use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\ReceiptController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingsCodeController;
@@ -25,6 +24,7 @@ use App\Http\Controllers\StudentIdCardController;
 use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\TeacherLedgerSummaryController;
 use App\Http\Controllers\TeacherPaymentsController;
+use App\Http\Controllers\TemporaryIDCardController;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
 
@@ -297,4 +297,13 @@ Route::middleware(['auth', 'check.permission'])->group(function () {
     Route::prefix('permission')->name('permission.')->group(function () {
         Route::get('/{userId}', [PageController::class, 'index'])->name('index');
     });
+
+
+    // QR Code Routes
+Route::prefix('qr')->name('temporary-qr.')->group(function () {
+    Route::get('/temporary-id-cards', [TemporaryIDCardController::class, 'create'])->name('temporary-id-cards.create');
+    Route::post('/temporary-id-cards/generate', [TemporaryIDCardController::class, 'generate'])->name('temporary-id-cards.generate');
+    Route::post('/temporary-id-cards/download-pdf', [TemporaryIDCardController::class, 'downloadPdf'])->name('temporary-id-cards.download-pdf');
+    Route::get('/image/{code}', [TemporaryIDCardController::class, 'generateImage'])->name('image');
+});
 });

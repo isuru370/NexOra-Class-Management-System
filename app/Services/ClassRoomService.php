@@ -90,6 +90,45 @@ class ClassRoomService
     }
 
 
+    public function getAllClassesBySubjects()
+    {
+        try {
+            // Load all classes with subject, grade, teacher
+            $classes = ClassRoom::with(['subject', 'grade', 'teacher'])
+                ->orderBy('subject_id')
+                ->orderBy('grade_id')
+                ->get();
+
+            // Group by subject and grade
+            $result = [];
+
+            foreach ($classes as $class) {
+                $subject = $class->subject->subject_name ?? 'Unknown Subject';
+                $grade   = $class->grade->grade_name ?? 'Unknown Grade';
+
+                $result[$subject][$grade][] = [
+                    'class_name'    => $class->class_name,
+                    'medium'        => $class->medium,
+                    'teacher_fname' => $class->teacher->fname ?? null,
+                    'teacher_lname' => $class->teacher->lname ?? null,
+                ];
+            }
+
+            return response()->json([
+                'status'  => 'success',
+                'data'    => $result,
+            ], 200);
+        } catch (Exception $e) {
+
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Failed to fetch classes by subjects',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+
     // ========================
     // Store new Class Room
     // ========================

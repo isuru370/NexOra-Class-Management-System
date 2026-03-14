@@ -56,153 +56,166 @@ class StudentPaymentService
     }
 
     public function fetchPaymentsByQRCode(Request $request)
-    {
-        $request->validate([
-            'qr_code' => 'required|string',
-        ]);
+{
+    $request->validate([
+        'qr_code' => 'required|string|max:255',
+    ]);
 
-        try {
-            $qrCode = $request->qr_code;
-            $now = Carbon::now();
+    try {
+        $qrCode = trim($request->qr_code);
+        $now = Carbon::now();
 
-            // 1️⃣ Determine temporary or permanent QR
-            if (str_starts_with($qrCode, 'TMP')) {
-                $student = Student::where('temporary_qr_code', $qrCode)
-                    ->where('student_disable', false)
-                    ->first();
+        // 1. Find student by QR
+        if (str_starts_with($qrCode, 'TMP')) {
+            $student = Student::where('temporary_qr_code', $qrCode)
+                ->where('student_disable', false)
+                ->first();
 
-                if (!$student) {
-                    return response()->json([
-                        'status' => 'error',
-                        'message' => 'Temporary QR code invalid',
-                        'data' => []
-                    ], 404);
-                }
-
-                if ($student->temporary_qr_code_expire_date && $now->gt($student->temporary_qr_code_expire_date)) {
-                    return response()->json([
-                        'status' => 'error',
-                        'message' => 'Temporary QR code expired',
-                        'data' => []
-                    ], 403);
-                }
-            } else {
-                // Permanent QR
-                $student = Student::where('custom_id', $qrCode)
-                    ->where('student_disable', false)
-                    ->first();
-
-                if (!$student) {
-                    return response()->json([
-                        'status' => 'error',
-                        'message' => 'QR code invalid',
-                        'data' => []
-                    ], 404);
-                }
-
-                if (!$student->permanent_qr_active) {
-                    return response()->json([
-                        'status' => 'error',
-                        'message' => 'Permanent QR code inactive',
-                        'data' => []
-                    ], 403);
-                }
-            }
-
-            // 2️⃣ Check student active
-            if ($student->is_active == 0) {
+            if (!$student) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Student inactive',
-                    'data' => []
-                ], 403);
-            }
-
-            // 3️⃣ Fetch class-wise payments (existing function logic)
-            $studentClasses = StudentStudentStudentClass::with([
-                'student',
-                'classCategoryHasStudentClass.classCategory',
-                'studentClass.grade',
-                'studentClass.subject'
-            ])
-                ->where('student_id', $student->id)
-                ->where('status', 1)
-                ->get();
-
-            if ($studentClasses->isEmpty()) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'No classes found',
+                    'message' => 'Temporary QR code invalid',
                     'data' => []
                 ], 404);
             }
 
-            $result = $studentClasses->map(function ($studentClassModel) {
-                $latestPayment = Payments::where('status', 1)
-                    ->where('student_id', $studentClassModel->student_id)
-                    ->where('student_student_student_classes_id', $studentClassModel->id)
-                    ->orderBy('payment_date', 'desc')
-                    ->first();
+            if (
+                !empty($student->temporary_qr_code_expire_date) &&
+                $now->gt(Carbon::parse($student->temporary_qr_code_expire_date))
+            ) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Temporary QR code expired',
+                    'data' => []
+                ], 403);
+            }
+        } else {
+            $student = Student::where('custom_id', $qrCode)
+                ->where('student_disable', false)
+                ->first();
 
-                return [
-                    'student_student_student_classes_id' => $studentClassModel->id,
-                    'student_id' => $studentClassModel->student_id,
-                    'class_category_has_student_class_id' => $studentClassModel->class_category_has_student_class_id,
-                    'status' => $studentClassModel->status,
-                    'is_free_card' => $studentClassModel->is_free_card,
-                    'student' => [
-                        'id' => $studentClassModel->student->id,
-                        'custom_id' => $studentClassModel->student->custom_id,
-                        'first_name' => $studentClassModel->student->full_name,
-                        'last_name' => $studentClassModel->student->initial_name,
-                        'guardian_mobile' => $studentClassModel->student->guardian_mobile,
-                        'img_url' => $studentClassModel->student->img_url,
-                    ],
-                    'class_category_has_student_class' => [
-                        'id' => $studentClassModel->classCategoryHasStudentClass->id,
-                        'fees' => $studentClassModel->classCategoryHasStudentClass->fees,
-                        'class_category' => [
-                            'category_name' =>
-                            $studentClassModel->classCategoryHasStudentClass
-                                ->classCategory->category_name ?? null,
-                        ]
-                    ],
-                    'student_class' => [
-                        'id' => $studentClassModel->studentClass->id,
-                        'class_name' => $studentClassModel->studentClass->class_name,
-                        'grade' => $studentClassModel->studentClass->grade ? [
-                            'grade_name' =>
-                            $studentClassModel->studentClass->grade->grade_name
-                        ] : null,
-                        'subject' => $studentClassModel->studentClass->subject ? [
-                            'subject_name' =>
-                            $studentClassModel->studentClass->subject->subject_name
-                        ] : null,
-                    ],
-                    'latest_payment' => $latestPayment ? [
-                        'payment_id' => $latestPayment->id,
-                        'amount' => $latestPayment->amount,
-                        'payment_date' => $latestPayment->payment_date,
-                        'payment_for_month' => $latestPayment->payment_for,
-                    ] : null
-                ];
-            });
+            if (!$student) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'QR code invalid',
+                    'data' => []
+                ], 404);
+            }
 
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Student class payments fetched successfully',
-                'data' => $result
-            ], 200);
-        } catch (Exception $e) {
+            if ((int) $student->permanent_qr_active !== 1) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Permanent QR code inactive',
+                    'data' => []
+                ], 403);
+            }
+        }
+
+        // 2. Check student active
+        if ((int) $student->is_active !== 1) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to fetch payments data',
-                'data' => [],
-                'error' => $e->getMessage()
-            ], 500);
+                'message' => 'Student inactive',
+                'data' => []
+            ], 403);
         }
-    }
 
+        // 3. Get student classes
+        $studentClasses = StudentStudentStudentClass::with([
+            'student',
+            'classCategoryHasStudentClass.classCategory',
+            'studentClass.grade',
+            'studentClass.subject'
+        ])
+            ->where('student_id', $student->id)
+            ->where('status', 1)
+            ->get();
+
+        if ($studentClasses->isEmpty()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No classes found',
+                'data' => []
+            ], 404);
+        }
+
+        // 4. Get all latest payments in one query set
+        $classIds = $studentClasses->pluck('id')->toArray();
+
+        $payments = Payments::where('status', 1)
+            ->where('student_id', $student->id)
+            ->whereIn('student_student_student_classes_id', $classIds)
+            ->orderBy('payment_date', 'desc')
+            ->get();
+
+        $latestPaymentsByClass = $payments->groupBy('student_student_student_classes_id')
+            ->map(function ($items) {
+                return $items->first();
+            });
+
+        // 5. Build response
+        $result = $studentClasses->map(function ($studentClassModel) use ($latestPaymentsByClass) {
+            $latestPayment = $latestPaymentsByClass->get($studentClassModel->id);
+
+            return [
+                'student_student_student_classes_id' => $studentClassModel->id,
+                'student_id' => $studentClassModel->student_id,
+                'class_category_has_student_class_id' => $studentClassModel->class_category_has_student_class_id,
+                'status' => $studentClassModel->status,
+                'is_free_card' => $studentClassModel->is_free_card,
+
+                'student' => [
+                    'id' => optional($studentClassModel->student)->id,
+                    'custom_id' => optional($studentClassModel->student)->custom_id,
+                    'first_name' => optional($studentClassModel->student)->full_name,
+                    'last_name' => optional($studentClassModel->student)->initial_name,
+                    'guardian_mobile' => optional($studentClassModel->student)->guardian_mobile,
+                    'img_url' => optional($studentClassModel->student)->img_url,
+                ],
+
+                'class_category_has_student_class' => [
+                    'id' => optional($studentClassModel->classCategoryHasStudentClass)->id,
+                    'fees' => optional($studentClassModel->classCategoryHasStudentClass)->fees,
+                    'class_category' => [
+                        'category_name' => optional(optional($studentClassModel->classCategoryHasStudentClass)->classCategory)->category_name,
+                    ]
+                ],
+
+                'student_class' => [
+                    'id' => optional($studentClassModel->studentClass)->id,
+                    'class_name' => optional($studentClassModel->studentClass)->class_name,
+                    'grade' => optional($studentClassModel->studentClass->grade ?? null) ? [
+                        'grade_name' => optional($studentClassModel->studentClass->grade)->grade_name
+                    ] : null,
+                    'subject' => optional($studentClassModel->studentClass->subject ?? null) ? [
+                        'subject_name' => optional($studentClassModel->studentClass->subject)->subject_name
+                    ] : null,
+                ],
+
+                'latest_payment' => $latestPayment ? [
+                    'payment_id' => $latestPayment->id,
+                    'amount' => $latestPayment->amount,
+                    'payment_date' => $latestPayment->payment_date,
+                    'payment_for_month' => $latestPayment->payment_for,
+                ] : null,
+            ];
+        })->values();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Student class payments fetched successfully',
+            'data' => $result
+        ], 200);
+
+    } catch (Exception $e) {
+
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Failed to fetch payments data',
+            'data' => []
+        ], 500);
+    }
+}
 
 
     private function formatPaymentsForMonthlyView($payments)
@@ -313,22 +326,19 @@ class StudentPaymentService
 
     public function storePayment(Request $request)
     {
-        // Validate request
         $validated = $request->validate([
             'payment_date' => 'required|date',
             'status' => 'required|integer|in:0,1',
-            'amount' => 'required|numeric',
-            'student_id' => 'required|integer',
-            'student_student_student_classes_id' => 'required|integer',
+            'amount' => 'required|numeric|min:0',
+            'student_id' => 'required|integer|exists:students,id',
+            'student_student_student_classes_id' => 'required|integer|exists:student_student_student_classes,id',
             'payment_for' => 'required|string|max:20',
-            'guardian_mobile' => 'required|string'
+            'guardian_mobile' => 'required|string|max:20',
         ]);
 
         try {
-            DB::beginTransaction();
-
-            // Check duplicates
-            if ($validated['status'] == 1) {
+            // Duplicate check before transaction
+            if ((int) $validated['status'] === 1) {
                 $existingPayment = Payments::where('payment_for', $validated['payment_for'])
                     ->where('student_id', $validated['student_id'])
                     ->where('student_student_student_classes_id', $validated['student_student_student_classes_id'])
@@ -344,36 +354,21 @@ class StudentPaymentService
                 }
             }
 
-            // Save payment
-            $payment = Payments::create(array_merge(
-                $validated,
-                ['user_id' => auth()->id()]
-            ));
+            DB::beginTransaction();
 
-            // Get child info
-            // $childInfo = StudentStudentStudentClass::with([
-            //     'student',
-            //     'studentClass',
-            //     'classCategoryHasStudentClass.classCategory'
-            // ])->where('id', $validated['student_student_student_classes_id'])
-            //     ->first();
+            $paymentData = [
+                'payment_date' => $validated['payment_date'],
+                'status' => $validated['status'],
+                'amount' => $validated['amount'],
+                'student_id' => $validated['student_id'],
+                'student_student_student_classes_id' => $validated['student_student_student_classes_id'],
+                'payment_for' => $validated['payment_for'],
+                'user_id' => auth()->id(),
+            ];
+
+            $payment = Payments::create($paymentData);
 
             DB::commit();
-
-            // ✅ SMS sending via Queue Job
-            // if ($validated['status'] == 1 && $childInfo) {
-            //     $guardianNumber = $validated['guardian_mobile'];
-            //     $amount = $validated['amount'];
-            //     $month = $validated['payment_for'];
-            //     $childName = $childInfo->student->initial_name ?? '';
-            //     $className = $childInfo->studentClass->class_name ?? '';
-            //     $categoryName = optional($childInfo->classCategoryHasStudentClass->classCategory)->category_name ?? '';
-
-            //     $message = "Payment received for {$childName} ({$className} - {$categoryName}): LKR {$amount} for {$month}. Thank you.";
-
-            //     // Dispatch SMS job to async queue
-            //     SendPaymentSms::dispatch($guardianNumber, $message)->onQueue('sms');
-            // }
 
             return response()->json([
                 'status' => 'success',
@@ -382,11 +377,9 @@ class StudentPaymentService
             ], 200);
         } catch (Exception $e) {
             DB::rollBack();
-
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to store payment',
-                'error' => $e->getMessage()
+                'message' => 'Failed to store payment'
             ], 500);
         }
     }

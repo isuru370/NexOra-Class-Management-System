@@ -620,6 +620,25 @@
                 </li>
 
                 <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#qrSubmenu" data-bs-toggle="collapse" role="button"
+                        aria-expanded="{{ request()->routeIs('temporary-qr.*') ? 'true' : 'false' }}"
+                        aria-controls="qrSubmenu">
+                        <i class="fas fa-qrcode"></i> <span>Temporary QR Codes</span>
+                    </a>
+                    <div class="collapse {{ request()->routeIs('temporary-qr.*') ? 'show' : '' }}" id="qrSubmenu">
+                        <ul class="nav flex-column ms-3">
+                            <!-- Generate ID Cards (New) -->
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('temporary-qr.temporary-id-cards.create') ? 'active' : '' }}"
+                                    href="{{ route('temporary-qr.temporary-id-cards.create') }}">
+                                    <i class="fas fa-id-card"></i> Generate ID Cards
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#financialMenu" data-bs-toggle="collapse" role="button"
                         aria-expanded="false" aria-controls="financialMenu">
                         <i class="fas fa-money-bill"></i> <span>Manage Financial</span>
@@ -759,7 +778,7 @@
                         href="{{ route('reports.index') }}">
                         <i class="fas fa-chart-bar"></i> <span>Reports</span>
                     </a>
-                </li> 
+                </li>
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('settings.*') ? 'active' : '' }}"
                         href="{{ route('settings.index') }}">

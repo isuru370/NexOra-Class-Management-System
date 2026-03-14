@@ -121,6 +121,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/active', [ClassRoomController::class, 'fetchActiveClasses']);
         Route::get('/teacher/{teacherId}', [ClassRoomController::class, 'fetchTeacherClasse']);
         Route::get('/all', [ClassRoomController::class, 'fetchAllClassRoom']);
+        Route::get('/classes', [ClassRoomController::class, 'getAllClassesBySubjects']);
         // CRUD routes
         Route::get('/', [ClassRoomController::class, 'fetchClasses']);
 
