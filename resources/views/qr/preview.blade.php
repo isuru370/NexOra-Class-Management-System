@@ -239,7 +239,7 @@
                             <div class="tmp-id-card">
                                 <!-- Header -->
                                 <div class="card-header-content">
-                                    <img src="{{ asset('uploads/logo/logo.png') }}" class="card-logo" alt="Logo"
+                                    <img src="{{ asset('uploads/logo/vision_logo.png') }}" class="card-logo" alt="Logo"
                                         onerror="this.style.display='none'">
                                     <div class="card-title">YES EDUCATION INSTITUTE</div>
                                 </div>

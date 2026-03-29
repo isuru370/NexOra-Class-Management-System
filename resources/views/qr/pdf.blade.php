@@ -88,9 +88,9 @@
 
         .logo {
             position: absolute;
-            top: 1.15cm;
-            left: 0.55cm;
-            width: 4.3cm;
+            top: 0.8cm;
+            left: 1.8cm;
+            width: 3.3cm;
             height: auto;
             filter: brightness(0) invert(1);
             z-index: 2;
@@ -215,7 +215,7 @@
         }
 
         $logoSrc = '';
-        $logoPath = public_path('uploads/logo/logo.png');
+        $logoPath = public_path('uploads/logo/vision_logo.png');
         if (file_exists($logoPath)) {
             $imageData = file_get_contents($logoPath);
             $logoSrc = 'data:image/png;base64,' . base64_encode($imageData);
@@ -251,9 +251,9 @@
                     <div class="footer-line"></div>
 
                     <div class="footer">
-                        <span class="footer-left">94 71 16 24 476</span>
+                        <span class="footer-left">94 77 12 01 570</span>
                         <span class="footer-center">Temporary Access Card • 60 Days</span>
-                        <span class="footer-right">Wariyapola</span>
+                        <span class="footer-right">Vision Kurunegala</span>
                     </div>
                 </div>
 

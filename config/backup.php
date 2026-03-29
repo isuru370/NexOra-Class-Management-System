@@ -22,12 +22,17 @@ return [
             ],
 
             'databases' => [
-                'mysql', // Only connection names as strings
+                'mysql',
             ],
         ],
 
         'database_dump_compressor' => null,
         'database_dump_file_extension' => '',
+
+        // 🔥 FIX FOR COOLIFY MYSQL (SELF-SIGNED SSL)
+        'dump' => [
+            'add_extra_option' => '--ssl-mode=DISABLED',
+        ],
 
         'destination' => [
             'filename_prefix' => '',
@@ -42,7 +47,7 @@ return [
         'encryption' => 'default',
     ],
 
-    // 🔹 Notifications completely disabled
+    // 🔕 Notifications disabled (prevents error you had)
     'notifications' => [
         'notifications' => [],
     ],
