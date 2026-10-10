@@ -32,7 +32,7 @@ class SystemUsersTableSeeder extends Seeder
                 'custom_id' => 'ADM002',
                 'fname' => 'System',
                 'lname' => 'Administrator',
-                'email' => 'admin@nexorait.com',
+                'email' => '',
                 'mobile' => '0719876543',
                 'nic' => '987654321V',
                 'bday' => '1990-05-20',
