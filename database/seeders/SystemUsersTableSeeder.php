@@ -97,16 +97,7 @@ class SystemUsersTableSeeder extends Seeder
         $user = DB::table('users')->where('email', $email)->first();
 
         if (!$user) {
-            $userId = DB::table('users')->insertGetId([
-                'name' => 'System Administrator',
-                'email' => $email,
-                'password' => Hash::make('nexora'), // default password
-                'user_type' => $adminTypeId,
-                'is_active' => true,
-                'email_verified_at' => now(),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            
 
             return (object)['id' => $userId];
         }
